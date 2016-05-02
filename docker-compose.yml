@@ -13,6 +13,8 @@ services:
   db:
     image: "mysql:5"
     environment:
+      XWIKI_VERSION: 7.4.3
+      MYSQL_DRIVER_VERSION: 5.1.38
       MYSQL_ROOT_PASSWORD: xwiki
       MYSQL_USER: xwiki
       MYSQL_PASSWORD: xwiki

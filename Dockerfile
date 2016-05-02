@@ -2,6 +2,9 @@ FROM debian:stable
 
 MAINTAINER Vincent Massol <vincent@massol.net>
 
+ENV XWIKI_VERSION=7.4.3 \
+	MYSQL_DRIVER_VERSION=5.1.38
+
 # Update
 RUN apt-get update
 RUN apt-get -y upgrade
@@ -18,15 +21,15 @@ RUN apt-get -y --force-yes install wget unzip tomcat8 curl libreoffice
 
 # Install XWiki as the ROOT webapp context in Tomcat
 RUN rm -rf /var/lib/tomcat8/webapps/* && \
-  curl -L 'http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-7.4.3.war' -o xwiki.war && \ 
+  curl -L "http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \ 
   unzip -d /var/lib/tomcat8/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
 # Download the MySQL JDBC driver and install it in the XWiki webapp
-RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.38.tar.gz -o mysql-connector-java-5.1.38.tar.gz && \
-  tar xvf mysql-connector-java-5.1.38.tar.gz mysql-connector-java-5.1.38/mysql-connector-java-5.1.38-bin.jar -O > \
-    /var/lib/tomcat8/webapps/ROOT/WEB-INF/lib/mysql-connector-java-5.1.38-bin.jar && \
-  rm -f mysql-connector-java-5.1.38.tar.gz
+RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz -o mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz && \
+  tar xvf mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz mysql-connector-java-${MYSQL_DRIVER_VERSION}/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar -O > \
+    /var/lib/tomcat8/webapps/ROOT/WEB-INF/lib/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar && \
+  rm -f mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz
 
 # Configure the memory for the Tomcat JVM. Default value is too small for XWiki
 COPY setenv.sh /usr/share/tomcat8/bin/
