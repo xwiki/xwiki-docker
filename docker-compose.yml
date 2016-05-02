@@ -1,0 +1,18 @@
+version: '2'
+services:
+  web:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    cap_add:
+      - SYS_PTRACE
+  db:
+    image: "mysql:5"
+    environment:
+      MYSQL_ROOT_PASSWORD: xwiki
+      MYSQL_USER: xwiki
+      MYSQL_PASSWORD: xwiki
+      MYSQL_DATABASE: xwiki
+

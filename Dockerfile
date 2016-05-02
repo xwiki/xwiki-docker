@@ -1,36 +1,45 @@
-FROM debian:wheezy
+FROM debian:stable
 
-MAINTAINER Fabio Mancinelli fabio.mancinelli@xwiki.com
+MAINTAINER Vincent Massol <vincent@massol.net>
 
-# Set the mount points
-VOLUME ["/var/lib/mysql", "/var/lib/xwiki"]
+# Update
+RUN apt-get update
+RUN apt-get -y upgrade
 
-# Install JDK + MySQL + Tomcat7 + XWiki
-RUN (apt-get update && \
-     apt-get install -y openjdk-7-jdk && \
-     apt-get install -y tomcat7 && \
-     echo "mysql-server mysql-server/root_password password your_password" | /usr/bin/debconf-set-selections && \
-     echo "mysql-server mysql-server/root_password_again password your_password" | /usr/bin/debconf-set-selections && \
-     apt-get install -y mysql-server && \
-     apt-get install -y wget && \
-     apt-get install -y unzip && \
-     wget -P /tmp http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-7.0.war && \
-     unzip -d /var/lib/tomcat7/webapps/xwiki /tmp/xwiki-enterprise-web-7.0.war && \
-     wget -P /var/lib/tomcat7/webapps/xwiki/WEB-INF/lib http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.35/mysql-connector-java-5.1.35.jar && \
-     mkdir -p /var/lib/xwiki && \
-     chown tomcat7:tomcat7 /var/lib/xwiki && \
-     mkdir -p /var/lib/tomcat7/bin && \
-     chown tomcat7:tomcat7 /var/lib/tomcat7/bin && \
-     apt-get clean)
+# Install Java8
+#RUN echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee /etc/apt/sources.list.d/webupd8team-java.list && \
+#  echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee -a /etc/apt/sources.list.d/webupd8team-java.list && \
+#  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 && \
+#  apt-get update && \
+#  apt-get -y --force-yes install oracle-java8-installer 
 
-# Inject configuration files
-ADD ["files/hibernate.cfg.xml", "files/xwiki.properties", "/var/lib/tomcat7/webapps/xwiki/WEB-INF/"]
-ADD ["files/start_xwiki.sh", "/"]
+# Install Tomcat + LibreOffice + other tools
+RUN apt-get -y --force-yes install wget unzip tomcat8 curl libreoffice
 
-# Define the startup command
-CMD ["/start_xwiki.sh"]
+# Install XWiki as the ROOT webapp context in Tomcat
+RUN rm -rf /var/lib/tomcat8/webapps/* && \
+  curl -L 'http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-7.4.3.war' -o xwiki.war && \ 
+  unzip -d /var/lib/tomcat8/webapps/ROOT xwiki.war && \
+  rm -f xwiki.war
 
-# Expose port
-EXPOSE 8080
+# Download the MySQL JDBC driver and install it in the XWiki webapp
+RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.38.tar.gz -o mysql-connector-java-5.1.38.tar.gz && \
+  tar xvf mysql-connector-java-5.1.38.tar.gz mysql-connector-java-5.1.38/mysql-connector-java-5.1.38-bin.jar -O > \
+    /var/lib/tomcat8/webapps/ROOT/WEB-INF/lib/mysql-connector-java-5.1.38-bin.jar && \
+  rm -f mysql-connector-java-5.1.38.tar.gz
 
+# Configure the memory for the Tomcat JVM. Default value is too small for XWiki
+COPY setenv.sh /usr/share/tomcat8/bin/
 
+# Setup the XWiki Hibernate configuration
+COPY hibernate.cfg.xml /var/lib/tomcat8/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+
+# Configure the XWiki permanent directory
+RUN mkdir -p /var/lib/xwiki 
+COPY xwiki.properties /var/lib/tomcat8/webapps/ROOT/WEB-INF/xwiki.properties
+
+# Set ownership and permission to the tomcat8 user
+RUN chown -R tomcat8:tomcat8 /var/lib/xwiki /var/lib/tomcat8
+
+# Start Tomcat with the tomcat8 user (created by apt-get tomcat8)
+CMD /etc/init.d/tomcat8 start && read -p "Press a key to continue..."
