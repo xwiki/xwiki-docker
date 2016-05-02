@@ -6,6 +6,9 @@ services:
       - db
     ports:
       - "8080:8080"
+    environment:
+      XWIKI_VERSION: 7.4.3
+      MYSQL_DRIVER_VERSION: 5.1.38
   db:
     image: "mysql:5"
     environment:
