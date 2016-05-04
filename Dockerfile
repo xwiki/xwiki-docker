@@ -33,6 +33,9 @@ COPY hibernate.cfg.xml /var/lib/tomcat8/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 RUN mkdir -p /var/lib/xwiki
 COPY xwiki.properties /var/lib/tomcat8/webapps/ROOT/WEB-INF/xwiki.properties
 
+# Make the XWiki permanent directory no be recreated across runs
+VOLUME /var/lib/xwiki
+
 # Set ownership and permission to the tomcat8 user
 RUN chown -R tomcat8:tomcat8 /var/lib/xwiki /var/lib/tomcat8
 
