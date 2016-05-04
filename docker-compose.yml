@@ -6,10 +6,6 @@ services:
       - db
     ports:
       - "8080:8080"
-    # Without this Tomcat8 won't start as a service
-    # See http://stackoverflow.com/questions/24265354/tomcat7-in-debianwheezy-docker-instance-fails-to-start
-    cap_add:
-      - SYS_PTRACE
   db:
     image: "mysql:5"
     environment:
