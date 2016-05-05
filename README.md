@@ -7,6 +7,8 @@ To use:
 Enjoy!
 
 TODO:
+- setup xinit
 - set utf8 and collation for mysql
 - configure libreoffice
 - solr as external service
+- checl what it takes to be official on dockerhub + compose file on dockerhub?
