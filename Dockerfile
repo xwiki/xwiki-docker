@@ -14,8 +14,8 @@ RUN (apt-get update && \
      apt-get install -y mysql-server && \
      apt-get install -y wget && \
      apt-get install -y unzip && \
-     wget -P /tmp http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-7.0.war && \
-     unzip -d /var/lib/tomcat7/webapps/xwiki /tmp/xwiki-enterprise-web-7.0.war && \
+     wget -P /tmp http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-8.4.1.war && \
+     unzip -d /var/lib/tomcat7/webapps/xwiki /tmp/xwiki-enterprise-web-8.4.1.war && \
      wget -P /var/lib/tomcat7/webapps/xwiki/WEB-INF/lib http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.35/mysql-connector-java-5.1.35.jar && \
      mkdir -p /var/lib/xwiki && \
      chown tomcat7:tomcat7 /var/lib/xwiki && \
