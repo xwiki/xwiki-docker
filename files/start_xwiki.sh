@@ -12,7 +12,7 @@ fi
 
 export CATALINA_HOME=/usr/share/tomcat7
 export CATALINA_BASE=/var/lib/tomcat7
-export CATALINA_OPTS="-Xmx800m -XX:MaxPermSize=192m"
+export CATALINA_OPTS="-Xmx800m -XX:MaxPermSize=192m -Djava.io.tmpdir=/var/tmp/xwiki"
 
 $CATALINA_HOME/bin/catalina.sh run
 

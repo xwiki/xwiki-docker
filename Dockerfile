@@ -1,4 +1,4 @@
-FROM debian:wheezy
+FROM debian:jessie-backports
 
 MAINTAINER Fabio Mancinelli fabio.mancinelli@xwiki.com
 
@@ -6,8 +6,9 @@ MAINTAINER Fabio Mancinelli fabio.mancinelli@xwiki.com
 VOLUME ["/var/lib/mysql", "/var/lib/xwiki"]
 
 # Install JDK + MySQL + Tomcat7 + XWiki
-RUN (apt-get update && \
-     apt-get install -y openjdk-7-jdk && \
+RUN ( \
+     apt-get update && \
+     apt-get install -y openjdk-8-jdk && \
      apt-get install -y tomcat7 && \
      echo "mysql-server mysql-server/root_password password your_password" | /usr/bin/debconf-set-selections && \
      echo "mysql-server mysql-server/root_password_again password your_password" | /usr/bin/debconf-set-selections && \
@@ -18,6 +19,7 @@ RUN (apt-get update && \
      unzip -d /var/lib/tomcat7/webapps/xwiki /tmp/xwiki-enterprise-web-8.4.1.war && \
      wget -P /var/lib/tomcat7/webapps/xwiki/WEB-INF/lib http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.35/mysql-connector-java-5.1.35.jar && \
      mkdir -p /var/lib/xwiki && \
+     mkdir -p /var/tmp/xwiki && \
      chown tomcat7:tomcat7 /var/lib/xwiki && \
      mkdir -p /var/lib/tomcat7/bin && \
      chown tomcat7:tomcat7 /var/lib/tomcat7/bin && \
@@ -32,5 +34,4 @@ CMD ["/start_xwiki.sh"]
 
 # Expose port
 EXPOSE 8080
-
 
