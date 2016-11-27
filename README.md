@@ -1,6 +1,8 @@
 # Introduction
 
-This project contains the Dockerfile for building a container running XWiki 7.0 on Tomcat with MySQL as a database.
+This project contains the Dockerfile for building a container running XWiki 8.4.1 on Tomcat with MySQL as a database, including libreoffice server for Office import and xinit to stop/start the XWiki instance.
+
+The data created in XWiki is persistant in an xwiki-data container.
 
 # Building
 
@@ -10,7 +12,7 @@ Just run `docker build -t xwiki .` and you should have your image ready in your 
 
 Launch quickRun.sh
 
-Once the container is started, you can open a browser and connect to `http://localhost:8080/xwiki`
+Once the container is started, you can open a browser and connect to `http://localhost:8080/`
 
 # Manual Running
 
@@ -26,7 +28,7 @@ docker run --volumes-from xwiki-data -p 8080:8080 xwiki
 Running without a data container will make the data stored in the wiki dissapear when the container is stopped.
 Not specifying the port mapping will make XWiki inaccessible from the host.
 
-Once the container is started, you can open a browser and connect to `http://localhost:8080/xwiki`
+Once the container is started, you can open a browser and connect to `http://localhost:8080/`
 
 # Disclaimer
 
