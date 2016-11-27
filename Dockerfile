@@ -23,6 +23,8 @@ RUN ( \
      cd xinit && \
      ./install.sh --install && \
      chown -R tomcat7:tomcat7 /var/lib/xwiki && \
+     sed "s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/" < /var/lib/tomcat7/webapps/xwiki/META-INF/extension.xed > /var/lib/tomcat7/webapps/xwiki/META-INF/extension2.xed && \
+     mv /var/lib/tomcat7/webapps/xwiki/META-INF/extension2.xed /var/lib/tomcat7/webapps/xwiki/META-INF/extension.xed && \
      apt-get clean)
 
 # Inject configuration files
