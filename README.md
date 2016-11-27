@@ -1,34 +1,34 @@
 # Introduction
 
-This project contains the Dockerfile for building a container running XWiki 7.0 on Tomcat with MySQL as a database.
+This project contains the Dockerfile for building a container running XWiki 8.4.1 on Tomcat with MySQL as a database, including libreoffice server for Office import and xinit to stop/start the XWiki instance.
+
+The data created in XWiki is persistant in an xwiki-data container.
 
 # Building
 
-Just run `docker build .` and you should have your image ready in your docker repository.
+Just run `docker build -t xwiki .` and you should have your image ready in your docker repository.
 
-# Running
+# Automatic Running
 
-When running the container you must specify the following information:
+Launch quickRun.sh
 
-* Where to mount `/var/lib/mysql` for database stored data.
-* Where to mount `/var/lib/xwiki` for XWiki permament data.
-* Where to map port 8080.
+Once the container is started, you can open a browser and connect to `http://localhost:8080/`
 
-Not specifying mount points will make data stored in the wiki disappear when the container is stopped.
+# Manual Running
 
+When running the container you first need to create a data container and then stop it
+
+docker run -it -d --name xwiki-data xwiki
+docker stop xwiki-data
+
+And then run the container specifying the data container for volumes
+
+docker run --volumes-from xwiki-data -p 8080:8080 xwiki
+
+Running without a data container will make the data stored in the wiki dissapear when the container is stopped.
 Not specifying the port mapping will make XWiki inaccessible from the host.
 
-Here it is the command line to use for starting the XWiki container:
-
-    docker run -v HOST_DIR_FOR_XWIKI_DATA:/var/lib/xwiki -v HOST_DIR_FOR_MYSQL_DATA:/var/lib/mysql -p HOST_PORT_FOR_ACCESSING_XWIKI:8080 CONTAINER_ID
-
-Once the container is started, you can open a browser and connect to `http://host:HOST_PORT_FOR_ACCESSING_XWIKI/xwiki`
-
-## Making data dir accessible
-
-In order to make `HOST_DIR_FOR_XWIKI_DATA` and `HOST_DIR_FOR_MYSQL_DATA` accessible by the container, they must be executable and writable by the `tomcat7` (`UID 101`, `GID 102`) and `mysql` (`UID 103`, `GID 104`) container users - which might not exist in your host.
-
-In order to avoid writing problems do a `chown 101:103` on `HOST_DIR_FOR_XWIKI_DATA`, and `chown 102:104` on `HOST_DIR_FOR_MYSQL_DATA`.
+Once the container is started, you can open a browser and connect to `http://localhost:8080/`
 
 # Disclaimer
 
