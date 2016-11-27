@@ -10,10 +10,5 @@ if ! mysql -u root -e "show databases" | grep xwiki; then
   mysql -u root -e "grant all privileges on *.* to xwiki@localhost identified by 'xwiki'"
 fi
 
-export CATALINA_HOME=/usr/share/tomcat7
-export CATALINA_BASE=/var/lib/tomcat7
-export CATALINA_OPTS="-Xmx800m -XX:MaxPermSize=192m -Djava.io.tmpdir=/var/tmp/xwiki"
-
-$CATALINA_HOME/bin/catalina.sh run
-
-
+/etc/init.d/xwiki.sh start
+bash

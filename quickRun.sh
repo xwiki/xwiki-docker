@@ -1,5 +1,5 @@
 #!/bin/sh
-XWIKI_PORT=8080
+XWIKI_PORT=1080
 echo "XWiki will be started at local port $XWIKI_PORT. Edit quickRun.sh to change it"
 echo "Building docker container. This will take some time at first run"
 docker build -t xwiki .
@@ -11,4 +11,4 @@ echo "Stopping data container"
 docker stop xwiki-data
 echo "Starting Container xwiki"
 echo "Visit http://localhost:$XWIKI_PORT after startup"
-docker run --volumes-from xwiki-data -p $XWIKI_PORT:8080 xwiki
+docker run -it --volumes-from xwiki-data -p $XWIKI_PORT:8080 xwiki
