@@ -2,8 +2,12 @@ FROM debian:jessie
 
 MAINTAINER Vincent Massol <vincent@massol.net>
 
+# Note: when using docker-compose, the values are overridden from the .enf file.
 ENV XWIKI_VERSION=8.4.4 \
-    MYSQL_DRIVER_VERSION=5.1.38
+    MYSQL_DRIVER_VERSION=5.1.38 \
+    MYSQL_USER=xwiki \
+    MYSQL_PASSWORD=xwiki \
+    MYSQL_DATABASE=xwiki
 
 # Install Java8 + Tomcat + LibreOffice + other tools
 RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
