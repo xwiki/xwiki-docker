@@ -9,6 +9,8 @@ services:
     environment:
       - XWIKI_VERSION=8.4.4 
       - MYSQL_DRIVER_VERSION=5.1.38
+    volumes:
+      - xwiki-data:/var/lib/xwiki
   db:
     image: "mysql:5"
     volumes:
@@ -21,3 +23,4 @@ services:
       MYSQL_DATABASE: xwiki
 volumes:
   mysql-data: {}
+  xwiki-data: {}
