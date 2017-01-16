@@ -9,6 +9,7 @@ All source files are under the LGPL 2.1 license.
 You should first install [Docker](https://www.docker.com/) on your machine.
 
 Then there are several options:
+
 1. Get the [sources of this project](https://github.com/xwiki-contrib/xwiki-mysql-tomcat) and build them.
 2. Just pull the xwiki image from DockerHub.
 
