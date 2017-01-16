@@ -1,6 +1,9 @@
-Provides a full Docker environment for XWiki made up of the following:
-* A Docker container running the latest MySQL 5.x database and configured to use UTF8 and be case-insensitive
-* A Docker container running the latest Tomcat 8 + Java 8 + XWiki (the version depends on the branch/tag you use)
+Provides several full Docker environments for running XWiki.
+
+The following configurations are currently supported:
+* Two Docker containers with one container for running latest MySQL 5.x database (configured to use UTF8 and be 
+case-insensitive) and another container for running the latest Tomcat 8 + Java 8 + XWiki (the version depends on the 
+branch/tag you use).
 
 All source files are under the LGPL 2.1 license.
 
@@ -10,19 +13,20 @@ You should first install [Docker](https://www.docker.com/) on your machine.
 
 Then there are several options:
 
-1. Get the [sources of this project](https://github.com/xwiki-contrib/xwiki-mysql-tomcat) and build them.
+1. Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
 2. Just pull the xwiki image from DockerHub.
 
 ## Building ##
 
 This is the simplest solution and the one recommended. Here are the steps:
 
-* Install Git and run `git clone https://github.com/xwiki-contrib/xwiki-mysql-tomcat.git` or download the sources from
+* Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from
 the GitHub UI. Then choose the branch or tag that you wish to use:
   * The `master`branch will get you the latest released version of XWiki
   * The `8.x` branch will get you the latest released version of XWiki for the 8.x cycle
   * The `8.4.4` tag will get you exactly XWiki 8.4.4.
   * etc.
+* Go the directory corresponding to the configuration you wish to build, for example: `cd xwiki-mysql-tomcat`.
 * Run `docker-compose up` 
 * Start a browser and point it to `http://localhost:8080`
 
@@ -38,7 +42,7 @@ you can issue `docker-compose up --build`. You can also build the image with
 
 This is a bit more complex since you need to have 2 docker containers running: one for XWiki and one for the database.
 
-Here's a minimal Docker Compose file that you could use as an example (full example
+Here's a minimal Docker Compose file using MySQL that you could use as an example (full example
 [here](https://github.com/xwiki-contrib/xwiki-mysql-tomcat/blob/master/docker-compose-using.yml):
 
 ```
@@ -71,7 +75,7 @@ volumes:
   xwiki-data: {}
 ```
 
-# Details
+# Details for xwiki-mysql-tomcat
 
 Volumes:
 * Two volumes are created:
