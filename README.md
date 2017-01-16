@@ -1,6 +1,6 @@
 Provides a full Docker environment for XWiki made up of the following:
 * A Docker container running the latest MySQL 5.x database and configured to use UTF8 and be case-insensitive
-* A Docker container running the latest Tomcat 8 + Java 8 + XWiki 8.4.4
+* A Docker container running the latest Tomcat 8 + Java 8 + XWiki (the version depends on the branch/tag you use)
 
 All source files are under the LGPL 2.1 license.
 
