@@ -9,6 +9,7 @@ Usage
 
 * Install Docker on your machine
 * Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the content of https://github.com/xwiki-contrib/docker-xwiki
+* Go to the `xwiki-mysql-tomcat` directory: `cd xwiki-mysql-tomcat`
 * Run `docker-compose up`
 
 Details
