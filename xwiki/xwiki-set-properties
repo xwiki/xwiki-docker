@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# $1 - the setting/property to set
+# $2 - the new value
+
+sudo -u tomcat8 xwiki-config-replace.sh /var/lib/tomcat8/webapps/ROOT/WEB-INF/xwiki.properties "$1" "$2"

@@ -1,3 +1,22 @@
+# ---------------------------------------------------------------------------
+# See the NOTICE file distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+# ---------------------------------------------------------------------------
 version: '2'
 services:
   # The container that runs XWiki + Tomcat
@@ -22,7 +41,7 @@ services:
   # The container that runs MySQL
   db:
     image: "mysql:5"
-    # - We provide a xwiki.cfn file in order to configure the mysql db to support UTF8 and be case-insensitive
+    # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
     # See https://hub.docker.com/_/mysql/ for more details.
     # - Provide a name instead of an auto-generated id for the mysql data, to make it simpler to identify in

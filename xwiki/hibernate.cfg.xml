@@ -85,8 +85,8 @@
              you will also have to set the property xwiki.db in xwiki.cfg file
     -->
     <property name="connection.url">jdbc:mysql://db/${MYSQL_DATABASE:-xwiki}?useSSL=false</property>
-    <property name="connection.username">${MYSQL_USER:-xwiki}</property>
-    <property name="connection.password">${MYSQL_PASSWORD:-xwiki}</property>
+    <property name="connection.username">replacemysqluser</property>
+    <property name="connection.password">replacemysqlpassword</property>
     <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
     <property name="dialect">org.hibernate.dialect.MySQL5InnoDBDialect</property>
     <property name="dbcp.poolPreparedStatements">true</property>
