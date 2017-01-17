@@ -66,7 +66,6 @@ services:
     environment:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
-      - MYSQL_DATABASE=xwiki
   db:
     image: "mysql:5"
     volumes:
@@ -83,6 +82,16 @@ volumes:
 ```
 
 # Details for xwiki-mysql-tomcat
+
+## Configuration Options
+
+The first time you create a container out of the xwiki image, a shell script (/usr/local/bin/start_xwiki.sh`) is 
+executed in the container to setup some configuration. The following environment variables can be passed:
+
+* `MYSQL_USER`: The MySQL user name used by XWiki to read/write to the DB.
+* `MYSQL_PASSWORD`: The MySQL user password used by XWiki to read/write to the DB.
+
+## Miscellaneous
 
 Volumes:
 * Two volumes are created:
