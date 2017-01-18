@@ -101,4 +101,5 @@ ENTRYPOINT ["start_xwiki.sh"]
 
 # When no options are passed on the "docker run" command line we display a message explaining what environment
 # variables can be overridden.
+# Note: This is not implemented yet and FTM --info does nothing.
 CMD ["--info"]
