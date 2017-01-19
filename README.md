@@ -106,11 +106,14 @@ MySQL:
  * Execute bash in the mysql container: `docker exec -it <containerid> bash -l`
  * Once inside the mysql container execute the `mysql` command: `mysql --user=xwiki --password=xwiki`
 
-# Future
+# Support
 
-* Setup xinit
-* Configure libreoffice
-* Solr as external service
+* If you wish to raise an issue or an idea of improvement use [XWiki Docker JIRA project](http://jira.xwiki.org/browse/XDOCKER)
+* If you have questions, use the [XWiki Users Mailing List/Forum](http://dev.xwiki.org/xwiki/bin/view/Community/MailingLists)
+
+# Contribute
+
+* If you wish to help out on the code, please send Pull Requests on [XWiki Docker GitHub project](https://github.com/xwiki-contrib/docker-xwiki)
 
 # Credits
 
