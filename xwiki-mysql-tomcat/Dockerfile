@@ -32,7 +32,15 @@ ENV XWIKI_VERSION=8.4.4 \
 RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
   apt-get update && \
   apt-get -y upgrade && \
-  apt-get -y --force-yes install sudo nano unzip curl openjdk-8-jdk tomcat8 libreoffice
+  apt-get -y --force-yes \
+    curl \
+    install \
+    libreoffice \
+    nano \
+    openjdk-8-jdk \
+    sudo \
+    tomcat8 \
+    unzip
 
 # Install XWiki as the ROOT webapp context in Tomcat
 RUN rm -rf /var/lib/tomcat8/webapps/* && \
