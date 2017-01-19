@@ -32,9 +32,8 @@ ENV XWIKI_VERSION=8.4.4 \
 RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
   apt-get update && \
   apt-get -y upgrade && \
-  apt-get -y --force-yes \
+  apt-get -y --force-yes install \
     curl \
-    install \
     libreoffice \
     nano \
     openjdk-8-jdk \
