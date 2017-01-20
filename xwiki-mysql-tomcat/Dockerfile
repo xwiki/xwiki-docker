@@ -47,10 +47,10 @@ RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/so
 # Configure the XWiki permanent directory
 RUN rm -rf /var/lib/tomcat8/webapps/* && \
   mkdir -p /var/lib/tomcat8/temp && \
-  mkdir -p /var/lib/xwiki && \
+  mkdir -p /var/lib/xwiki/data && \
   curl -L "http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \ 
   unzip -d /var/lib/tomcat8/webapps/ROOT xwiki.war && \
-  chown -R tomcat8:tomcat8 /var/lib/tomcat8 /var/lib/xwiki && \
+  chown -R tomcat8:tomcat8 /var/lib/tomcat8 /var/lib/xwiki/data && \
   rm -f xwiki.war
 
 # Download the MySQL JDBC driver and install it in the XWiki webapp
@@ -80,7 +80,8 @@ COPY xwiki/start_xwiki.sh /usr/local/bin/start_xwiki.sh
 RUN chmod 0755 /usr/local/bin/xwiki-config-replace.sh /usr/local/bin/xwiki-set-cfg /usr/local/bin/xwiki-set-properties \
   /usr/local/bin/start_xwiki.sh
 
-# Make the XWiki permanent directory persist on the host (so that it's not recreated across runs)
+# Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
+# across runs)
 VOLUME /var/lib/xwiki
 
 # Expose the Tomcat port

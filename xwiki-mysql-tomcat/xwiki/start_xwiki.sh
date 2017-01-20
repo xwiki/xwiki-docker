@@ -19,7 +19,7 @@ function configure() {
   xwiki-set-cfg 'xwiki.authentication.encryptionKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
 
   echo '  Setting permanent directory...'
-  xwiki-set-properties 'environment.permanentDirectory' '/var/lib/xwiki'
+  xwiki-set-properties 'environment.permanentDirectory' '/var/lib/xwiki/data'
   echo '  Configure libreoffice...'
   xwiki-set-properties 'openoffice.autoStart' 'true'
 }

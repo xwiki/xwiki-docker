@@ -34,8 +34,8 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
-    # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
-    # to make it simpler to identify in 'docker volume ls'.
+    # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
+    # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
       - xwiki-data:/var/lib/xwiki
   # The container that runs MySQL
