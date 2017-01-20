@@ -20,6 +20,8 @@ function configure() {
 
   echo '  Setting permanent directory...'
   xwiki-set-properties 'environment.permanentDirectory' '/var/lib/xwiki'
+  echo '  Configure libreoffice...'
+  xwiki-set-properties 'openoffice.autoStart' 'true'
 }
 
 if [[ ! -f /var/lib/tomcat/.first_start_completed ]]; then

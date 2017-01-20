@@ -32,7 +32,14 @@ ENV XWIKI_VERSION=8.4.4 \
 RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
   apt-get update && \
   apt-get -y upgrade && \
-  apt-get --no-install-recommends -y --force-yes install sudo nano unzip curl openjdk-8-jdk tomcat8 libreoffice && \
+  apt-get --no-install-recommends -y --force-yes install \
+    curl \
+    libreoffice \
+    nano \
+    openjdk-8-jdk \
+    sudo \
+    tomcat8 \
+    unzip && \
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
@@ -97,4 +104,5 @@ ENTRYPOINT ["start_xwiki.sh"]
 
 # When no options are passed on the "docker run" command line we display a message explaining what environment
 # variables can be overridden.
+# Note: This is not implemented yet and FTM --info does nothing.
 CMD ["--info"]
