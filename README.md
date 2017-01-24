@@ -50,7 +50,7 @@ you can issue `docker-compose up --build`. You can also build the image with
 This is a bit more complex since you need to have 2 docker containers running: one for XWiki and one for the database.
 
 Here's a minimal Docker Compose file using MySQL that you could use as an example (full example
-[here](https://github.com/xwiki-contrib/xwiki-mysql-tomcat/blob/master/docker-compose-using.yml):
+[here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml)):
 
 ```
 version: '2'
