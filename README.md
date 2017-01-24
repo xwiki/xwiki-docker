@@ -30,8 +30,10 @@ You need to run 2 containers:
 * One for the database image to which XWiki connects to
 
 The simplest is to use the Docker Compose file we provide. Run the following steps:
-* `wget https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml`
-  * if you're not using the `latest`tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://github.com/xwiki-contrib/docker-xwiki/blob/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
+* `wget wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml
+`
+  * if you're not using the `latest`tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
+  * You can edit the compose file retrieved to change the default username/password and other environment variables.
 * `docker-compose up`
 
 For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example
