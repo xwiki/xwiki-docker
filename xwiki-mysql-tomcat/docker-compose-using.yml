@@ -27,12 +27,11 @@ services:
       - db
     ports:
       - "8080:8080"
-    # Default values defined in .env file.
     # The MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE variables are used in the hibernate.cfg.xml file.
     environment:
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
     # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
     # to make it simpler to identify in 'docker volume ls'.
     volumes:
@@ -50,12 +49,11 @@ services:
       - mysql-data:/var/lib/mysql
     # Configure the MySQL database and create a user with provided name/password.
     # See https://hub.docker.com/_/mysql/ for more details.
-    # Default values defined in .env file.
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=xwiki
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
 volumes:
   mysql-data: {}
   xwiki-data: {}
