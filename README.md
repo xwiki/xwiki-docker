@@ -23,33 +23,18 @@ Then there are several options:
 1. Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
 2. Just pull the xwiki image from DockerHub.
 
-## Building ##
-
-This is the simplest solution and the one recommended. Here are the steps:
-
-* Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from
-the GitHub UI. Then choose the branch or tag that you wish to use:
-  * The `master`branch will get you the latest released version of XWiki
-  * The `8.x` branch will get you the latest released version of XWiki for the 8.x cycle
-  * The `8.4.4` tag will get you exactly XWiki 8.4.4.
-  * etc.
-* Go the directory corresponding to the configuration you wish to build, for example: `cd xwiki-mysql-tomcat`.
-* Run `docker-compose up` 
-* Start a browser and point it to `http://localhost:8080`
-
-Note that if you want to set a custom version of XWiki you can checkout `master` and edit the `env` file and set the 
-values you need in there. It's also possible to override them on the command line with 
-`docker-compose run -e "XWIKI_VERSION=8.4.4"`.
-
-Note that `docker-compose up` will automatically build the XWiki image on the first run. If you need to rebuild it 
-you can issue `docker-compose up --build`. You can also build the image with
-`docker build . -t xwiki-mysql-tomcat:latest` for example.
-
 ## Pulling existing image ##
 
-This is a bit more complex since you need to have 2 docker containers running: one for XWiki and one for the database.
+You need to run 2 containers:
+* One for the XWiki image
+* One for the database image to which XWiki connects to
 
-Here's a minimal Docker Compose file using MySQL that you could use as an example (full example
+The simplest is to use the Docker Compose file we provide. Run the following steps:
+* `wget https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml`
+  * if you're not using the `latest`tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://github.com/xwiki-contrib/docker-xwiki/blob/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
+* `docker-compose up`
+
+For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example
 [here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml)):
 
 ```
@@ -80,6 +65,28 @@ volumes:
   mysql-data: {}
   xwiki-data: {}
 ```
+
+## Building ##
+
+This allows you to rebuild the XWiki docker image locally. Here are the steps:
+
+* Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from
+the GitHub UI. Then choose the branch or tag that you wish to use:
+  * The `master`branch will get you the latest released version of XWiki
+  * The `8.x` branch will get you the latest released version of XWiki for the 8.x cycle
+  * The `8.4.4` tag will get you exactly XWiki 8.4.4.
+  * etc.
+* Go the directory corresponding to the configuration you wish to build, for example: `cd xwiki-mysql-tomcat`.
+* Run `docker-compose up` 
+* Start a browser and point it to `http://localhost:8080`
+
+Note that if you want to set a custom version of XWiki you can checkout `master` and edit the `env` file and set the 
+values you need in there. It's also possible to override them on the command line with 
+`docker-compose run -e "XWIKI_VERSION=8.4.4"`.
+
+Note that `docker-compose up` will automatically build the XWiki image on the first run. If you need to rebuild it 
+you can issue `docker-compose up --build`. You can also build the image with
+`docker build . -t xwiki-mysql-tomcat:latest` for example.
 
 # Details for xwiki-mysql-tomcat
 
