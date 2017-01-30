@@ -21,12 +21,7 @@ FROM debian:jessie
 
 MAINTAINER Vincent Massol <vincent@massol.net>
 
-# Note: when using docker-compose, these values are overridden from the .env file.
-ENV XWIKI_VERSION=8.4.4 \
-    MYSQL_DRIVER_VERSION=5.1.38 \
-    MYSQL_USER=xwiki \
-    MYSQL_PASSWORD=xwiki \
-    MYSQL_DATABASE=xwiki
+# Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
 # Install Java8 + Tomcat + LibreOffice + other tools
 RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
@@ -45,6 +40,7 @@ RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/so
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
+ENV XWIKI_VERSION=8.4.4
 RUN rm -rf /var/lib/tomcat8/webapps/* && \
   mkdir -p /var/lib/tomcat8/temp && \
   mkdir -p /var/lib/xwiki/data && \
@@ -54,6 +50,7 @@ RUN rm -rf /var/lib/tomcat8/webapps/* && \
   rm -f xwiki.war
 
 # Download the MySQL JDBC driver and install it in the XWiki webapp
+ENV MYSQL_DRIVER_VERSION=5.1.38
 RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz \
     -o mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz && \
   tar xvf mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz \
@@ -65,6 +62,7 @@ RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java
 COPY tomcat/setenv.sh /usr/share/tomcat8/bin/
 
 # Setup the XWiki Hibernate configuration
+ENV MYSQL_DATABASE=xwiki
 COPY xwiki/hibernate.cfg.xml /var/lib/tomcat8/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
@@ -101,6 +99,8 @@ EXPOSE 8080
 # Starts XWiki by starting Tomcat. All options passed to "docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]"
 # are also passed to start_xwiki.sh. However at the moment start_xwiki.sh doesn't support any parameters and all
 # configurations are done through environment variable overrides (see above).
+ENV MYSQL_USER=xwiki \
+    MYSQL_PASSWORD=xwiki \
 ENTRYPOINT ["start_xwiki.sh"]
 
 # When no options are passed on the "docker run" command line we display a message explaining what environment
