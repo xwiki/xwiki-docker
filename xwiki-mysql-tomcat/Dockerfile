@@ -65,12 +65,12 @@ RUN sed "s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterpris
   mv /usr/local/tomcat/webapps/ROOT/META-INF/extension2.xed /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
+# Note: we don't run CHMOD since 1) it's not required since the executabe bit is already set in git and 2) running
+# CHMOD after a COPY will sometimes fail, depending on different host-specific factors (especially on AUFS).
 COPY xwiki/xwiki-config-replace.sh /usr/local/bin/xwiki-config-replace.sh
 COPY xwiki/xwiki-set-cfg /usr/local/bin/xwiki-set-cfg
 COPY xwiki/xwiki-set-properties /usr/local/bin/xwiki-set-properties
 COPY xwiki/start_xwiki.sh /usr/local/bin/start_xwiki.sh
-RUN chmod 0755 /usr/local/bin/xwiki-config-replace.sh /usr/local/bin/xwiki-set-cfg /usr/local/bin/xwiki-set-properties \
-  /usr/local/bin/start_xwiki.sh
 
 # Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
 # across runs)
