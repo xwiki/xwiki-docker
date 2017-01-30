@@ -70,7 +70,7 @@ RUN sed "s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterpris
 COPY xwiki/xwiki-config-replace.sh /usr/local/bin/xwiki-config-replace.sh
 COPY xwiki/xwiki-set-cfg /usr/local/bin/xwiki-set-cfg
 COPY xwiki/xwiki-set-properties /usr/local/bin/xwiki-set-properties
-COPY xwiki/start_xwiki.sh /usr/local/bin/start_xwiki.sh
+COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
 # across runs)
@@ -91,13 +91,10 @@ EXPOSE 8080
 #   docker run -it -e "MYSQL_USER=xwiki" -e "MYSQL_PASSWORD=xwiki" <imagename>
 
 # Starts XWiki by starting Tomcat. All options passed to "docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]"
-# are also passed to start_xwiki.sh. However at the moment start_xwiki.sh doesn't support any parameters and all
-# configurations are done through environment variable overrides (see above).
+# are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the
+# container executes and Tomcat will be started. If some other parameter is passed then it'll be executed to comply
+# with best practices defined at https://github.com/docker-library/official-images#consistency.
 ENV MYSQL_USER=xwiki \
     MYSQL_PASSWORD=xwiki
-ENTRYPOINT ["start_xwiki.sh"]
-
-# When no options are passed on the "docker run" command line we display a message explaining what environment
-# variables can be overridden.
-# Note: This is not implemented yet and FTM --info does nothing.
-CMD ["--info"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["xwiki"]
