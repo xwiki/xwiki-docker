@@ -3,4 +3,4 @@
 # $1 - the setting/property to set
 # $2 - the new value
 
-sudo -u tomcat8 xwiki-config-replace.sh /var/lib/tomcat8/webapps/ROOT/WEB-INF/xwiki.cfg "$1" "$2"
+xwiki-config-replace.sh /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg "$1" "$2"

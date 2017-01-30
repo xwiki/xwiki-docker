@@ -17,23 +17,18 @@
 # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
-FROM debian:jessie
+FROM tomcat:8-jre8
 
 MAINTAINER Vincent Massol <vincent@massol.net>
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
-# Install Java8 + Tomcat + LibreOffice + other tools
-RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list && \
-  apt-get update && \
+# Install LibreOffice + other tools
+RUN apt-get update && \
   apt-get -y upgrade && \
   apt-get --no-install-recommends -y --force-yes install \
     curl \
     libreoffice \
-    nano \
-    openjdk-8-jdk \
-    sudo \
-    tomcat8 \
     unzip && \
   rm -rf /var/lib/apt/lists/*
 
@@ -41,12 +36,11 @@ RUN echo "deb http://http.debian.net/debian jessie-backports main" > /etc/apt/so
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
 ENV XWIKI_VERSION=8.4.4
-RUN rm -rf /var/lib/tomcat8/webapps/* && \
-  mkdir -p /var/lib/tomcat8/temp && \
-  mkdir -p /var/lib/xwiki/data && \
+RUN rm -rf /usr/local/tomcat/webapps/* && \
+  mkdir -p /usr/local/tomcat/temp && \
+  mkdir -p /usr/local/xwiki/data && \
   curl -L "http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \ 
-  unzip -d /var/lib/tomcat8/webapps/ROOT xwiki.war && \
-  chown -R tomcat8:tomcat8 /var/lib/tomcat8 /var/lib/xwiki/data && \
+  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
 # Download the MySQL JDBC driver and install it in the XWiki webapp
@@ -55,20 +49,20 @@ RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java
     -o mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz && \
   tar xvf mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz \
     mysql-connector-java-${MYSQL_DRIVER_VERSION}/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar -O > \
-    /var/lib/tomcat8/webapps/ROOT/WEB-INF/lib/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar && \
+    /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar && \
   rm -f mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
-COPY tomcat/setenv.sh /usr/share/tomcat8/bin/
+COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 
 # Setup the XWiki Hibernate configuration
 ENV MYSQL_DATABASE=xwiki
-COPY xwiki/hibernate.cfg.xml /var/lib/tomcat8/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
 RUN sed "s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/" \
-    < /var/lib/tomcat8/webapps/ROOT/META-INF/extension.xed > /var/lib/tomcat8/webapps/ROOT/META-INF/extension2.xed && \
-  mv /var/lib/tomcat8/webapps/ROOT/META-INF/extension2.xed /var/lib/tomcat8/webapps/ROOT/META-INF/extension.xed
+    < /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed > /usr/local/tomcat/webapps/ROOT/META-INF/extension2.xed && \
+  mv /usr/local/tomcat/webapps/ROOT/META-INF/extension2.xed /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
 COPY xwiki/xwiki-config-replace.sh /usr/local/bin/xwiki-config-replace.sh
@@ -100,7 +94,7 @@ EXPOSE 8080
 # are also passed to start_xwiki.sh. However at the moment start_xwiki.sh doesn't support any parameters and all
 # configurations are done through environment variable overrides (see above).
 ENV MYSQL_USER=xwiki \
-    MYSQL_PASSWORD=xwiki \
+    MYSQL_PASSWORD=xwiki
 ENTRYPOINT ["start_xwiki.sh"]
 
 # When no options are passed on the "docker run" command line we display a message explaining what environment
