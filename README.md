@@ -7,6 +7,8 @@ branch/tag you use).
 
 All source files are under the LGPL 2.1 license.
 
+[![](https://images.microbadger.com/badges/version/xwiki/xwiki-mysql-tomcat.svg)](https://microbadger.com/images/xwiki/xwiki-mysql-tomcat) [![](https://images.microbadger.com/badges/image/xwiki/xwiki-mysql-tomcat.svg)](https://microbadger.com/images/xwiki/xwiki-mysql-tomcat)
+
 # Assumptions
 
 The goal is to provide a production-ready XWiki system running in Docker. This why:
