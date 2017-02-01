@@ -25,32 +25,29 @@ MAINTAINER Vincent Massol <vincent@massol.net>
 
 # Install LibreOffice + other tools
 RUN apt-get update && \
-  apt-get -y upgrade && \
-  apt-get --no-install-recommends -y --force-yes install \
+  apt-get --no-install-recommends -y install \
     curl \
     libreoffice \
-    unzip && \
+    unzip \
+    libmysql-java && \
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
 ENV XWIKI_VERSION=8.4.4
+ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
+ENV XWIKI_DOWNLOAD_SHA256 b414edb4527e3d8b27c40a8c3f2f09423980de7963207b7dc89da71d14e7fb23
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \
-  curl -L "http://download.forge.ow2.org/xwiki/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \ 
+  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \
+  echo "$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
-# Download the MySQL JDBC driver and install it in the XWiki webapp
-ENV MYSQL_DRIVER_VERSION=5.1.38
-RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz \
-    -o mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz && \
-  tar xvf mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz \
-    mysql-connector-java-${MYSQL_DRIVER_VERSION}/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar -O > \
-    /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/mysql-connector-java-${MYSQL_DRIVER_VERSION}-bin.jar && \
-  rm -f mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz
+# Copy the MySQL JDBC driver in the XWiki webapp
+RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
@@ -60,24 +57,17 @@ ENV MYSQL_DATABASE=xwiki
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
-RUN sed "s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/" \
-    < /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed > /usr/local/tomcat/webapps/ROOT/META-INF/extension2.xed && \
-  mv /usr/local/tomcat/webapps/ROOT/META-INF/extension2.xed /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
+RUN sed -i 's/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/' \
+    /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
 # Note: we don't run CHMOD since 1) it's not required since the executabe bit is already set in git and 2) running
 # CHMOD after a COPY will sometimes fail, depending on different host-specific factors (especially on AUFS).
-COPY xwiki/xwiki-config-replace.sh /usr/local/bin/xwiki-config-replace.sh
-COPY xwiki/xwiki-set-cfg /usr/local/bin/xwiki-set-cfg
-COPY xwiki/xwiki-set-properties /usr/local/bin/xwiki-set-properties
 COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
 # across runs)
 VOLUME /var/lib/xwiki
-
-# Expose the Tomcat port
-EXPOSE 8080
 
 # At this point the image is done and what remains below are the runtime configuration used by the user to configure
 # the container that will be created out of the image. Namely the user can override some environment variables with

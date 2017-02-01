@@ -26,23 +26,42 @@ function first_start() {
   touch /usr/local/xwiki/.first_start_completed
 }
 
+# $1 - the path to xwiki.[cfg|properties]
+# $2 - the setting/property to set
+# $3 - the new value
+function xwiki_replace() {
+  sed -i s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1"
+}
+
+# $1 - the setting/property to set
+# $2 - the new value
+function xwiki_set_cfg() {
+  xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg "$1" "$2"
+}
+
+# $1 - the setting/property to set
+# $2 - the new value
+function xwiki_set_properties() {
+  xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties "$1" "$2"
+}
+
 function configure() {
   echo 'Configuring XWiki...'
   sed -i "s/replacemysqluser/${MYSQL_USERNAME:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   sed -i "s/replacemysqlpassword/${MYSQL_PASSWORD:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
   echo '  Using filesystem-based attachments...'
-  xwiki-set-cfg 'xwiki.store.attachment.hint' 'file'
-  xwiki-set-cfg 'xwiki.store.attachment.versioning.hint' 'file'
-  xwiki-set-cfg 'xwiki.store.attachment.recyclebin.hint' 'file'
+  xwiki_set_cfg 'xwiki.store.attachment.hint' 'file'
+  xwiki_set_cfg 'xwiki.store.attachment.versioning.hint' 'file'
+  xwiki_set_cfg 'xwiki.store.attachment.recyclebin.hint' 'file'
   echo '  Generating authentication validation and encryption keys...'
-  xwiki-set-cfg 'xwiki.authentication.validationKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
-  xwiki-set-cfg 'xwiki.authentication.encryptionKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
+  xwiki_set_cfg 'xwiki.authentication.validationKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
+  xwiki_set_cfg 'xwiki.authentication.encryptionKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
 
   echo '  Setting permanent directory...'
-  xwiki-set-properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
+  xwiki_set_properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
   echo '  Configure libreoffice...'
-  xwiki-set-properties 'openoffice.autoStart' 'true'
+  xwiki_set_properties 'openoffice.autoStart' 'true'
 }
 
 # This if will check if the first argument is a flag but only works if all arguments require a hyphenated flag
@@ -56,7 +75,8 @@ if [ "$1" = 'xwiki' ]; then
   if [[ ! -f /usr/local/xwiki/.first_start_completed ]]; then
     first_start
   fi
-  /usr/local/tomcat/bin/catalina.sh run
+  shift
+  set -- catalina.sh run "$@"
 fi
 
 # Else default to run whatever the user wanted like "bash"
