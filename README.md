@@ -11,8 +11,9 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 # Introduction
 
 The goal is to provide a production-ready XWiki system running in Docker. This is why:
-- The OS is based on Debian and not on some smaller-footprint distribution like Alpine
-- Several containers are used with Docker Compose: one for the DB and another for XWiki + Servlet container. This allows the ability to run them on different machines for example. 
+
+-	The OS is based on Debian and not on some smaller-footprint distribution like Alpine
+-	Several containers are used with Docker Compose: one for the DB and another for XWiki + Servlet container. This allows the ability to run them on different machines for example. 
 
 # How to use this image
 
@@ -22,20 +23,21 @@ You should first install [Docker](https://www.docker.com/) on your machine.
 
 Then there are several options:
 
-1.  Pull the xwiki image from DockerHub.
-2.  Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
+1.	Pull the xwiki image from DockerHub.
+2.	Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
 
 ## Pulling existing image
 
 You need to run 2 containers:
-- One for the XWiki image
-- One for the database image to which XWiki connects to
+
+-	One for the XWiki image
+-	One for the database image to which XWiki connects to
 
 ### Using docker run
 
 Start by running a MySQL container and ensure you configure MySQL to use UTF8. The command below will also configure the MySQL container to save its data on your localhost in a `/my/own/mysql` directory: 
 
-```
+```console
 docker run --name mysql-xwiki -v /my/own/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1 
 ```
 
@@ -43,7 +45,7 @@ You should adapt the command line to use the passwords that you wish for the MyS
 
 Then run XWiki in another container by issuing the following command:
 
-```
+```console
 docker run --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki --link mysql-xwiki:db xwiki:mysql-tomcat
 ```
 
@@ -52,17 +54,16 @@ Be careful to use the same MySQL username, password and database names that you'
 ### Using docker-compose
 
 Another solution is to use the Docker Compose file we provide. Run the following steps:
-- `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
-  - If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
-  - If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/mysql/xwiki.cnf`
-- `wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml`
-  - If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml -o docker-compose.yml`
-  - If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
-- You can edit the compose file retrieved to change the default username/password and other environment variables.
-- `docker-compose up`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
+	-	If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/mysql/xwiki.cnf`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml -o docker-compose.yml`
+	-	If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
+-	You can edit the compose file retrieved to change the default username/password and other environment variables.
+-	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example
-[here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml)):
+For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/xwiki-mysql-tomcat/docker-compose-using.yml)):
 
 ```yaml
 version: '2'
