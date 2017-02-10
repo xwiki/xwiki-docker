@@ -44,7 +44,7 @@ For reference here's a minimal Docker Compose file using MySQL that you could us
 version: '2'
 services:
   web:
-    image: "xwiki/xwiki-mysql-tomcat:latest"
+    image: "xwiki:mysql-tomcat"
     depends_on:
       - db
     ports:
@@ -55,7 +55,7 @@ services:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
   db:
-    image: "mysql:5"
+    image: "mysql:5.7"
     volumes:
       - ./mysql/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mysql-data:/var/lib/mysql
