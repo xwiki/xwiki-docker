@@ -22,7 +22,7 @@ services:
   # The container that runs XWiki + Tomcat
   web:
     # Use an already built XWiki image from DockerHub.
-    image: "xwiki/xwiki-mysql-tomcat:latest"
+    image: "xwiki:mysql-tomcat"
     depends_on:
       - db
     ports:
