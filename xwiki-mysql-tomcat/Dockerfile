@@ -67,7 +67,7 @@ COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
 # across runs)
-VOLUME /var/lib/xwiki
+VOLUME /usr/local/xwiki
 
 # At this point the image is done and what remains below are the runtime configuration used by the user to configure
 # the container that will be created out of the image. Namely the user can override some environment variables with
