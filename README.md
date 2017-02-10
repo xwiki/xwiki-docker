@@ -53,8 +53,10 @@ Be careful to use the same MySQL username, password and database names that you'
 
 Another solution is to use the Docker Compose file we provide. Run the following steps:
 - `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
+  - If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
   - If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/mysql/xwiki.cnf`
 - `wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml`
+  - If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/xwiki-mysql-tomcat/docker-compose-using.yml -o docker-compose.yml`
   - If you're not using the `latest` tag then use the corresponding GitHub branch/tag. For example for the `8.x` branch: `wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/8.x/xwiki-mysql-tomcat/docker-compose-using.yml`
 - You can edit the compose file retrieved to change the default username/password and other environment variables.
 - `docker-compose up`
