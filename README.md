@@ -17,8 +17,6 @@ The goal is to provide a production-ready XWiki system running in Docker. This i
 
 # How to use this image
 
-[![](https://images.microbadger.com/badges/version/xwiki/xwiki-mysql-tomcat.svg)](https://microbadger.com/images/xwiki/xwiki-mysql-tomcat) [![](https://images.microbadger.com/badges/image/xwiki/xwiki-mysql-tomcat.svg)](https://microbadger.com/images/xwiki/xwiki-mysql-tomcat)
-
 You should first install [Docker](https://www.docker.com/) on your machine.
 
 Then there are several options:
