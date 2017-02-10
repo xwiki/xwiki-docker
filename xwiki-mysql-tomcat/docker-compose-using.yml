@@ -35,17 +35,17 @@ services:
     # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
     # to make it simpler to identify in 'docker volume ls'.
     volumes:
-      - xwiki-data:/var/lib/xwiki
+      - xwiki-data:/usr/local/xwiki
   # The container that runs MySQL
   db:
-    image: "mysql:5"
+    image: "mysql:5.7"
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
     # See https://hub.docker.com/_/mysql/ for more details.
     # - Provide a name instead of an auto-generated id for the mysql data, to make it simpler to identify in
     # 'docker volume ls'
     volumes:
-      - ./mysql/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
+      - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mysql-data:/var/lib/mysql
     # Configure the MySQL database and create a user with provided name/password.
     # See https://hub.docker.com/_/mysql/ for more details.
