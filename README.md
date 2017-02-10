@@ -73,11 +73,11 @@ services:
       - db
     ports:
       - "8080:8080"
-    volumes:
-      - xwiki-data:/usr/local/xwiki
     environment:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
+    volumes:
+      - xwiki-data:/usr/local/xwiki
   db:
     image: "mysql:5.7"
     volumes:
