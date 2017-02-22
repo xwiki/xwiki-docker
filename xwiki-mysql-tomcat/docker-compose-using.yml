@@ -18,11 +18,14 @@
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
 version: '2'
+networks:
+  xwiki-nw:
+    driver: bridge
 services:
-  # The container that runs XWiki + Tomcat
   web:
     # Use an already built XWiki image from DockerHub.
     image: "xwiki:mysql-tomcat"
+    container_name: xwiki
     depends_on:
       - db
     ports:
@@ -31,13 +34,17 @@ services:
     environment:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
+      - DB_CONTAINER_NAME=xwiki-mysql
     # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
     # to make it simpler to identify in 'docker volume ls'.
     volumes:
       - xwiki-data:/usr/local/xwiki
+    networks:
+      - xwiki-nw
   # The container that runs MySQL
   db:
     image: "mysql:5.7"
+    container_name: xwiki-mysql
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
     # See https://hub.docker.com/_/mysql/ for more details.
@@ -53,6 +60,8 @@ services:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
+    networks:
+      - xwiki-nw
 volumes:
   mysql-data: {}
   xwiki-data: {}
