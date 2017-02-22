@@ -50,10 +50,15 @@ You should adapt the command line to use the passwords that you wish for the MyS
 Then run XWiki in another container by issuing the following command:
 
 ```console
-docker run -d --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -e MYSQL_CONTAINER_NAME=mysql-xwiki xwiki:mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -e DB_CONTAINER_NAME=mysql-xwiki xwiki:mysql-tomcat
 ```
 
-Be careful to use the same MySQL username, password and database names that you've used on the first command to start the MySQL container. Also, please don't forget to add a '-e MYSQL_CONTAINER_NAME=' env variable with the name of the previously created MySQL container so that tomcat knows where its database is.
+Be careful to use the same MySQL username, password and database names that you've used on the first command to start the MySQL container. Also, please don't forget to add a '-e DB_CONTAINER_NAME=' env variable with the name of the previously created MySQL container so that XWiki knows where its database is.
+
+At this point, XWiki should start in interactive mode. Should you wish to run it in "detached mode", just add a "-d" flag in the previous command.
+```console
+docker run -d --net=xwiki-nw ...
+```
 
 ### Using docker-compose
 
