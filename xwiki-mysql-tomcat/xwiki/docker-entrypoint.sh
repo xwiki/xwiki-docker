@@ -49,7 +49,7 @@ function configure() {
   echo 'Configuring XWiki...'
   sed -i "s/replacemysqluser/${MYSQL_USER:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   sed -i "s/replacemysqlpassword/${MYSQL_PASSWORD:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  sed -i "s/replacemysqlcontainername/${MYSQL_CONTAINER_NAME:-db}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  sed -i "s/replacemysqlcontainername/${DB_CONTAINER_NAME:-db}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   sed -i "s/replacemysqldatabase/${MYSQL_DATABASE:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
   echo '  Using filesystem-based attachments...'
