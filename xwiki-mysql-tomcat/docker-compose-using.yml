@@ -19,7 +19,7 @@
 # ---------------------------------------------------------------------------
 version: '2'
 networks:
-  xwiki-nw:
+  bridge:
     driver: bridge
 services:
   web:
@@ -40,7 +40,7 @@ services:
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
-      - xwiki-nw
+      - bridge
   # The container that runs MySQL
   db:
     image: "mysql:5.7"
@@ -61,7 +61,7 @@ services:
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
     networks:
-      - xwiki-nw
+      - bridge
 volumes:
   mysql-data: {}
   xwiki-data: {}
