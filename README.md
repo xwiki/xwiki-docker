@@ -152,7 +152,7 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 
 -	If you wish to help out on the code, please send Pull Requests on [XWiki Docker GitHub project](https://github.com/xwiki-contrib/docker-xwiki)
 -	Note that changes need to be merged to all other branches where they make sense and if they make sense for existing tags, those tags must be deleted and recreated.
--	In addition, whenever a branch or tag is modified, a Pull Request on the [DockerHub XWiki official image](https://github.com/vmassol/official-images/blob/master/library/xwiki) must be made 
+-	In addition, whenever a branch or tag is modified, a Pull Request on the [DockerHub XWiki official image](https://github.com/docker-library/official-images/blob/master/library/xwiki) must be made 
 
 # Credits
 
