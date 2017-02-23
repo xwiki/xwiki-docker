@@ -96,10 +96,9 @@ volumes:
 
 This allows you to rebuild the XWiki docker image locally. Here are the steps:
 
--	Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from the GitHub UI. Then choose the branch or tag that you wish to use:
+-	Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from the GitHub UI. Then choose the branch or tag that you wish to use. For example:
 	-	The `master`branch will get you the latest released version of XWiki
 	-	The `8.x` branch will get you the latest released version of XWiki for the 8.x cycle
-	-	The `8.4.4` tag will get you exactly XWiki 8.4.4.
 	-	etc.
 -	Go the directory corresponding to the configuration you wish to build, for example: `cd xwiki-mysql-tomcat`.
 -	Run `docker-compose up`
@@ -146,15 +145,17 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 
 # Support
 
-* If you wish to raise an issue or an idea of improvement use [XWiki Docker JIRA project](http://jira.xwiki.org/browse/XDOCKER)
-* If you have questions, use the [XWiki Users Mailing List/Forum](http://dev.xwiki.org/xwiki/bin/view/Community/MailingLists) or use the [XWiki IRC channel](http://dev.xwiki.org/xwiki/bin/view/Community/IRC)
+-	If you wish to raise an issue or an idea of improvement use [XWiki Docker JIRA project](http://jira.xwiki.org/browse/XDOCKER)
+-	If you have questions, use the [XWiki Users Mailing List/Forum](http://dev.xwiki.org/xwiki/bin/view/Community/MailingLists) or use the [XWiki IRC channel](http://dev.xwiki.org/xwiki/bin/view/Community/IRC)
 
 # Contribute
 
-* If you wish to help out on the code, please send Pull Requests on [XWiki Docker GitHub project](https://github.com/xwiki-contrib/docker-xwiki)
+-	If you wish to help out on the code, please send Pull Requests on [XWiki Docker GitHub project](https://github.com/xwiki-contrib/docker-xwiki)
+-	Note that changes need to be merged to all other branches where they make sense and if they make sense for existing tags, those tags must be deleted and recreated.
+-	In addition, whenever a branch or tag is modified, a Pull Request on the [DockerHub XWiki official image](https://github.com/vmassol/official-images/blob/master/library/xwiki) must be made 
 
 # Credits
 
-* Created by Vincent Massol
-* Contributions from Ludovic Dubost, Jean Simard
-* Some code was copied from https://github.com/ThomasSteinbach/docker_xwiki. Thank you Thomas Steinbach
+-	Created by Vincent Massol
+-	Contributions from Fabio Mancinelli, Ludovic Dubost, Jean Simard, Denis Germain
+-	Some code was copied from https://github.com/ThomasSteinbach/docker_xwiki. Thank you Thomas Steinbach
