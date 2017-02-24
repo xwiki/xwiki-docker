@@ -1,0 +1,93 @@
+# ---------------------------------------------------------------------------
+# See the NOTICE file distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+# ---------------------------------------------------------------------------
+FROM tomcat:8-jre8
+
+MAINTAINER Vincent Massol <vincent@massol.net>
+
+# Note: when using docker-compose, the ENV values below are overridden from the .env file.
+
+# Install LibreOffice + other tools
+RUN apt-get update && \
+  apt-get --no-install-recommends -y install \
+    curl \
+    libreoffice \
+    unzip \
+    libmysql-java && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install XWiki as the ROOT webapp context in Tomcat
+# Create the Tomcat temporary directory
+# Configure the XWiki permanent directory
+ENV XWIKI_VERSION=@xwikiVersion@
+ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
+# Note: To compute the sha256, download the binary and issue:
+# - Unix: sha256sum <binary name>
+# - Mac: shasum --algorithm 25 <binary name>
+ENV XWIKI_DOWNLOAD_SHA256 @xwikiSha256@
+RUN rm -rf /usr/local/tomcat/webapps/* && \
+  mkdir -p /usr/local/tomcat/temp && \
+  mkdir -p /usr/local/xwiki/data && \
+  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \
+  echo "$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \
+  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
+  rm -f xwiki.war
+
+# Copy the MySQL JDBC driver in the XWiki webapp
+RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
+
+# Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
+COPY tomcat/setenv.sh /usr/local/tomcat/bin/
+
+# Setup the XWiki Hibernate configuration
+ENV MYSQL_DATABASE=xwiki
+COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+
+# Set a specific distribution id in XWiki for this docker packaging.
+RUN sed -i 's/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/' \
+    /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
+
+# Add scripts required to make changes to XWiki configuration files at execution time
+# Note: we don't run CHMOD since 1) it's not required since the executabe bit is already set in git and 2) running
+# CHMOD after a COPY will sometimes fail, depending on different host-specific factors (especially on AUFS).
+COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
+# across runs)
+VOLUME /usr/local/xwiki
+
+# At this point the image is done and what remains below are the runtime configuration used by the user to configure
+# the container that will be created out of the image. Namely the user can override some environment variables with
+#   docker run -e "var1=val1" -e "var2=val2" ...
+# The supported environment variables that can be overridden are:
+# - MYSQL_USER: the name of the user configured for XWiki in the DB. Default is "xwiki". This is used to configure
+#               xwiki's hibernate.cfg.xml file.
+# - MYSQL_PASSWORD: the password for the user configured for XWiki in the DB. Default is "xwiki". This is used to
+#                   configure xwiki's hibernate.cfg.xml file.
+# Example:
+#   docker run -it -e "MYSQL_USER=xwiki" -e "MYSQL_PASSWORD=xwiki" <imagename>
+
+# Starts XWiki by starting Tomcat. All options passed to "docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]"
+# are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the
+# container executes and Tomcat will be started. If some other parameter is passed then it'll be executed to comply
+# with best practices defined at https://github.com/docker-library/official-images#consistency.
+ENV MYSQL_USER=xwiki \
+    MYSQL_PASSWORD=xwiki
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["xwiki"]

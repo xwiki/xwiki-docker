@@ -1,0 +1,59 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+import org.apache.tools.ant.filters.ReplaceTokens
+
+// Run this Gradle build with 'gradle' to generate the various versions and variants from the template directory.
+// Whenever a new version of XWiki is out, update this file to update the token values, run gradle and commit the
+// result.
+//
+// Note: As a consequence only update the template files and never the generated files!
+
+defaultTasks 'generate'
+
+def dockerVersions = ['8', '9']
+def dockerVariants = ['mysql-tomcat']
+
+def tokens = [
+    '8' : [
+        xwikiVersion: '8.4.4',
+        xwikiSha256: 'b414edb4527e3d8b27c40a8c3f2f09423980de7963207b7dc89da71d14e7fb23'
+    ],
+    '9' : [
+        xwikiVersion: '9.0',
+        xwikiSha256: 'faaca2aa1ade07448be944feb39db22131accfe82658463abfd55f93f859cc25'
+    ]
+]
+
+task generate() {
+    doLast {
+        // Copy the template for all versions and variants
+        dockerVersions.each() { version ->
+            dockerVariants.each() { variant ->
+                copy {
+                    from 'template'
+                    into "${version}/${variant}"
+                    include '**/*'
+                    filter(ReplaceTokens, tokens: tokens[version])
+                    filteringCharset = 'UTF-8'
+                }
+            }
+        }
+    }
+}
