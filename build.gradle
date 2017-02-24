@@ -27,8 +27,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 defaultTasks 'generate'
 
-def dockerVersions = ['8', '9']
-def dockerVariants = ['mysql-tomcat']
+def variants = ['mysql-tomcat']
 
 def tokens = [
     '8' : [
@@ -44,8 +43,8 @@ def tokens = [
 task generate() {
     doLast {
         // Copy the template for all versions and variants
-        dockerVersions.each() { version ->
-            dockerVariants.each() { variant ->
+        tokens.keySet().each() { version ->
+            variants.each() { variant ->
                 copy {
                     from 'template'
                     into "${version}/${variant}"
