@@ -79,14 +79,13 @@
     -->
 
     <!-- MySQL configuration.
-         Uncomment if you want to use MySQL and comment out other database configurations.
          Notes:
            - if you want the main wiki database to be different than "xwiki"
              you will also have to set the property xwiki.db in xwiki.cfg file
     -->
-    <property name="connection.url">jdbc:mysql://replacemysqlcontainername/replacemysqldatabase?useSSL=false</property>
-    <property name="connection.username">replacemysqluser</property>
-    <property name="connection.password">replacemysqlpassword</property>
+    <property name="connection.url">jdbc:mysql://replacecontainer/replacedatabase?useSSL=false</property>
+    <property name="connection.username">replaceuser</property>
+    <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
     <property name="dialect">org.hibernate.dialect.MySQL5InnoDBDialect</property>
     <property name="dbcp.poolPreparedStatements">true</property>

@@ -30,12 +30,12 @@ services:
       - db
     ports:
       - "8080:8080"
-    # The MYSQL_USER/MYSQL_PASSWORD/DB_CONTAINER_NAME variables are used in the hibernate.cfg.xml file.
+    # The DB_USER/DB_PASSWORD/DB_CONTAINER variables are used in the hibernate.cfg.xml file.
     environment:
-      - MYSQL_USER=xwiki
-      - MYSQL_PASSWORD=xwiki
-      - MYSQL_DATABASE=xwiki
-      - DB_CONTAINER_NAME=xwiki-mysql
+      - DB_USER=xwiki
+      - DB_PASSWORD=xwiki
+      - DB_DATABASE=xwiki
+      - DB_CONTAINER=xwiki-mysql
     # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
     # to make it simpler to identify in 'docker volume ls'.
     volumes:

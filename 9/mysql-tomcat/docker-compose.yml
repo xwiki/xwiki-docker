@@ -31,14 +31,13 @@ services:
     ports:
       - "8080:8080"
     # Default values defined in .env file.
-    # The MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE/DB_CONTAINER_NAME variables are used in the hibernate.cfg.xml file.
+    # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_CONTAINER variables are used in the hibernate.cfg.xml file.
     environment:
       - XWIKI_VERSION=${XWIKI_VERSION}
-      - MYSQL_DRIVER_VERSION=${MYSQL_DRIVER_VERSION}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - DB_CONTAINER_NAME=xwiki-mysql
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_CONTAINER=xwiki-mysql
     # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
     # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
@@ -62,9 +61,9 @@ services:
     # Default values defined in .env file.
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
     networks:
       - bridge
 volumes:

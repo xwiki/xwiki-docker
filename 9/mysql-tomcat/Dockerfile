@@ -49,14 +49,13 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
-# Copy the MySQL JDBC driver in the XWiki webapp
+# Copy the JDBC driver in the XWiki webapp
 RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 
 # Setup the XWiki Hibernate configuration
-ENV MYSQL_DATABASE=xwiki
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
@@ -76,24 +75,21 @@ VOLUME /usr/local/xwiki
 # the container that will be created out of the image. Namely the user can override some environment variables with
 #   docker run -e "var1=val1" -e "var2=val2" ...
 # The supported environment variables that can be overridden are:
-# - MYSQL_USER: the name of the user configured for XWiki in the DB. Default is "xwiki". This is used to configure
-#               xwiki's hibernate.cfg.xml file.
-# - MYSQL_PASSWORD: the password for the user configured for XWiki in the DB. Default is "xwiki". This is used to
-#                   configure xwiki's hibernate.cfg.xml file.
-# - MYSQL_DATABASE: the name of the database to use. Default is "xwiki". This is used to configure xwiki's
-#                   hibernate.cfg.xml file.
-# - DB_CONTAINER_NAME: The name of the docker container containing the database. Default is "db". This is used to
-#                      configure xwiki's hibernate.cfg.xml file.
+# - DB_USER: the name of the user configured for XWiki in the DB. Default is "xwiki". This is used to configure
+#            xwiki's hibernate.cfg.xml file.
+# - DB_PASSWORD: the password for the user configured for XWiki in the DB. Default is "xwiki". This is used to
+#                configure xwiki's hibernate.cfg.xml file.
+# - DB_DATABASE: the name of the database to use. Default is "xwiki". This is used to configure xwiki's
+#                hibernate.cfg.xml file.
+# - DB_CONTAINER: The name of the docker container containing the database. Default is "db". This is used to
+#                 configure xwiki's hibernate.cfg.xml file.
 
 # Example:
-#   docker run -it -e "MYSQL_USER=xwiki" -e "MYSQL_PASSWORD=xwiki" <imagename>
+#   docker run -it -e "DB_USER=xwiki" -e "DB_PASSWORD=xwiki" <imagename>
 
 # Starts XWiki by starting Tomcat. All options passed to "docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]"
 # are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the
 # container executes and Tomcat will be started. If some other parameter is passed then it'll be executed to comply
 # with best practices defined at https://github.com/docker-library/official-images#consistency.
-ENV MYSQL_USER=xwiki \
-    MYSQL_PASSWORD=xwiki \
-    DB_CONTAINER_NAME
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["xwiki"]

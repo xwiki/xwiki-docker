@@ -24,43 +24,46 @@ MAINTAINER Vincent Massol <vincent@massol.net>
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
 # Install LibreOffice + other tools
-RUN apt-get update && \
-  apt-get --no-install-recommends -y install \
-    curl \
-    libreoffice \
-    unzip \
-    libmysql-java && \
+RUN apt-get update && \\
+  apt-get --no-install-recommends -y install \\
+    curl \\
+    libreoffice \\
+    unzip \\
+    <% if (db == 'mysql') print 'libmysql-java'
+       if (db == 'postgres') print 'libpostgresql-jdbc-java' %> && \\
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION=@xwikiVersion@
-ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
+ENV XWIKI_VERSION=$xwikiVersion
+ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/\${XWIKI_VERSION}"
 # Note: To compute the sha256, download the binary and issue:
 # - Unix: sha256sum <binary name>
 # - Mac: shasum --algorithm 25 <binary name>
-ENV XWIKI_DOWNLOAD_SHA256 @xwikiSha256@
-RUN rm -rf /usr/local/tomcat/webapps/* && \
-  mkdir -p /usr/local/tomcat/temp && \
-  mkdir -p /usr/local/xwiki/data && \
-  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \
-  echo "$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \
-  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
+ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
+RUN rm -rf /usr/local/tomcat/webapps/* && \\
+  mkdir -p /usr/local/tomcat/temp && \\
+  mkdir -p /usr/local/xwiki/data && \\
+  curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-enterprise-web-\${XWIKI_VERSION}.war" -o xwiki.war && \\
+  echo "\$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \\
+  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \\
   rm -f xwiki.war
 
-# Copy the MySQL JDBC driver in the XWiki webapp
-RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
+# Copy the JDBC driver in the XWiki webapp
+<% if (db == 'mysql')
+      print 'RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
+   else if (db == 'postgres')
+      print '' %>
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 
 # Setup the XWiki Hibernate configuration
-ENV MYSQL_DATABASE=xwiki
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
-RUN sed -i 's/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/' \
+RUN sed -i 's/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/' \\
     /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
@@ -76,17 +79,17 @@ VOLUME /usr/local/xwiki
 # the container that will be created out of the image. Namely the user can override some environment variables with
 #   docker run -e "var1=val1" -e "var2=val2" ...
 # The supported environment variables that can be overridden are:
-# - MYSQL_USER: the name of the user configured for XWiki in the DB. Default is "xwiki". This is used to configure
-#               xwiki's hibernate.cfg.xml file.
-# - MYSQL_PASSWORD: the password for the user configured for XWiki in the DB. Default is "xwiki". This is used to
-#                   configure xwiki's hibernate.cfg.xml file.
-# - MYSQL_DATABASE: the name of the database to use. Default is "xwiki". This is used to configure xwiki's
-#                   hibernate.cfg.xml file.
-# - DB_CONTAINER_NAME: The name of the docker container containing the database. Default is "db". This is used to
-#                      configure xwiki's hibernate.cfg.xml file.
+# - DB_USER: the name of the user configured for XWiki in the DB. Default is "xwiki". This is used to configure
+#            xwiki's hibernate.cfg.xml file.
+# - DB_PASSWORD: the password for the user configured for XWiki in the DB. Default is "xwiki". This is used to
+#                configure xwiki's hibernate.cfg.xml file.
+# - DB_DATABASE: the name of the database to use. Default is "xwiki". This is used to configure xwiki's
+#                hibernate.cfg.xml file.
+# - DB_CONTAINER: The name of the docker container containing the database. Default is "db". This is used to
+#                 configure xwiki's hibernate.cfg.xml file.
 
 # Example:
-#   docker run -it -e "MYSQL_USER=xwiki" -e "MYSQL_PASSWORD=xwiki" <imagename>
+#   docker run -it -e "DB_USER=xwiki" -e "DB_PASSWORD=xwiki" <imagename>
 
 # Starts XWiki by starting Tomcat. All options passed to "docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]"
 # are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the

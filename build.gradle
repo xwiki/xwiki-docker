@@ -45,11 +45,15 @@ task generate() {
         // Copy the template for all versions and variants
         tokens.keySet().each() { version ->
             variants.each() { variant ->
+                // Extract the db type and add it as a token
+                def (db, servlet) = variant.tokenize('-')
+                tokens[version].'db' = db
+                // Copy template files, evaluating groovy in them
                 copy {
                     from 'template'
                     into "${version}/${variant}"
                     include '**/*'
-                    filter(ReplaceTokens, tokens: tokens[version])
+                    expand(tokens[version])
                     filteringCharset = 'UTF-8'
                 }
             }
