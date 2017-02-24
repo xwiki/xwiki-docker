@@ -33,10 +33,16 @@ You need to run 2 containers:
 
 ### Using docker run
 
-Start by running a MySQL container and ensure you configure MySQL to use UTF8. The command below will also configure the MySQL container to save its data on your localhost in a `/my/own/mysql` directory: 
+Start by creating a dedicated docker network
 
 ```console
-docker run --name mysql-xwiki -v /my/own/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1 
+docker network create -d bridge xwiki-nw 
+```
+
+Then run a MySQL container and ensure you configure MySQL to use UTF8. The command below will also configure the MySQL container to save its data on your localhost in a `/my/own/mysql` directory: 
+
+```console
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/own/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1 
 ```
 
 You should adapt the command line to use the passwords that you wish for the MySQL root password and for the xwiki user password.
@@ -44,10 +50,15 @@ You should adapt the command line to use the passwords that you wish for the MyS
 Then run XWiki in another container by issuing the following command:
 
 ```console
-docker run --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki --link mysql-xwiki:db xwiki:mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -e DB_CONTAINER_NAME=mysql-xwiki xwiki:mysql-tomcat
 ```
 
-Be careful to use the same MySQL username, password and database names that you've used on the first command to start the MySQL container.
+Be careful to use the same MySQL username, password and database names that you've used on the first command to start the MySQL container. Also, please don't forget to add a '-e DB_CONTAINER_NAME=' env variable with the name of the previously created MySQL container so that XWiki knows where its database is.
+
+At this point, XWiki should start in interactive mode. Should you wish to run it in "detached mode", just add a "-d" flag in the previous command.
+```console
+docker run -d --net=xwiki-nw ...
+```
 
 ### Using docker-compose
 

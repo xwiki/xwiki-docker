@@ -18,29 +18,37 @@
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
 version: '2'
+networks:
+  bridge:
+    driver: bridge
 services:
   # The container that runs XWiki + Tomcat
   web:
     build: .
+    container_name: xwiki
     depends_on:
       - db
     ports:
       - "8080:8080"
     # Default values defined in .env file.
-    # The MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE variables are used in the hibernate.cfg.xml file.
+    # The MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE/DB_CONTAINER_NAME variables are used in the hibernate.cfg.xml file.
     environment:
       - XWIKI_VERSION=${XWIKI_VERSION}
       - MYSQL_DRIVER_VERSION=${MYSQL_DRIVER_VERSION}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - DB_CONTAINER_NAME=xwiki-mysql
     # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
     # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
       - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
   # The container that runs MySQL
   db:
     image: "mysql:5.7"
+    container_name: xwiki-mysql
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
     # See https://hub.docker.com/_/mysql/ for more details.
@@ -57,6 +65,8 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
+    networks:
+      - bridge
 volumes:
   mysql-data: {}
   xwiki-data: {}
