@@ -92,8 +92,5 @@ VOLUME /usr/local/xwiki
 # are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the
 # container executes and Tomcat will be started. If some other parameter is passed then it'll be executed to comply
 # with best practices defined at https://github.com/docker-library/official-images#consistency.
-ENV MYSQL_USER=xwiki \
-    MYSQL_PASSWORD=xwiki \
-    DB_CONTAINER_NAME
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["xwiki"]
