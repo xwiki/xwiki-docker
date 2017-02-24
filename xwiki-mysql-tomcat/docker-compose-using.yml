@@ -30,7 +30,7 @@ services:
       - db
     ports:
       - "8080:8080"
-    # The MYSQL_USER/MYSQL_PASSWORD variables are used in the hibernate.cfg.xml file.
+    # The MYSQL_USER/MYSQL_PASSWORD/DB_CONTAINER_NAME variables are used in the hibernate.cfg.xml file.
     environment:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki

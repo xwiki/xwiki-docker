@@ -56,6 +56,7 @@ docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/
 Be careful to use the same MySQL username, password and database names that you've used on the first command to start the MySQL container. Also, please don't forget to add a '-e DB_CONTAINER_NAME=' env variable with the name of the previously created MySQL container so that XWiki knows where its database is.
 
 At this point, XWiki should start in interactive mode. Should you wish to run it in "detached mode", just add a "-d" flag in the previous command.
+
 ```console
 docker run -d --net=xwiki-nw ...
 ```
@@ -76,6 +77,9 @@ For reference here's a minimal Docker Compose file using MySQL that you could us
 
 ```yaml
 version: '2'
+networks:
+  bridge:
+    driver: bridge
 services:
   web:
     image: "xwiki:mysql-tomcat"
@@ -86,8 +90,11 @@ services:
     environment:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
+      - DB_CONTAINER_NAME=xwiki-mysql
     volumes:
       - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
   db:
     image: "mysql:5.7"
     volumes:
@@ -98,6 +105,8 @@ services:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
+    networks:
+      - bridge
 volumes:
   mysql-data: {}
   xwiki-data: {}
