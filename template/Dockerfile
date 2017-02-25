@@ -85,8 +85,8 @@ VOLUME /usr/local/xwiki
 #                configure xwiki's hibernate.cfg.xml file.
 # - DB_DATABASE: the name of the database to use. Default is "xwiki". This is used to configure xwiki's
 #                hibernate.cfg.xml file.
-# - DB_CONTAINER: The name of the docker container containing the database. Default is "db". This is used to
-#                 configure xwiki's hibernate.cfg.xml file.
+# - DB_HOST: The name of the host (or docker container) containing the database. Default is "db". This is used to
+#            configure xwiki's hibernate.cfg.xml file.
 
 # Example:
 #   docker run -it -e "DB_USER=xwiki" -e "DB_PASSWORD=xwiki" <imagename>
