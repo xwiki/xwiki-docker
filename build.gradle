@@ -27,7 +27,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 defaultTasks 'generate'
 
-def variants = ['mysql-tomcat']
+def variants = ['mysql-tomcat', 'postgres-tomcat']
 
 def tokens = [
     '8' : [

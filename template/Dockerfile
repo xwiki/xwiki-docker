@@ -54,7 +54,7 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
 <% if (db == 'mysql')
       print 'RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
    else if (db == 'postgres')
-      print '' %>
+      print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/' %>
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
