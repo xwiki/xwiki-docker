@@ -31,13 +31,13 @@ services:
     ports:
       - "8080:8080"
     # Default values defined in .env file.
-    # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_CONTAINER variables are used in the hibernate.cfg.xml file.
+    # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_HOST variables are used in the hibernate.cfg.xml file.
     environment:
       - XWIKI_VERSION=${XWIKI_VERSION}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_DATABASE=${DB_DATABASE}
-      - DB_CONTAINER=xwiki-mysql
+      - DB_HOST=xwiki-mysql
     # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
     # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
