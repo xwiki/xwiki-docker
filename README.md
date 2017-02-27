@@ -179,3 +179,4 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 -	Created by Vincent Massol
 -	Contributions from Fabio Mancinelli, Ludovic Dubost, Jean Simard, Denis Germain
 -	Some code was copied from https://github.com/ThomasSteinbach/docker_xwiki. Thank you Thomas Steinbach
+-	Stolen XWiki ascii art from [https://github.com/babelop](babelop), see https://hub.docker.com/r/binarybabel/xwiki/~/dockerfile/

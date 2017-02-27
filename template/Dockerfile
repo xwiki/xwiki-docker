@@ -19,6 +19,13 @@
 # ---------------------------------------------------------------------------
 FROM tomcat:8-jre8
 
+#    ____  ____  ____      ____  _   __        _
+#   |_  _||_  _||_  _|    |_  _|(_) [  |  _   (_)
+#     \\ \\  / /    \\ \\  /\\  / /  __   | | / ]  __
+#      > `' <      \\ \\/  \\/ /  [  |  | '' <  [  |
+#    _/ /'`\\ \\_     \\  /\\  /    | |  | |`\\ \\  | |
+#   |____||____|     \\/  \\/    [___][__|  \\_][___]
+
 MAINTAINER Vincent Massol <vincent@massol.net>
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.

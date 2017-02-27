@@ -48,11 +48,30 @@ task generate() {
                 // Extract the db type and add it as a token
                 def (db, servlet) = variant.tokenize('-')
                 tokens[version].'db' = db
-                // Copy template files, evaluating groovy in them
+                // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
                     into "${version}/${variant}"
-                    include '**/*'
+                    include '.env'
+                    include 'Dockerfile'
+                    include 'docker-compose.yml'
+                    include 'xwiki/*'
+                    expand(tokens[version])
+                    filteringCharset = 'UTF-8'
+                }
+                // Copy DB-specific template files, evaluating groovy in them
+                copy {
+                    from 'template'
+                    into "${version}/${variant}"
+                    include "${db}/*"
+                    expand(tokens[version])
+                    filteringCharset = 'UTF-8'
+                }
+                // Copy Servlet-specific template files, evaluating groovy in them
+                copy {
+                    from 'template'
+                    into "${version}/${variant}"
+                    include "${servlet}/*"
                     expand(tokens[version])
                     filteringCharset = 'UTF-8'
                 }
