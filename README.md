@@ -82,6 +82,7 @@ networks:
 services:
   web:
     image: "xwiki:mysql-tomcat"
+    container_name: xwiki
     depends_on:
       - db
     ports:
@@ -96,6 +97,7 @@ services:
       - bridge
   db:
     image: "mysql:5.7"
+    container_name: xwiki-mysql
     volumes:
       - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mysql-data:/var/lib/mysql
