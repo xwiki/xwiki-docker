@@ -47,7 +47,7 @@ ENV XWIKI_VERSION=$xwikiVersion
 ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/\${XWIKI_VERSION}"
 # Note: To compute the sha256, download the binary and issue:
 # - Unix: sha256sum <binary name>
-# - Mac: shasum --algorithm 25 <binary name>
+# - Mac: shasum --algorithm 256 <binary name>
 ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
 RUN rm -rf /usr/local/tomcat/webapps/* && \\
   mkdir -p /usr/local/tomcat/temp && \\
