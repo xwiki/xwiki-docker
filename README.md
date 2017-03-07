@@ -217,6 +217,18 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
 
+## Passing JVM options
+
+It's possible to pass JVM options to Tomcat by defining the `JAVA_OPTS` environment property.
+
+For example to debug XWiki, you could use:
+
+```console
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki -e JAVA_OPTS="-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" -p 5005:5005 xwiki
+```
+
+Notice the mapping of the port with `p 5005:5005` which expose the port and thus allows you to debug XWiki from within your IDE for example.
+
 ## Miscellaneous
 
 Volumes:
