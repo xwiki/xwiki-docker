@@ -25,7 +25,7 @@ services:
   web:
     # Use an already built XWiki image from DockerHub.
     image: "xwiki:mysql-tomcat"
-    container_name: xwiki
+    container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
     ports:
@@ -35,7 +35,7 @@ services:
       - DB_USER=xwiki
       - DB_PASSWORD=xwiki
       - DB_DATABASE=xwiki
-      - DB_HOST=xwiki-mysql
+      - DB_HOST=xwiki-mysql-db
     # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
     # to make it simpler to identify in 'docker volume ls'.
     volumes:
@@ -45,7 +45,7 @@ services:
   # The container that runs MySQL
   db:
     image: "mysql:5.7"
-    container_name: xwiki-mysql
+    container_name: xwiki-mysql-db
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
     # See https://hub.docker.com/_/mysql/ for more details.
