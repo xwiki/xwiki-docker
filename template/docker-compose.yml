@@ -65,7 +65,7 @@ services:
       - MYSQL_PASSWORD=\${DB_PASSWORD}
       - MYSQL_DATABASE=\${DB_DATABASE}'''
 
-    else if (db == 'postgres') print '''image: "postgres:9.6"
+    else if (db == 'postgres') print '''image: "postgres:9.5"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
