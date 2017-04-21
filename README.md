@@ -206,6 +206,8 @@ Note that if you want to set a custom version of XWiki you can edit the `.env` f
 
 Note that `docker-compose up` will automatically build the XWiki image on the first run. If you need to rebuild it you can issue `docker-compose up --build`. You can also build the image with `docker build . -t xwiki-mysql-tomcat:latest` for example.
 
+You can also just build the image by issuing `docker build -t xwiki .` and then use the instructions from above to start XWiki and the database using `docker run ...`.
+
 # Details for the xwiki image
 
 ## Configuration Options
