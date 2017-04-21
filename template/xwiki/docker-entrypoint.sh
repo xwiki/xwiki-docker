@@ -23,7 +23,7 @@ set -e
 
 function first_start() {
   configure
-  touch /usr/local/xwiki/.first_start_completed
+  touch /usr/local/tomcat/webapps/ROOT/.first_start_completed
 }
 
 # \$1 - the path to xwiki.[cfg|properties]
@@ -74,7 +74,7 @@ fi
 
 # Check for the expected command
 if [ "\$1" = 'xwiki' ]; then
-  if [[ ! -f /usr/local/xwiki/.first_start_completed ]]; then
+  if [[ ! -f /usr/local/tomcat/webapps/ROOT/.first_start_completed ]]; then
     first_start
   fi
   shift
