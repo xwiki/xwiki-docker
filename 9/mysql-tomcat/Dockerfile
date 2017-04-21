@@ -42,12 +42,9 @@ RUN apt-get update && \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION=9.1.2
+ENV XWIKI_VERSION=9.2
 ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
-# Note: To compute the sha256, download the binary and issue:
-# - Unix: sha256sum <binary name>
-# - Mac: shasum --algorithm 256 <binary name>
-ENV XWIKI_DOWNLOAD_SHA256 580190b11bc9f11fde0cf992c0299fff17b5bece7fa5d7d4f7fb53c46e77a075
+ENV XWIKI_DOWNLOAD_SHA256 7fc737b26cd8a73e3661cc3ed9bfb6cc565538915d665498df1a33a90209b238
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \

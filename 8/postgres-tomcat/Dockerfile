@@ -44,9 +44,6 @@ RUN apt-get update && \
 # Configure the XWiki permanent directory
 ENV XWIKI_VERSION=8.4.4
 ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
-# Note: To compute the sha256, download the binary and issue:
-# - Unix: sha256sum <binary name>
-# - Mac: shasum --algorithm 256 <binary name>
 ENV XWIKI_DOWNLOAD_SHA256 b414edb4527e3d8b27c40a8c3f2f09423980de7963207b7dc89da71d14e7fb23
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
