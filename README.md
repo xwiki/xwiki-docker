@@ -219,6 +219,12 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
 
+If you need to configure XWiki (e.g. modify `xwiki.properties` or `xwiki.cfg`) or perform some additional configuration, you can execute another container and attach to the running XWiki container by issuing:
+
+```console
+docker exec -it <xwiki container id> bash -l
+```
+
 ## Passing JVM options
 
 It's possible to pass JVM options to Tomcat by defining the `JAVA_OPTS` environment property.
