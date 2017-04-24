@@ -29,7 +29,7 @@ defaultTasks 'generate'
 
 def variants = ['mysql-tomcat', 'postgres-tomcat']
 
-// Note: To compute the sha256, download the binary and issue:
+// Note: To compute the sha256, download the XWiki WAR and issue:
 // - Unix: sha256sum <binary name>
 // - Mac: shasum --algorithm 256 <binary name>
 
