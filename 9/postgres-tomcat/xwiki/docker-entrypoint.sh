@@ -45,12 +45,20 @@ function xwiki_set_properties() {
   xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties "$1" "$2"
 }
 
+# Allows to use sed but with user input which can contain special sed characters such as \, / or &.
+# $1 - the text to search for
+# $2 - the replacement text
+# $3 - the file in which to do the search/replace
+function safesed {
+  sed -i "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" $3
+}
+
 function configure() {
   echo 'Configuring XWiki...'
-  sed -i "s/replaceuser/${DB_USER:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  sed -i "s/replacepassword/${DB_PASSWORD:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  sed -i "s/replacecontainer/${DB_HOST:-db}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  sed -i "s/replacedatabase/${DB_DATABASE:-xwiki}/g" /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replaceuser" ${DB_USER:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacepassword" ${DB_PASSWORD:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacecontainer" ${DB_HOST:-db} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacedatabase" ${DB_DATABASE:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
   echo '  Using filesystem-based attachments...'
   xwiki_set_cfg 'xwiki.store.attachment.hint' 'file'
