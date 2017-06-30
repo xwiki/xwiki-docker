@@ -42,13 +42,13 @@ RUN apt-get update && \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION=9.4
-ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 0c50d7b261f72f582b94171b80b4711def614845663d0633b17c870b8c84d0fb
+ENV XWIKI_VERSION=9.5.1
+ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
+ENV XWIKI_DOWNLOAD_SHA256 0636314e46358bc59a2f1d80bae1958cd93db1ed5cd61ae857c6dd6e99e34fac
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \
-  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-enterprise-web-${XWIKI_VERSION}.war" -o xwiki.war && \
+  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-${XWIKI_VERSION}.war" -o xwiki.war && \
   echo "$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
@@ -63,7 +63,7 @@ COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
-RUN sed -i 's/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/' \
+RUN sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/' \
     /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
