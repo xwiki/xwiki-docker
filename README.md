@@ -208,6 +208,20 @@ Note that `docker-compose up` will automatically build the XWiki image on the fi
 
 You can also just build the image by issuing `docker build -t xwiki .` and then use the instructions from above to start XWiki and the database using `docker run ...`.
 
+# Upgrading XWiki
+
+You've installed an XWiki docker image and used it and now comes the time when you'd like to upgrade XWiki to a newer version.
+
+If you've followed the instructions above you've mapped the XWiki permanent directory to a local directory on your host.
+
+Thus all you need to do is to execute the installation instructions above as if you were installing a new version of the XWiki docker image.
+
+Then you need to stop your running XWiki container. You should keep your DB container running. Then all you have to do is start a new container as described above, using the new XWiki docker image.
+
+Caveats:
+
+- Right now we have an [outstanding issue](https://jira.xwiki.org/browse/XDOCKER-20) and thus if you've had to modify `xwiki.properties` or `xwiki.cfg` inside the XWiki container, you'll need to port your changes inside the new container (see the section below). 
+
 # Details for the xwiki image
 
 ## Configuration Options
@@ -224,6 +238,8 @@ If you need to configure XWiki (e.g. modify `xwiki.properties` or `xwiki.cfg`) o
 ```console
 docker exec -it <xwiki container id> bash -l
 ```
+
+Note that we plan to [lift this limitation in the future](https://jira.xwiki.org/browse/XDOCKER-20).
 
 ## Passing JVM options
 
