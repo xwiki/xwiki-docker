@@ -31,11 +31,13 @@ MAINTAINER Vincent Massol <vincent@massol.net>
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
 # Install LibreOffice + other tools
+# Note that procps is required to get ps which is used by JODConverter to start LibreOffice
 RUN apt-get update && \
   apt-get --no-install-recommends -y install \
     curl \
     libreoffice \
     unzip \
+    procps \
     libmysql-java && \
   rm -rf /var/lib/apt/lists/*
 
