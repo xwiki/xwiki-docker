@@ -66,7 +66,7 @@ COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cf
 
 # Set a specific distribution id in XWiki for this docker packaging.
 RUN sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/' \
-    /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
+  /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time
 # Note: we don't run CHMOD since 1) it's not required since the executabe bit is already set in git and 2) running
