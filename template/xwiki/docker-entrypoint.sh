@@ -26,6 +26,13 @@ function first_start() {
   touch /usr/local/tomcat/webapps/ROOT/.first_start_completed
 }
 
+function other_starts() {
+  mkdir -p /usr/local/xwiki/data
+  restoreConfigurationFile 'hibernate.cfg.xml'
+  restoreConfigurationFile 'xwiki.cfg'
+  restoreConfigurationFile 'xwiki.properties'
+}
+
 # \$1 - the path to xwiki.[cfg|properties]
 # \$2 - the setting/property to set
 # \$3 - the new value
@@ -53,6 +60,28 @@ function safesed {
   sed -i "s/\$(echo \$1 | sed -e 's/\\([[\\/.*]\\|\\]\\)/\\\\&/g')/\$(echo \$2 | sed -e 's/[\\/&]/\\\\&/g')/g" \$3
 }
 
+# \$1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")
+function saveConfigurationFile() {
+  if [ -f "/usr/local/xwiki/data/\$1" ]; then
+     echo "  Reusing existing config file \$1..."
+     cp "/usr/local/xwiki/data/\$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1"
+  else
+     echo "  Saving config file \$1..."
+     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1" "/usr/local/xwiki/data/\$1"
+  fi
+}
+
+# \$1 - the config file name to restore in WEB-INF (e.g. "xwiki.cfg")
+function restoreConfigurationFile() {
+  if [ -f "/usr/local/xwiki/data/\$1" ]; then
+     echo "  Synchronizing config file \$1..."
+     cp "/usr/local/xwiki/data/\$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1"
+  else
+     echo "  No config file \$1 found, using default from container..."
+     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1" "/usr/local/xwiki/data/\$1"
+  fi
+}
+
 function configure() {
   echo 'Configuring XWiki...'
   safesed "replaceuser" \${DB_USER:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
@@ -72,6 +101,14 @@ function configure() {
   xwiki_set_properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
   echo '  Configure libreoffice...'
   xwiki_set_properties 'openoffice.autoStart' 'true'
+
+  # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
+  # files to the permanent directory so that they can be easily modified by the user. They'll be synced at the next
+  # start.
+  mkdir -p /usr/local/xwiki/data
+  saveConfigurationFile 'hibernate.cfg.xml'
+  saveConfigurationFile 'xwiki.cfg'
+  saveConfigurationFile 'xwiki.properties'
 }
 
 # This if will check if the first argument is a flag but only works if all arguments require a hyphenated flag
@@ -84,6 +121,8 @@ fi
 if [ "\$1" = 'xwiki' ]; then
   if [[ ! -f /usr/local/tomcat/webapps/ROOT/.first_start_completed ]]; then
     first_start
+  else
+    other_starts
   fi
   shift
   set -- catalina.sh run "\$@"
