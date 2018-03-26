@@ -368,7 +368,7 @@ In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secret
 - `DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
 - `DB_PASSWORD_FILE`: The location, inside the container, of a file containing the value for `DB_PASSWORD`
 - `DB_DATABASE_FILE`: The location, inside the container, of a file containing the value for `DB_DATABASE`
-- `DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST_FILE`
+- `DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
 
