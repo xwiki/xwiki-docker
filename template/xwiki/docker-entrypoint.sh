@@ -52,6 +52,28 @@ function xwiki_set_properties() {
   xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties "\$1" "\$2"
 }
 
+# usage: file_env VAR [DEFAULT]
+#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
+# (will allow for "\$XYZ_DB_PASSWORD_FILE" to fill in the value of
+#  "\$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
+file_env() {
+  local var="\$1"
+  local fileVar="\${var}_FILE"
+  local def="\${2:-}"
+  if [ "\${!var:-}" ] && [ "\${!fileVar:-}" ]; then
+    echo >&2 "error: both \$var and \$fileVar are set (but are exclusive)"
+    exit 1
+  fi
+  local val="\$def"
+  if [ "\${!var:-}" ]; then
+    val="\${!var}"
+  elif [ "\${!fileVar:-}" ]; then
+    val="\$(< "\${!fileVar}")"
+  fi
+  export "\$var"="\$val"
+  unset "\$fileVar"
+}
+
 # Allows to use sed but with user input which can contain special sed characters such as \\, / or &.
 # \$1 - the text to search for
 # \$2 - the replacement text
@@ -84,10 +106,18 @@ function restoreConfigurationFile() {
 
 function configure() {
   echo 'Configuring XWiki...'
-  safesed "replaceuser" \${DB_USER:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacepassword" \${DB_PASSWORD:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacecontainer" \${DB_HOST:-db} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacedatabase" \${DB_DATABASE:-xwiki} /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+
+  echo 'Setting environment variables'
+  file_env 'DB_USER' 'xwiki'
+  file_env 'DB_PASSWORD' 'xwiki'
+  file_env 'DB_HOST' 'db'
+  file_env 'DB_DATABASE' 'xwiki'
+
+  echo 'Replacing environment variables in files'
+  safesed "replaceuser" \$DB_USER /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacepassword" \$DB_PASSWORD /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacecontainer" \$DB_HOST /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replacedatabase" \$DB_DATABASE /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
   echo '  Using filesystem-based attachments...'
   xwiki_set_cfg 'xwiki.store.attachment.hint' 'file'
