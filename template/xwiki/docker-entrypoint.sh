@@ -112,6 +112,8 @@ function configure() {
   file_env 'DB_PASSWORD' 'xwiki'
   file_env 'DB_HOST' 'db'
   file_env 'DB_DATABASE' 'xwiki'
+  file_env 'INDEX_HOST' 'localhost'
+  file_env 'INDEX_PORT' '8983'
 
   echo 'Replacing environment variables in files'
   safesed "replaceuser" \$DB_USER /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
@@ -133,6 +135,12 @@ function configure() {
   xwiki_set_properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
   echo '  Configure libreoffice...'
   xwiki_set_properties 'openoffice.autoStart' 'true'
+
+  if [ \$INDEX_HOST != 'localhost' ]; then
+    echo '  Configuring remote Solr Index'
+    xwiki_set_properties 'solr.type' 'remote'
+    xwiki_set_properties 'solr.remote.url' "http://\$INDEX_HOST:\$INDEX_PORT/solr/xwiki"
+  fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
   # files to the permanent directory so that they can be easily modified by the user. They'll be synced at the next
