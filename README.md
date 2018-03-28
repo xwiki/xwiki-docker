@@ -195,22 +195,25 @@ volumes:
 Here are some examples of using this image with Docker Swarm. These examples leverage additional features of Docker Swarm such as Docker secrets, and Docker configs. As such, these examples require Docker to be in swarm mode.
 
 You can read more about these features and Docker swarm mode here:
-- [Docker swarm mode](https://docs.docker.com/engine/swarm/)
-- [Creating Docker secrets](https://docs.docker.com/engine/reference/commandline/secret_create/)
-- [Creating Docker configs](https://docs.docker.com/engine/reference/commandline/config_create/)
+
+-	[Docker swarm mode](https://docs.docker.com/engine/swarm/)
+-	[Creating Docker secrets](https://docs.docker.com/engine/reference/commandline/secret_create/)
+-	[Creating Docker configs](https://docs.docker.com/engine/reference/commandline/config_create/)
 
 #### MySQL Example
 
 This example presupposes the existence of the Docker secrets `xwiki-db-username`, `xwiki-db-password` and `xwiki-db-root-password`, and the Docker config `xwiki-mysql-config`.
 
 You can create these secrets and configs with the following:
-- `echo ${MY_XWIKI_USER:-xwiki} | docker secret create xwiki-db-username -`
-- `echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-password -`
-- `echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-root-password -`
-- `docker config create xwiki-mysql-config /path/to/mysql/xwiki.cnf`
 
-To deploy this example, save the following YAML as _xwiki-stack.yaml_ then run:
-- `docker stack deploy -c xwiki-stack.yaml xwiki`
+-	`echo ${MY_XWIKI_USER:-xwiki} | docker secret create xwiki-db-username -`
+-	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-password -`
+-	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-root-password -`
+- 	`docker config create xwiki-mysql-config /path/to/mysql/xwiki.cnf`
+
+To deploy this example, save the following YAML as `xwiki-stack.yaml`, then run:
+
+-	`docker stack deploy -c xwiki-stack.yaml xwiki`
 
 ```yaml
 version: '3.3'
@@ -269,12 +272,14 @@ configs:
 This example presupposes the existence of the Docker secrets `xwiki-db-username`, `xwiki-db-password`, and `xwiki-db-root-password`.
 
 You can create these secrets with the following:
-- `echo ${MY_XWIKI_USER:-xwiki} | docker secret create xwiki-db-username -`
-- `echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-password -`
-- `echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-root-password -`
 
-To deploy this example, save the following YAML as _xwiki-stack.yaml_ then run:
-- `docker stack deploy -c xwiki-stack.yaml xwiki`
+-	`echo ${MY_XWIKI_USER:-xwiki} | docker secret create xwiki-db-username -`
+-	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-password -`
+-	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-root-password -`
+
+To deploy this example, save the following YAML as `xwiki-stack.yaml` then run:
+
+-	`docker stack deploy -c xwiki-stack.yaml xwiki`
 
 ```yaml
 version: '3.3'
@@ -320,7 +325,6 @@ secrets:
     external:
       name: xwiki-db-root-password
 ```
-
 
 ## Building
 
