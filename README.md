@@ -369,13 +369,12 @@ The first time you create a container out of the xwiki image, a shell script (`/
 
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), the configuration values can also be given to the container as files containing that value.
 
-- `DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
-- `DB_PASSWORD_FILE`: The location, inside the container, of a file containing the value for `DB_PASSWORD`
-- `DB_DATABASE_FILE`: The location, inside the container, of a file containing the value for `DB_DATABASE`
-- `DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
+-	`DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
+-	`DB_PASSWORD_FILE`: The location, inside the container, of a file containing the value for `DB_PASSWORD`
+-	`DB_DATABASE_FILE`: The location, inside the container, of a file containing the value for `DB_DATABASE`
+-	`DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
-
 
 The main XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) are available in the mapped local directory for the permanent directory on your host.
 
