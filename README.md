@@ -328,7 +328,7 @@ secrets:
 
 ## Using an external Solr service
 
-From (http://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
+From the [XWiki Solr Search API documentation](http://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
 
 > By default XWiki ships with an embedded Solr. This is mostly for ease of use but the embedded instance is not really recommended by the Solr team so you might want to externalize it when starting to have a wiki with a lots of pages. Solr is using a lot of memory and a standalone Solr instance is generally better in term of speed than the embedded one. It should not be much noticeable in a small wiki but if you find yourself starting to have memory issues and slow search results you should probably try to install and setup an external instance of Solr using the guide.
 > 
@@ -344,14 +344,18 @@ solr.remote.url=http://$INDEX_HOST:$INDEX_PORT/solr/xwiki
 ```
 
 #### Preparing Solr container
-The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/)
-* Select the appropriate XWiki Solr configuration jar from [here](http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
-* Place this jar in a directory along side `solr-init.sh` from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki)
-* Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
-* Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
-* This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given jar
-* If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/own/solr`
+
+The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
+
+-	Select the appropriate XWiki Solr configuration JAR from [here](http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
+-	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
+-	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
+-	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
+-	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
+-	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/own/solr`
+
 #### Docker run example
+
 Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
 
 The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/own/solr` directory:
@@ -366,6 +370,7 @@ docker run \
 ```
 
 Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
+
 ```console
 docker run \
   --net=xwiki-nw \
@@ -381,7 +386,9 @@ docker run \
 ```
 
 #### Docker Compose example
-The below compose file assumes that `./solr` contains `init-solr.sh` and the configuration jar file.
+
+The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
+
 ```yaml
 version: '2'
 networks:
@@ -432,8 +439,8 @@ volumes:
   mysql-data: {}
   xwiki-data: {}
   solr-data: {}
-
 ```
+
 ## Building
 
 This allows you to rebuild the XWiki docker image locally. Here are the steps:
