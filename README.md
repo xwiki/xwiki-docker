@@ -326,6 +326,114 @@ secrets:
       name: xwiki-db-root-password
 ```
 
+## Using an external Solr service
+
+From (http://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
+
+> By default XWiki ships with an embedded Solr. This is mostly for ease of use but the embedded instance is not really recommended by the Solr team so you might want to externalize it when starting to have a wiki with a lots of pages. Solr is using a lot of memory and a standalone Solr instance is generally better in term of speed than the embedded one. It should not be much noticeable in a small wiki but if you find yourself starting to have memory issues and slow search results you should probably try to install and setup an external instance of Solr using the guide.
+> 
+> Also the speed of the drive where the Solr index is located can be very important because Solr/Lucene is quite filesystem intensive. For example putting it in a SSD might give a noticeable boost.
+> 
+> You can also find more Solr-specific performance details on https://wiki.apache.org/solr/SolrPerformanceProblems. Standalone Solr also comes with a very nice UI, along with monitoring and test tools.
+
+This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
+
+```data
+solr.type=remote  
+solr.remote.url=http://$INDEX_HOST:$INDEX_PORT/solr/xwiki
+```
+
+#### Preparing Solr container
+The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/)
+* Select the appropriate XWiki Solr configuration jar from [here](http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
+* Place this jar in a directory along side `solr-init.sh` from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki)
+* Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
+* Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
+* This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given jar
+* If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/own/solr`
+#### Docker run example
+Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
+
+The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/own/solr` directory:
+
+```console
+docker run \
+  --net=xwiki-nw \
+  --name solr-xwiki \
+  -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
+  -v /my/own/solr:/opt/solr/server/solr/xwiki \
+  -d solr:7.2
+```
+
+Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
+```console
+docker run \
+  --net=xwiki-nw \
+  --name xwiki \
+  -p 8080:8080 \
+  -v /my/own/xwiki:/usr/local/xwiki \
+  -e DB_USER=xwiki \
+  -e DB_PASSWORD=xwiki \
+  -e DB_DATABASE=xwiki \
+  -e DB_HOST=mysql-xwiki \
+  -e INDEX_HOST=solr-xwiki \
+  -d xwiki:mysql-tomcat
+```
+
+#### Docker Compose example
+The below compose file assumes that `./solr` contains `init-solr.sh` and the configuration jar file.
+```yaml
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  web:
+    image: "xwiki:mysql-tomcat"
+    container_name: xwiki-web
+    depends_on:
+      - db
+      - index
+    ports:
+      - "8080:8080"
+    environment:
+      - XWIKI_VERSION=xwiki
+      - DB_USER=xwiki
+      - DB_PASSWORD=xwiki
+      - DB_DATABASE=xwiki
+      - DB_HOST=xwiki-db
+      - INDEX_HOST=xwiki-index
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
+  db:
+    image: "mysql:5.7"
+    container_name: xwiki-db
+    volumes:
+      - ./mysql/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
+      - mysql-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=xwiki
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
+    networks:
+      - bridge
+  index:
+    image: "solr:7.2"
+    container_name: xwiki-index
+    volumes:
+      - ./solr:/docker-entrypoint-initdb.d
+      - solr-data:/opt/solr/server/solr
+    networks:
+      - bridge
+volumes:
+  mysql-data: {}
+  xwiki-data: {}
+  solr-data: {}
+
+```
 ## Building
 
 This allows you to rebuild the XWiki docker image locally. Here are the steps:
@@ -366,13 +474,17 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_PASSWORD`: The user password used by XWiki to read/write to the DB.
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
+-	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
+-	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
 
-In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), the configuration values can also be given to the container as files containing that value.
+In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 
 -	`DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
 -	`DB_PASSWORD_FILE`: The location, inside the container, of a file containing the value for `DB_PASSWORD`
 -	`DB_DATABASE_FILE`: The location, inside the container, of a file containing the value for `DB_DATABASE`
 -	`DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
+-	`INDEX_HOST_FILE`: The location, inside the container, of a file containing the value for `INDEX_HOST`
+-	`INDEX_PORT_FILE`: The location, inside the container, of a file containing the value for `INDEX_PORT`
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
 
