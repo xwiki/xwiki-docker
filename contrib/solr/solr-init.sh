@@ -28,12 +28,12 @@ mkdir -p $location
 
 # Add the XWiki Solr plugin
 plugin=$(unzip -Z1 $jar | grep lib.*jar)
-unzip $jar \
+unzip -o $jar \
 	$plugin \
 	-d $location
 
 # Add the XWiki core
 core='xwiki/*'
-unzip $jar \
+unzip -o $jar \
 	$core \
 	-d $location
