@@ -99,6 +99,7 @@
     <mapping resource="activitystream.hbm.xml"/>
     <mapping resource="instance.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>
+    <mapping resource="notification-filter-preferences.hbm.xml"/>
 
   </session-factory>
 </hibernate-configuration>
