@@ -46,18 +46,12 @@ RUN apt-get update && \\
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
 ENV XWIKI_VERSION=$xwikiVersion
-<% if (xwikiVersion.startsWith('8.'))
-     print 'ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/enterprise/xwiki-enterprise-web/\${XWIKI_VERSION}"'
-   else
-     print 'ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/\${XWIKI_VERSION}"' %>
+ENV XWIKI_URL_PREFIX "http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/\${XWIKI_VERSION}"
 ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
 RUN rm -rf /usr/local/tomcat/webapps/* && \\
   mkdir -p /usr/local/tomcat/temp && \\
   mkdir -p /usr/local/xwiki/data && \\
-  <% if (xwikiVersion.startsWith('8.'))
-       print 'curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-enterprise-web-\${XWIKI_VERSION}.war" -o xwiki.war && \\'
-     else
-       print 'curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-\${XWIKI_VERSION}.war" -o xwiki.war && \\' %>
+  curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-\${XWIKI_VERSION}.war" -o xwiki.war && \\
   echo "\$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \\
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \\
   rm -f xwiki.war
@@ -75,13 +69,9 @@ COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
-<% if (xwikiVersion.startsWith('8.')) {
-     println 'RUN sed -i \'s/<id>org.xwiki.enterprise:xwiki-enterprise-web/<id>org.xwiki.enterprise:xwiki-enterprise-docker/\' \\'
-     println '  /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed'
-   } else {
-     println 'RUN sed -i \'s/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/\' \\'
-     println '  /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed'
-   } %>
+RUN sed -i \'s/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/\' \\
+  /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
+
 # Add scripts required to make changes to XWiki configuration files at execution time
 # Note: we don't run CHMOD since 1) it's not required since the executabe bit is already set in git and 2) running
 # CHMOD after a COPY will sometimes fail, depending on different host-specific factors (especially on AUFS).
