@@ -9,7 +9,7 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 ![logo](http://www.xwiki.org/xwiki/bin/view/Main/Logo?xpage=plain&act=svg&finput=logo-xwikiorange.svg&foutput=logo-xwikiorange.png&width=200)
 
 # Table of contents
-<!-- generated with pandoc -f gfm --toc -o readme-toc.md README.md -->
+<!-- generated with pandoc -f gfm --toc -s README.md -t markdown | sed '/^$/,$d' -->
 
 -   [Introduction](#introduction)
 -   [How to use this image](#how-to-use-this-image)
