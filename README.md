@@ -8,6 +8,30 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 
 ![logo](http://www.xwiki.org/xwiki/bin/view/Main/Logo?xpage=plain&act=svg&finput=logo-xwikiorange.svg&foutput=logo-xwikiorange.png&width=200)
 
+# Table of contents
+<!-- generated with pandoc -f gfm --toc -o readme-toc.md README.md -->
+
+-   [Introduction](#introduction)
+-   [How to use this image](#how-to-use-this-image)
+    -   [Pulling existing image](#pulling-existing-image)
+        -   [Using docker run](#using-docker-run)
+        -   [Using docker-compose](#using-docker-compose)
+        -   [Using Docker Swarm](#using-docker-swarm)
+    -   [Using an external Solr service](#using-an-external-solr-service)
+        -   [Preparing Solr container](#preparing-solr-container)
+        -   [Docker run example](#docker-run-example)
+        -   [Docker Compose example](#docker-compose-example)
+    -   [Building](#building)
+-   [Upgrading XWiki](#upgrading-xwiki)
+-   [Details for the xwiki image](#details-for-the-xwiki-image)
+    -   [Configuration Options](#configuration-options)
+    -   [Passing JVM options](#passing-jvm-options)
+    -   [Miscellaneous](#miscellaneous)
+-   [License](#license)
+-   [Support](#support)
+-   [Contribute](#contribute)
+-   [Credits](#credits)
+
 # Introduction
 
 The goal is to provide a production-ready XWiki system running in Docker. This is why:
