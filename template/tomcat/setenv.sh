@@ -25,4 +25,30 @@
 #   http://tomcat.apache.org/security-6.html#Fixed_in_Apache_Tomcat_6.0.10. We want to allow for them as it's useful to
 #   be able to have '/' and '\' in wiki page names.
 # * On some system /dev/random is slow to init leading to a slow Tomcat and thus Xwiki startup.
-export CATALINA_OPTS="-Xmx1024m -Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true -Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true -Dsecurerandom.source=file:/dev/urandom"
+
+# Users can override these values by setting the JAVA_OPTS environment variable. For example:
+# -e JAVA_OPTS="-Xmx2048m"
+
+XMX="-Xmx1024m"
+ALLOW_ENCODED_SLASH="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
+ALLOW_BACKSLASH="-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true"
+SECURERANDOM="-Dsecurerandom.source=file:/dev/urandom"
+
+if [[ ! -z "\$JAVA_OPTS" ]]; then
+  if [[ ! \$JAVA_OPTS =~ .*-Xmx[0-9]+.* ]]; then
+    JAVA_OPTS="\$JAVA_OPTS \$XMX"
+  fi
+  if [[ ! \$JAVA_OPTS =~ .*ALLOW_ENCODED_SLASH.* ]]; then
+    JAVA_OPTS="\$JAVA_OPTS \$ALLOW_ENCODED_SLASH"
+  fi
+  if [[ ! \$JAVA_OPTS =~ .*ALLOW_BACKSLASH.* ]]; then
+    JAVA_OPTS="\$JAVA_OPTS \$ALLOW_BACKSLASH"
+  fi
+  if [[ ! \$JAVA_OPTS =~ .*securerandom\\.source.* ]]; then
+    JAVA_OPTS="\$JAVA_OPTS \$SECURERANDOM"
+  fi
+else
+  JAVA_OPTS="\$XMX \$ALLOW_ENCODED_SLASH \$ALLOW_BACKSLASH \$SECURERANDOM"
+fi
+
+export JAVA_OPTS
