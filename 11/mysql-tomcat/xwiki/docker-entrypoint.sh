@@ -121,13 +121,6 @@ function configure() {
   safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
-  echo '  Using filesystem-based attachments...'
-  xwiki_set_cfg 'xwiki.store.attachment.hint' 'file'
-  xwiki_set_cfg 'xwiki.store.attachment.versioning.hint' 'file'
-  xwiki_set_cfg 'xwiki.store.attachment.recyclebin.content.hint' 'file'
-  echo '  Using filesystem-based deleted documents...'
-  xwiki_set_cfg 'xwiki.store.recyclebin.content.hint' 'file'
-
   echo '  Generating authentication validation and encryption keys...'
   xwiki_set_cfg 'xwiki.authentication.validationKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
   xwiki_set_cfg 'xwiki.authentication.encryptionKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
