@@ -94,7 +94,6 @@
     <property name="dbcp.maxOpenPreparedStatements">20</property>
     <mapping resource="xwiki.hbm.xml"/>
     <mapping resource="feeds.hbm.xml"/>
-    <mapping resource="activitystream.hbm.xml"/>
     <mapping resource="instance.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>'''
 
@@ -116,9 +115,13 @@
     <property name="xwiki.virtual_mode">schema</property>
     <mapping resource="xwiki.postgresql.hbm.xml"/>
     <mapping resource="feeds.hbm.xml"/>
-    <mapping resource="activitystream.hbm.xml"/>
     <mapping resource="instance.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>''' %>
-    <% if (!xwikiVersion.startsWith('9.')) println '<mapping resource="notification-filter-preferences.hbm.xml"/>' %>
+    <% if (xwikiVersion.startsWith('11.'))
+          println '<mapping resource="eventstream.hbm.xml"/>'
+       else
+          println '<mapping resource="activitystream.hbm.xml"/>'
+    %>
+    <mapping resource="notification-filter-preferences.hbm.xml"/>
   </session-factory>
 </hibernate-configuration>
