@@ -118,9 +118,9 @@
     <mapping resource="instance.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>''' %>
     <% if (xwikiVersion.startsWith('11.'))
-          println '<mapping resource="eventstream.hbm.xml"/>'
+          print '<mapping resource="eventstream.hbm.xml"/>'
        else
-          println '<mapping resource="activitystream.hbm.xml"/>'
+          print '<mapping resource="activitystream.hbm.xml"/>'
     %>
     <mapping resource="notification-filter-preferences.hbm.xml"/>
   </session-factory>
