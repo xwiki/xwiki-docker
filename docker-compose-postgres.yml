@@ -24,7 +24,7 @@ networks:
 services:
   web:
     # Use an already built XWiki image from DockerHub.
-    image: "xwiki:postgres-tomcat"
+    image: "xwiki:lts-postgres-tomcat"
     container_name: xwiki-postgres-tomcat-web
     depends_on:
       - db

@@ -24,7 +24,7 @@ networks:
 services:
   web:
     # Use an already built XWiki image from DockerHub.
-    image: "xwiki:mysql-tomcat"
+    image: "xwiki:lts-mysql-tomcat"
     container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db

@@ -102,13 +102,13 @@ Then run XWiki in another container by issuing one of the following command.
 For MySQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat
 ```
 
 For PostgreSQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:postgres-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:lts-postgres-tomcat
 ```
 
 Be careful to use the same DB username, password and database names that you've used on the first command to start the DB container. Also, please don't forget to add a `-e DB_HOST=` environment variable with the name of the previously created DB container so that XWiki knows where its database is.
@@ -141,7 +141,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:mysql-tomcat"
+    image: "xwiki:lts-mysql-tomcat"
     container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
@@ -189,7 +189,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:postgres-tomcat"
+    image: "xwiki:lts-postgres-tomcat"
     container_name: xwiki-postgres-tomcat-web
     depends_on:
       - db
@@ -250,7 +250,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml`, then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:mysql-tomcat"
+    image: "xwiki:lts-mysql-tomcat"
     ports:
       - "8080:8080"
     environment:
@@ -316,7 +316,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml` then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:mysql-postgres"
+    image: "xwiki:lts-mysql-postgres"
     ports:
       - "8080:8080"
     environment:
@@ -413,7 +413,7 @@ docker run \
   -e DB_DATABASE=xwiki \
   -e DB_HOST=mysql-xwiki \
   -e INDEX_HOST=solr-xwiki \
-  -d xwiki:mysql-tomcat
+  -d xwiki:lts-mysql-tomcat
 ```
 
 #### Docker Compose example
@@ -427,7 +427,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:mysql-tomcat"
+    image: "xwiki:lts-mysql-tomcat"
     container_name: xwiki-web
     depends_on:
       - db
