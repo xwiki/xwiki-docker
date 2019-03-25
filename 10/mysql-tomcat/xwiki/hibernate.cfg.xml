@@ -60,7 +60,7 @@
          Prepared Statements (PS) contain the schema on which they were initially created and thus when switching
          schema if the same PS is reused it'll execute on the wrong schema! Since HSQLDB does internally cache
          prepared statement there's no performance loss by not caching Prepared Statements at the DBCP level.
-         See http://jira.xwiki.org/browse/XWIKI-1740.
+         See https://jira.xwiki.org/browse/XWIKI-1740.
          Thus we recommend not turning on this configuration for HSQLDB unless you know what you're doing :)
 
          Note 2: The same applies to PostGreSQL.
@@ -88,15 +88,18 @@
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
     <property name="dialect">org.hibernate.dialect.MySQL5InnoDBDialect</property>
-    <property name="connection.useUnicode">true</property>
-    <property name="connection.characterEncoding">UTF-8</property>
     <property name="dbcp.poolPreparedStatements">true</property>
     <property name="dbcp.maxOpenPreparedStatements">20</property>
+
+    <property name="hibernate.connection.charSet">UTF-8</property>
+    <property name="hibernate.connection.useUnicode">true</property>
+    <property name="hibernate.connection.characterEncoding">utf8</property>
+
     <mapping resource="xwiki.hbm.xml"/>
     <mapping resource="feeds.hbm.xml"/>
     <mapping resource="instance.hbm.xml"/>
+    <mapping resource="notification-filter-preferences.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>
     <mapping resource="activitystream.hbm.xml"/>
-    <mapping resource="notification-filter-preferences.hbm.xml"/>
   </session-factory>
 </hibernate-configuration>

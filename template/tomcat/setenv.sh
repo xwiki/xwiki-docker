@@ -32,7 +32,7 @@
 XMX="-Xmx1024m"
 ALLOW_ENCODED_SLASH="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
 ALLOW_BACKSLASH="-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true"
-SECURERANDOM="-Dsecurerandom.source=file:/dev/urandom"
+SECURERANDOM="-Djava.security.egd=file:/dev/./urandom"
 
 if [[ ! -z "\$JAVA_OPTS" ]]; then
   if [[ ! \$JAVA_OPTS =~ .*-Xmx[0-9]+.* ]]; then
@@ -44,7 +44,7 @@ if [[ ! -z "\$JAVA_OPTS" ]]; then
   if [[ ! \$JAVA_OPTS =~ .*ALLOW_BACKSLASH.* ]]; then
     JAVA_OPTS="\$JAVA_OPTS \$ALLOW_BACKSLASH"
   fi
-  if [[ ! \$JAVA_OPTS =~ .*securerandom\\.source.* ]]; then
+  if [[ ! \$JAVA_OPTS =~ .*java\\.security\\.egd.* ]]; then
     JAVA_OPTS="\$JAVA_OPTS \$SECURERANDOM"
   fi
 else
