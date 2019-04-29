@@ -2,7 +2,7 @@
 
 # Usage:
 # - Place the XWiki Solr configuration jar into the same directory as this script
-#	- ex. wget http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/10.1/xwiki-platform-search-solr-server-data-10.1.jar
+#	- ex. wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/10.1/xwiki-platform-search-solr-server-data-10.1.jar
 # - ensure that this directory, and it's contents, are owned by the solr user and group, 8983:8983
 #	- ex. chown -R 8983:8983 $PARENT_DIRECTORY
 # - mount the partent directory of this script to /docker-entrypoint-initdb.d/ when you run the Solr container

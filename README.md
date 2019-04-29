@@ -1,12 +1,12 @@
 # What is XWiki
 
-[XWiki](http://xwiki.org) is a free wiki software platform written in Java with a design emphasis on extensibility. XWiki is an enterprise wiki. It includes WYSIWYG editing, OpenDocument based document import/export, semantic annotations and tagging, and advanced permissions management.
+[XWiki](https://xwiki.org/) is a free wiki software platform written in Java with a design emphasis on extensibility. XWiki is an enterprise wiki. It includes WYSIWYG editing, OpenDocument based document import/export, semantic annotations and tagging, and advanced permissions management.
 
 As an application wiki, XWiki allows for the storing of structured data and the execution of server side script within the wiki interface. Scripting languages including Velocity, Groovy, Python, Ruby and PHP can be written directly into wiki pages using wiki macros. User-created data structures can be defined in wiki documents and instances of those structures can be attached to wiki documents, stored in a database, and queried using either Hibernate query language or XWiki's own query language.
 
-[XWiki.org's extension wiki](http://extensions.xwiki.org) is home to XWiki extensions ranging from [code snippets](http://snippets.xwiki.org) which can be pasted into wiki pages to loadable core modules. Many of XWiki Enterprise's features are provided by extensions which are bundled with it.
+[XWiki.org's extension wiki](https://extensions.xwiki.org/) is home to XWiki extensions ranging from [code snippets](https://snippets.xwiki.org/) which can be pasted into wiki pages to loadable core modules. Many of XWiki Enterprise's features are provided by extensions which are bundled with it.
 
-![logo](http://www.xwiki.org/xwiki/bin/view/Main/Logo?xpage=plain&act=svg&finput=logo-xwikiorange.svg&foutput=logo-xwikiorange.png&width=200)
+![logo](https://www.xwiki.org/xwiki/bin/view/Main/Logo?xpage=plain&act=svg&finput=logo-xwikiorange.svg&foutput=logo-xwikiorange.png&width=200)
 
 # Table of contents
 
@@ -359,7 +359,7 @@ secrets:
 
 ## Using an external Solr service
 
-From the [XWiki Solr Search API documentation](http://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
+From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
 
 > By default XWiki ships with an embedded Solr. This is mostly for ease of use but the embedded instance is not really recommended by the Solr team so you might want to externalize it when starting to have a wiki with a lots of pages. Solr is using a lot of memory and a standalone Solr instance is generally better in term of speed than the embedded one. It should not be much noticeable in a small wiki but if you find yourself starting to have memory issues and slow search results you should probably try to install and setup an external instance of Solr using the guide.
 >
@@ -378,7 +378,7 @@ solr.remote.url=http://$INDEX_HOST:$INDEX_PORT/solr/xwiki
 
 The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
 
--	Select the appropriate XWiki Solr configuration JAR from [here](http://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
+-	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
 -	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
 -	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
 -	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
@@ -574,8 +574,8 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 
 # Support
 
--	If you wish to raise an issue or an idea of improvement use [XWiki Docker JIRA project](http://jira.xwiki.org/browse/XDOCKER)
--	If you have questions, use the [XWiki Users Mailing List/Forum](http://dev.xwiki.org/xwiki/bin/view/Community/MailingLists) or use the [XWiki IRC channel](http://dev.xwiki.org/xwiki/bin/view/Community/IRC)
+-	If you wish to raise an issue or an idea of improvement use [XWiki Docker JIRA project](https://jira.xwiki.org/browse/XDOCKER)
+-	If you have questions, use the [XWiki Users Mailing List/Forum](https://dev.xwiki.org/xwiki/bin/view/Community/MailingLists) or use the [XWiki IRC channel](https://dev.xwiki.org/xwiki/bin/view/Community/IRC)
 
 # Contribute
 
