@@ -316,7 +316,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml` then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:lts-mysql-postgres"
+    image: "xwiki:lts-postgres-tomcat"
     ports:
       - "8080:8080"
     environment:
