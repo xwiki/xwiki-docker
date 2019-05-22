@@ -496,9 +496,7 @@ You've installed an XWiki docker image and used it and now comes the time when y
 
 If you've followed the instructions above you've mapped the XWiki permanent directory to a local directory on your host.
 
-Thus all you need to do is to execute the installation instructions above as if you were installing a new version of the XWiki docker image.
-
-Then you need to stop your running XWiki container. You should keep your DB container running. Then all you have to do is start a new container as described above, using the new XWiki docker image.
+All you need to do to upgrade is to stop the running XWiki container and start the new version of it that you want to upgrade to. You should keep your DB container running.
 
 Note that your current XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) will be preserved.
 
