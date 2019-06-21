@@ -17,16 +17,15 @@
 # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
-<% if (image == 'debian') print 'FROM tomcat:8-jdk8-slim'
-   else if (image == 'alpine') print 'FROM tomcat:8-jre8-alpine' %>
+FROM tomcat:8-jdk8-slim
 
 
 #    ____  ____  ____      ____  _   __        _
 #   |_  _||_  _||_  _|    |_  _|(_) [  |  _   (_)
-#     \\ \\  / /    \\ \\  /\\  / /  __   | | / ]  __
-#      > `' <      \\ \\/  \\/ /  [  |  | '' <  [  |
-#    _/ /'`\\ \\_     \\  /\\  /    | |  | |`\\ \\  | |
-#   |____||____|     \\/  \\/    [___][__|  \\_][___]
+#     \ \  / /    \ \  /\  / /  __   | | / ]  __
+#      > `' <      \ \/  \/ /  [  |  | '' <  [  |
+#    _/ /'`\ \_     \  /\  /    | |  | |`\ \  | |
+#   |____||____|     \/  \/    [___][__|  \_][___]
 
 MAINTAINER Vincent Massol <vincent@massol.net>
 
@@ -34,49 +33,33 @@ MAINTAINER Vincent Massol <vincent@massol.net>
 
 # Install LibreOffice + other tools
 # Note that procps is required to get ps which is used by JODConverter to start LibreOffice
-<% if (image == 'debian') print '''\
-RUN apt-get update && \\
-  apt-get --no-install-recommends -y install \\
-    curl \\
-    libreoffice \\
-    unzip \\
-    procps \\''' %>
-    <% if (db == 'mysql' && image == 'debian') print 'libmysql-java && \\'
-       if (db == 'postgres' && image == 'debian') print 'libpostgresql-jdbc-java && \\' %>
-<% if (image == 'debian') print 'rm -rf /var/lib/apt/lists/*' %>
-
-<% if (image == 'alpine') print '''\
-RUN apk update && \
-  apk --no-cache add \
+RUN apt-get update && \
+  apt-get --no-install-recommends -y install \
     curl \
     libreoffice \
     unzip \
-    procps
+    procps \
+    libpostgresql-jdbc-java && \
+rm -rf /var/lib/apt/lists/*
 
-RUN curl -L -o /mysql-connector-java-5.1.34.jar https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.34/mysql-connector-java-5.1.34.jar
-''' %>
+
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION=$xwikiVersion
-ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/\${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
-RUN rm -rf /usr/local/tomcat/webapps/* && \\
-  mkdir -p /usr/local/tomcat/temp && \\
-  mkdir -p /usr/local/xwiki/data && \\
-  curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-\${XWIKI_VERSION}.war" -o xwiki.war && \\
-  echo "\$XWIKI_DOWNLOAD_SHA256  xwiki.war" | sha256sum -c - && \\
-  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \\
+ENV XWIKI_VERSION=11.4
+ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
+ENV XWIKI_DOWNLOAD_SHA256 8a0d83edd44b2a73c079bc43672c88c096e28b59e50a69dd37391d6789ba4670
+RUN rm -rf /usr/local/tomcat/webapps/* && \
+  mkdir -p /usr/local/tomcat/temp && \
+  mkdir -p /usr/local/xwiki/data && \
+  curl -fSL "${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-${XWIKI_VERSION}.war" -o xwiki.war && \
+  echo "$XWIKI_DOWNLOAD_SHA256  xwiki.war" | sha256sum -c - && \
+  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
-<% if (db == 'mysql' && image == 'debian')
-      print 'RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
-   else if (db == 'postgres' && image == 'debian')
-      print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
-   else if (db == 'mysql' && image == 'alpine')
-      print 'RUN cp /mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/' %>
+RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
@@ -85,7 +68,7 @@ COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
-RUN sed -i \'s/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/\' \\
+RUN sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwiki.platform:xwiki-platform-distribution-docker/' \
   /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
 
 # Add scripts required to make changes to XWiki configuration files at execution time

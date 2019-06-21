@@ -27,7 +27,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 defaultTasks 'generate'
 
-def variants = ['mysql-tomcat', 'postgres-tomcat']
+def variants = ['mysql-tomcat-debian', 'postgres-tomcat-debian', 'mysql-tomcat-alpine']
 
 // Note: To compute the sha256, download the XWiki WAR and issue:
 // - Unix: sha256sum <binary name>
@@ -50,8 +50,9 @@ task generate() {
         tokens.keySet().each() { version ->
             variants.each() { variant ->
                 // Extract the db type and add it as a token
-                def (db, servlet) = variant.tokenize('-')
+                def (db, servlet, image) = variant.tokenize('-')
                 tokens[version].'db' = db
+                tokens[version].'image' = image
                 // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
