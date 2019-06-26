@@ -577,13 +577,13 @@ MySQL:
 - To know how to generate the sha256, check the doc inside `build.gradle`. You need to download in advance the XWiki WAR file and run the according command in order to generate.
 	- On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
-		``` console
+		```console
 		VERSION="9.11.8"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
 		```
 
   - On Mac, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
-		``` console
+		```console
 		VERSION="10.11"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
 		```
 
