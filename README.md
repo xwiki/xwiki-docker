@@ -28,6 +28,10 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 	-	[Configuration Options](#configuration-options)
 	-	[Passing JVM options](#passing-jvm-options)
 	-	[Miscellaneous](#miscellaneous)
+- [For Maintainers](#for-maintainers)
+  - [Update Docker](#update-docker)
+  - [Testing Docker container](#testing-docker-container)
+  - [Clean Up](#clean-up)
 -	[License](#license)
 -	[Support](#support)
 -	[Contribute](#contribute)
@@ -563,6 +567,60 @@ MySQL:
 	-	Find the container id with `docker ps`
 	-	Execute bash in the mysql container: `docker exec -it <containerid> bash -l`
 	-	Once inside the mysql container execute the `mysql` command: `mysql --user=xwiki --password=xwiki`
+
+# For Maintainers
+
+## Update Docker
+
+
+- Create an task issue on the XDOCKER project with subject Upgrade stable version to <version>.
+- Update the version of XWiki in the build.gradle file found in the XWiki Docker repository (clone it locally first).
+- To know how to generate the sha256, check the doc inside build.gradle. You need to download in advance the *.war file and run the according command in order to generate.
+  - On Linux, use the following one-liner and replace the value of the VERSION variable accordingly:
+``` console
+VERSION="9.11.8"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+```
+
+  - On Mac, use the following one-liner and replace the value of the VERSION variable accordingly:
+
+``` console
+VERSION="10.11"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+```
+- Execute the Gradle build (run ./gradlew) to generate the various Dockerfiles and other resources for all image tags
+
+- [Test](#testing-docker-container) the docker container
+- If all is ok commit, push and close the jira issue created above
+- Note down the SHA1 of the last commit and update https://github.com/docker-library/official-images/blob/master/library/xwiki with it by creating a Pull Request (you can edit directly on the GitHub web page and create a Pull Request).
+- If you need to update the official documentation create a Pull Request for https://github.com/docker-library/docs/blob/master/xwiki/content.md (you can edit directly on the GitHub web page and create a Pull Request).
+
+## Testing Docker container
+
+- Test the modified files. On Linux, you need to use sudo on each docker command or configure it differently.
+  - Install Docker. For Mac you can check the installer.
+  - Make sure you open Docker before running the commands.
+    - Linux (except Ubuntu): `sudo systemctl start docker`
+  - `docker network create -d bridge xwiki-test`
+```console
+docker run --net=xwiki-test --name mysql-xwiki-test -v /tmp/xwiki-docker-test/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1
+```
+- Navigate to the directory to test, e.g. 10/mysql-tomcat and issue:
+  - `docker build -t xwiki-test .`
+  - ```console docker run --net=xwiki-test --name xwiki-test -p 8080:8080 -v /tmp/xwiki-docker-test/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki-test xwiki-test ```
+  Note that same as for mysql container above you'll need to remove the container if it already exists.
+  - In case you had an XWiki instance running on 8080 and the above command fails (i.e. address already in use), you cannot simply run it again. If you do (and you should try, actually), will try to recreate the container with the xwiki-test name that is now already in use by a container for which you are given the ID (note that down). Instead, you need to simply start the mentioned container ID which previously failed by running docker start <FAILED_START_CONTAINER_ID>.
+  - Open your browser to http://localhost:8080 and try to setup XWiki and verify it works
+- If all is ok commit, push and close the jira issue created above
+
+### Clean Up
+  ```console
+  docker stop xwiki-test
+docker rm xwiki-test
+docker stop mysql-xwiki-test
+docker rm mysql-xwiki-test
+docker network rm xwiki-test
+docker rmi xwiki-test
+sudo rm -Rf /tmp/xwiki-docker-test
+```
 
 # License
 
