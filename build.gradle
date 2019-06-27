@@ -32,15 +32,22 @@ def variants = ['mysql-tomcat', 'postgres-tomcat']
 // Note: To compute the sha256, download the XWiki WAR and issue:
 // - Unix: sha256sum <binary name>
 // - Mac: shasum --algorithm 256 <binary name>
+// 
+//VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar && sha256sum xwiki-platform-search-solr-server-data-${VERSION}.jar && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
+// VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar | sha256sum && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
 
 def tokens = [
     '10' : [
         xwikiVersion: '10.11.8',
-        xwikiSha256: 'd3ac801e156966b1e5729a5251aa13662262460edcbf903ec8b5e5d98563bf7e'
+        xwikiSha256: 'd3ac801e156966b1e5729a5251aa13662262460edcbf903ec8b5e5d98563bf7e',
+        xwikisolrSha256: '216c46c11c41a1195cd23f2f568a70acdcdd731f1e179d7f1d4e93c40cacbcb1',
+        solrVersion: '7.5.0'
     ],
     '11': [
         xwikiVersion: '11.5',
-        xwikiSha256: '4095548065fd32c6d7d90af9ae15e008207b5a144f5823b0bd8520d6a874bf3a'
+        xwikiSha256: '4095548065fd32c6d7d90af9ae15e008207b5a144f5823b0bd8520d6a874bf3a',
+        xwikisolrSha256: '216c46c11c41a1195cd23f2f568a70acdcdd731f1e179d7f1d4e93c40cacbcb1',
+        solrVersion: '7.5.0'
     ]
 ]
 
@@ -80,6 +87,28 @@ task generate() {
                     filteringCharset = 'UTF-8'
                 }
             }
+            tokens[version].'db' = "postgres"
+            copy { 
+                from 'template'
+                into "${version}"
+                include "solr/Dockerfile"
+                include "solr/docker-compose.yml"
+                expand(tokens[version])
+                filteringCharset = 'UTF-8'
+             }
+             copy { 
+                from 'template'
+                into "${version}/solr"
+                include ".env"
+                expand(tokens[version])
+                filteringCharset = 'UTF-8'
+             }
+            copy { 
+                from 'template'
+                into "${version}"
+                include "solr/solr-init.sh"
+                filteringCharset = 'UTF-8'
+             }
         }
     }
 }
