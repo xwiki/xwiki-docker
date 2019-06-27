@@ -574,19 +574,31 @@ MySQL:
 
 - Create a JIRA issue on the XDOCKER project with subject `Upgrade stable version to <version>`.
 - Update the version of XWiki in the `build.gradle` file found in the XWiki Docker repository (clone it locally first).
-- To know how to generate the sha256, check the doc inside `build.gradle`. You need to download in advance the XWiki WAR file and run the according command in order to generate.
-	- On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly:
+- To know how to generate the sha256 for, check the doc inside `build.gradle`. You need to download in advance the XWiki WAR file and run the according command in order to generate.
+  - `Xwiki App sha256`:
+	  - On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly to get:
+    
+      ```console
+      VERSION="9.11.8"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+      ```
 
-		```console
-		VERSION="9.11.8"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
-		```
+    - On Mac, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
-	- On Mac, use the following one-liner and replace the value of the `VERSION` variable accordingly:
+      ```console
+      VERSION="10.11"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+      ```
+  - `Xwiki Solr sha256`
+	  - On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly to get:
+    
+      ```console
+      VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar && sha256sum xwiki-platform-search-solr-server-data-${VERSION}.jar && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
+      ```
 
-		```console
-		VERSION="10.11"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
-		```
+    - On Mac, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
+      ```console
+      VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar && shasum --algorithm 256 xwiki-platform-search-solr-server-data-${VERSION}.jar && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
+      ```
 - Execute the Gradle build (run `./gradlew`) to generate the various Dockerfiles and other resources for all image tags
 - [Test](#testing-docker-container) the docker container
 - If all is ok commit, push and close the jira issue created above

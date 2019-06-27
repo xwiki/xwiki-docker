@@ -33,8 +33,6 @@ def variants = ['mysql-tomcat', 'postgres-tomcat']
 // - Unix: sha256sum <binary name>
 // - Mac: shasum --algorithm 256 <binary name>
 // 
-//VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar && sha256sum xwiki-platform-search-solr-server-data-${VERSION}.jar && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
-// VERSION="11.5"; wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${VERSION}/xwiki-platform-search-solr-server-data-${VERSION}.jar | sha256sum && rm xwiki-platform-search-solr-server-data-${VERSION}.jar
 
 def tokens = [
     '10' : [
