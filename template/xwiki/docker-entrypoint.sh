@@ -120,6 +120,7 @@ function configure() {
   safesed "replacepassword" \$DB_PASSWORD /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   safesed "replacecontainer" \$DB_HOST /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
   safesed "replacedatabase" \$DB_DATABASE /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+
   echo '  Generating authentication validation and encryption keys...'
   xwiki_set_cfg 'xwiki.authentication.validationKey' "\$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
   xwiki_set_cfg 'xwiki.authentication.encryptionKey' "\$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
