@@ -7,7 +7,7 @@ FROM busybox as buildenv
 ARG XWIKI_VERSION=10.11.8
 ARG XWIKI_URL_PREFIX="https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/${XWIKI_VERSION}"
 
-ENV XWIKI_SOLR_SHA256 216c46c11c41a1195cd23f2f568a70acdcdd731f1e179d7f1d4e93c40cacbcb1
+ENV XWIKI_SOLR_SHA256 0cce5266f3d9925cf09b041b1b4ea833332a0f6d9e90291e3c719f5866c52c0a
 
 WORKDIR /var/xwiki-solr-temp/
 
