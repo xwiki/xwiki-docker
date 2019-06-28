@@ -38,7 +38,7 @@ def tokens = [
     '10' : [
         xwikiVersion: '10.11.8',
         xwikiSha256: 'd3ac801e156966b1e5729a5251aa13662262460edcbf903ec8b5e5d98563bf7e',
-        xwikisolrSha256: '216c46c11c41a1195cd23f2f568a70acdcdd731f1e179d7f1d4e93c40cacbcb1',
+        xwikisolrSha256: '0cce5266f3d9925cf09b041b1b4ea833332a0f6d9e90291e3c719f5866c52c0a',
         solrVersion: '7.5.0'
     ],
     '11': [
