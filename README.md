@@ -588,7 +588,7 @@ MySQL:
 		```
 
 - Execute the Gradle build (run `./gradlew`) to generate the various Dockerfiles and other resources for all image tags
-- [Test](#testing-docker-container) the docker container
+- [Test](#testing-docker-images) the docker container
 - If all is ok commit, push and close the jira issue created above
 - Note down the SHA1 of the last commit and [update the official library file](https://github.com/docker-library/official-images/blob/master/library/xwiki) with it by creating a Pull Request (you can edit directly on the GitHub web page and create a Pull Request).
 - Make sure to update this file if the documentation needs to be updated.
