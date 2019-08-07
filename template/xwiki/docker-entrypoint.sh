@@ -28,9 +28,10 @@ function first_start() {
 
 function other_starts() {
   mkdir -p /usr/local/xwiki/data
-  restoreConfigurationFile 'hibernate.cfg.xml'
-  restoreConfigurationFile 'xwiki.cfg'
-  restoreConfigurationFile 'xwiki.properties'
+  restoreXWikiConfigurationFile 'hibernate.cfg.xml'
+  restoreXWikiConfigurationFile 'xwiki.cfg'
+  restoreXWikiConfigurationFile 'xwiki.properties'
+  restoreTomcatConfigurationFile 'server.xml'
 }
 
 # \$1 - the path to xwiki.[cfg|properties]
@@ -83,24 +84,46 @@ function safesed {
 }
 
 # \$1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")
-function saveConfigurationFile() {
-  if [ -f "/usr/local/xwiki/data/\$1" ]; then
-     echo "  Reusing existing config file \$1..."
-     cp "/usr/local/xwiki/data/\$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1"
-  else
-     echo "  Saving config file \$1..."
-     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1" "/usr/local/xwiki/data/\$1"
-  fi
+function saveTomcatConfigurationFile() {
+  saveConfigurationFile '/usr/local/tomcat/conf/' \$1
 }
 
 # \$1 - the config file name to restore in WEB-INF (e.g. "xwiki.cfg")
-function restoreConfigurationFile() {
-  if [ -f "/usr/local/xwiki/data/\$1" ]; then
-     echo "  Synchronizing config file \$1..."
-     cp "/usr/local/xwiki/data/\$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1"
+function restoreTomcatConfigurationFile() {
+  restoreConfigurationFile '/usr/local/tomcat/conf/' \$1
+}
+
+# \$1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")
+function saveXWikiConfigurationFile() {
+  saveConfigurationFile '/usr/local/tomcat/webapps/ROOT/WEB-INF/' \$1
+}
+
+# \$1 - the config file name to restore in WEB-INF (e.g. "xwiki.cfg")
+function restoreXWikiConfigurationFile() {
+  restoreConfigurationFile '/usr/local/tomcat/webapps/ROOT/WEB-INF/' \$1
+}
+
+# \$1 - the path where the referenced config file is found, e.g. /usr/local/tomcat/conf/
+# \$2 - the config file found in \$1
+function saveConfigurationFile() {
+  if [ -f "/usr/local/xwiki/data/\$2" ]; then
+     echo "  Reusing existing config file \$1\$2..."
+     cp "/usr/local/xwiki/data/\$2" "\$1\$2"
   else
-     echo "  No config file \$1 found, using default from container..."
-     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/\$1" "/usr/local/xwiki/data/\$1"
+     echo "  Saving config file \$1\$2..."
+     cp "\$1\$2" "/usr/local/xwiki/data/\$2"
+  fi
+}
+
+# \$1 - the path where the referenced config file is found, e.g. /usr/local/tomcat/conf/
+# \$2 - the config file found in \$1
+function restoreConfigurationFile() {
+  if [ -f "/usr/local/xwiki/data/\$2" ]; then
+     echo "  Synchronizing config file \$1\$2..."
+     cp "/usr/local/xwiki/data/\$2" "\$1\$2"
+  else
+     echo "  No config file \$1\$2 found, using default from container..."
+     cp "\$1\$2" "/usr/local/xwiki/data/\$2"
   fi
 }
 
@@ -142,9 +165,11 @@ function configure() {
   # files to the permanent directory so that they can be easily modified by the user. They'll be synced at the next
   # start.
   mkdir -p /usr/local/xwiki/data
-  saveConfigurationFile 'hibernate.cfg.xml'
-  saveConfigurationFile 'xwiki.cfg'
-  saveConfigurationFile 'xwiki.properties'
+  saveXWikiConfigurationFile 'hibernate.cfg.xml'
+  saveXWikiConfigurationFile 'xwiki.cfg'
+  saveXWikiConfigurationFile 'xwiki.properties'
+
+  saveTomcatConfigurationFile 'server.xml'
 }
 
 # This if will check if the first argument is a flag but only works if all arguments require a hyphenated flag
