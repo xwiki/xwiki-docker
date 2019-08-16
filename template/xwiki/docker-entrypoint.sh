@@ -104,6 +104,12 @@ function restoreConfigurationFile() {
   fi
 }
 
+function enableClustering(){
+  echo 'Setting clustering...'
+  xwiki_set_properties 'observation.remote.enabled' 'true'
+  xwiki_set_properties 'observation.remote.channels' 'udp'
+}
+
 function configure() {
   echo 'Configuring XWiki...'
 
@@ -138,6 +144,10 @@ function configure() {
     xwiki_set_properties 'solr.remote.url' "http://\$INDEX_HOST:\$INDEX_PORT/solr/xwiki"
   fi
 
+  if [ \$CLUSTER ]; then 
+    enableClustering
+  fi
+  
   # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
   # files to the permanent directory so that they can be easily modified by the user. They'll be synced at the next
   # start.
