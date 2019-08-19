@@ -363,7 +363,7 @@ secrets:
 
 ## Configuring clustering
 
-Read about setting communication channels [here](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Clustering/).
+Read about [setting communication channels](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Clustering/).
 
 #### Docker Compose example
 
@@ -586,8 +586,8 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
 -	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
 -	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
-- `CLUSTER`: Set it to "true" to enable clustering
-- `CLUSTER_CHANNEL`: The channel name of jgroup to use
+- `CLUSTER`: Set it to "true" to enable clustering.
+- `CLUSTER_CHANNEL`: The JGroups channel name.
 
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 

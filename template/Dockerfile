@@ -72,7 +72,7 @@ COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 # Setup the XWiki Hibernate configuration
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
-# Configure jgroups. 
+# Configure JGroups. 
 COPY jgroups/* /usr/local/tomcat/webapps/ROOT/WEB-INF/observation/remote/jgroups
 
 # Set a specific distribution id in XWiki for this docker packaging.
