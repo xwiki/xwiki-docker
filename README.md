@@ -14,7 +14,7 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 
 -	[Introduction](#introduction)
 -	[How to use this image](#how-to-use-this-image)
-	-	[Pulling existing image](#pulling-existing-image)
+	-	[Pulling existing image](#pulling-an-existing-image)
 		-	[Using docker run](#using-docker-run)
 		-	[Using docker-compose](#using-docker-compose)
 		-	[Using Docker Swarm](#using-docker-swarm)
@@ -22,6 +22,7 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 		-	[Preparing Solr container](#preparing-solr-container)
 		-	[Docker run example](#docker-run-example)
 		-	[Docker Compose example](#docker-compose-example)
+	-	[Configuring Tomcat](#configuring-tomcat)
 	-	[Building](#building)
 -	[Upgrading XWiki](#upgrading-xwiki)
 -	[Details for the xwiki image](#details-for-the-xwiki-image)
@@ -53,7 +54,7 @@ Then there are several options:
 1.	Pull the xwiki image from DockerHub.
 2.	Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
 
-## Pulling existing image
+## Pulling an existing image
 
 You need to run 2 containers:
 
@@ -475,6 +476,24 @@ volumes:
   xwiki-data: {}
   solr-data: {}
 ```
+
+## Configuring Tomcat
+
+If you need to configure Tomcat (for example to setup a reverse proxy configuration), you'll need to mount the Tomcat configuration directory (`/usr/local/tomcat/conf`) inside the image onto your local host.  
+
+If you want to modify the existing configuration rather than provide a brand new one, you'll need to use `docker cp` to copy the configuration from the container to your local host.
+
+Here are some example steps you can follow:
+
+-   Create a docker container from the XWiki image with `docker create`.
+    -   Example: `docker create --name xwiki xwiki:lts-mysql-tomcat`.
+-   Copy the Tomcat configuration from the container to the host to start with some existing configuration files, using `docker cp`.
+    -   Example: `sudo docker cp xwiki:/usr/local/tomcat/conf /tmp/tomcat`.
+-   Modify the Tomcat configuration locally to bring the changes you need.
+-   Delete the created XWiki container since it was only used to copy the configuration files and we'll need to create a new one with different parameters.
+    -   Example: `docker rm xwiki`.
+-   Run the container with the Tomcat mount and the other parameters.
+    -   Example= `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat`
 
 ## Building
 
