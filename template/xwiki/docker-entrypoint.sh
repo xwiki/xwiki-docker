@@ -42,7 +42,7 @@ function xwiki_replace() {
 # \$1 - the setting/property to set
 # \$2 - the new value
 function xwiki_replace_example() {
-  sed -i s~"\#-# Example:\? \?$1 \?=.*"~"$1=$2"~g "/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties"
+  sed -i s~"\\#-# Example:\\? \\?\$1 \\?=.*"~"\$1=\$2"~g "/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties"
 }
 
 # \$1 - the setting/property to set
