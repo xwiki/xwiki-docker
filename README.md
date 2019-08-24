@@ -368,6 +368,7 @@ Read about [setting communication channels](https://www.xwiki.org/xwiki/bin/view
 #### Docker Compose example
 
 ```yaml
+
 version: '2'
 networks:
   bridge:
@@ -389,7 +390,9 @@ services:
       - CLUSTER=true
       - CLUSTER_CHANNEL=udp
     volumes:
-      - xwiki-data-b:/usr/local/xwiki
+      - xwiki-data-cache:/usr/local/xwiki/data/cache
+      - xwiki-data-jobs:/usr/local/xwiki/data/jobs
+      - xwiki-data-extension:/usr/local/xwiki/data/extension
     networks:
       - bridge
   web2:
@@ -408,14 +411,16 @@ services:
       - CLUSTER=true
       - CLUSTER_CHANNEL=udp
     volumes:
-      - xwiki-data-b:/usr/local/xwiki
+      - xwiki-data-cache:/usr/local/xwiki/data/cache
+      - xwiki-data-jobs:/usr/local/xwiki/data/jobs
+      - xwiki-data-extension:/usr/local/xwiki/data/extension
     networks:
       - bridge
   db:
     image: "postgres:9.5-alpine"
     container_name: xwiki-postgres-db
     volumes:
-      - postgres-data-b:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_ROOT_PASSWORD=${POSTGRES_ROOT_PASSWORD}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -425,9 +430,10 @@ services:
     networks:
       - bridge
 volumes:
-  postgres-data-b: {}
-  xwiki-data-b: {}
-
+  postgres-data: {}
+  xwiki-data-cache: {}
+  xwiki-data-jobs: {}
+  xwiki-data-extension: {}
 ```
 
 
