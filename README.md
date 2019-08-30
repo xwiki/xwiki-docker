@@ -273,7 +273,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=/run/secrets/xwiki-db-root-password
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/xwiki-db-root-password
       - MYSQL_USER_FILE=/run/secrets/xwiki-db-username
       - MYSQL_PASSWORD_FILE=/run/secrets/xwiki-db-password
       - MYSQL_DATABASE=xwiki
