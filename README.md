@@ -76,26 +76,34 @@ Then run a container for the database and make sure it's configured to use an UT
 
 #### Starting MySQL
 
-The command below will also configure the MySQL container to save its data on your localhost in a `/my/own/mysql` directory:
+First you need to create a file under a `/my/path/` directory (you can name it the way you want, for example `init.sql`), with the following content:
 
-```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/own/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1
+```sql
+grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
 ```
 
-You should adapt the command line to use the passwords that you wish for the MySQL root password and for the xwiki user password.
+This will provide enough permissions for the `xwiki` user to create new schemas which is required to be able to create sub-wikis. 
+
+The command below will also configure the MySQL container to save its data on your localhost in a `/my/path/mysql` directory, and to execute the SQL file defined above at startup:
+
+```console
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1
+```
+
+You should adapt the command line to use the passwords that you wish for the MySQL root password and for the `xwiki` user password (make sure to also change the GRANT command).
 
 Note: The `explicit-defaults-for-timestamp` parameter was introduced in MySQL 5.6.6 and will thus work only for that version and beyond. If you are using an older MySQL version, please use the following instead:
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/own/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin
 ```
 
 #### Starting PostgreSQL
 
-The command below will also configure the PostgreSQL container to save its data on your localhost in a `/my/own/postgres` directory:
+The command below will also configure the PostgreSQL container to save its data on your localhost in a `/my/path/postgres` directory:
 
 ```console
-docker run --net=xwiki-nw --name postgres-xwiki -v /my/own/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:9.5
+docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:9.5
 ```
 
 You should adapt the command line to use the passwords that you wish for the PostgreSQL root password and for the xwiki user password.
@@ -107,13 +115,13 @@ Then run XWiki in another container by issuing one of the following command.
 For MySQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat
 ```
 
 For PostgreSQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/own/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:lts-postgres-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:lts-postgres-tomcat
 ```
 
 Be careful to use the same DB username, password and database names that you've used on the first command to start the DB container. Also, please don't forget to add a `-e DB_HOST=` environment variable with the name of the previously created DB container so that XWiki knows where its database is.
@@ -388,20 +396,20 @@ The simplest way to create an external Solr service is using the [official Solr 
 -	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
 -	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
 -	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
--	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/own/solr`
+-	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
 
 #### Docker run example
 
 Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
 
-The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/own/solr` directory:
+The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
 
 ```console
 docker run \
   --net=xwiki-nw \
   --name solr-xwiki \
   -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/own/solr:/opt/solr/server/solr/xwiki \
+  -v /my/path/solr:/opt/solr/server/solr/xwiki \
   -d solr:7.2
 ```
 
@@ -412,7 +420,7 @@ docker run \
   --net=xwiki-nw \
   --name xwiki \
   -p 8080:8080 \
-  -v /my/own/xwiki:/usr/local/xwiki \
+  -v /my/path/xwiki:/usr/local/xwiki \
   -e DB_USER=xwiki \
   -e DB_PASSWORD=xwiki \
   -e DB_DATABASE=xwiki \
