@@ -76,7 +76,7 @@ Then run a container for the database and make sure it's configured to use an UT
 
 #### Starting MySQL
 
-First you need to create a file under a `/my/path/` directory (you can name it the way you want, for example `init.sql`), with the following content:
+First you need to create a file under a `/my/path/mysql-init` directory (you can name it the way you want, for example `init.sql`), with the following content:
 
 ```sql
 grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
