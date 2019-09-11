@@ -374,7 +374,7 @@ networks:
   bridge:
     driver: bridge
 services:
-  web:
+  web1:
     build: .
     container_name: xwiki-postgres-tomcat-web
     depends_on:
