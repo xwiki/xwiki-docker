@@ -373,6 +373,82 @@ secrets:
       name: xwiki-db-root-password
 ```
 
+## Configuring clustering
+
+Read about [setting communication channels](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Clustering/).
+
+#### Docker Compose example
+
+```yaml
+
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  web1:
+    build: .
+    container_name: xwiki-postgres-tomcat-web
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    environment:
+      - XWIKI_VERSION=${XWIKI_VERSION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_HOST=xwiki-postgres-db
+      - CLUSTER=true
+      - CLUSTER_CHANNEL=udp
+    volumes:
+      - xwiki-data-cache:/usr/local/xwiki/data/cache
+      - xwiki-data-jobs:/usr/local/xwiki/data/jobs
+      - xwiki-data-extension:/usr/local/xwiki/data/extension
+    networks:
+      - bridge
+  web2:
+    build: .
+    container_name: xwiki-postgres-tomcat-web2
+    depends_on:
+      - db
+    ports:
+      - "8081:8080"
+    environment:
+      - XWIKI_VERSION=${XWIKI_VERSION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_HOST=xwiki-postgres-db
+      - CLUSTER=true
+      - CLUSTER_CHANNEL=udp
+    volumes:
+      - xwiki-data-cache:/usr/local/xwiki/data/cache
+      - xwiki-data-jobs:/usr/local/xwiki/data/jobs
+      - xwiki-data-extension:/usr/local/xwiki/data/extension
+    networks:
+      - bridge
+  db:
+    image: "postgres:9.5-alpine"
+    container_name: xwiki-postgres-db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_ROOT_PASSWORD=${POSTGRES_ROOT_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_INITDB_ARGS="--encoding=UTF8"
+    networks:
+      - bridge
+volumes:
+  postgres-data: {}
+  xwiki-data-cache: {}
+  xwiki-data-jobs: {}
+  xwiki-data-extension: {}
+```
+
+
 ## Using an external Solr service
 
 From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
@@ -546,6 +622,8 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
 -	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
 -	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
+- `CLUSTER`: Set it to "true" to enable clustering.
+- `CLUSTER_CHANNEL`: The JGroups channel name.
 
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 

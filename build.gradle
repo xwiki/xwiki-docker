@@ -79,6 +79,13 @@ task generate() {
                     expand(tokens[version])
                     filteringCharset = 'UTF-8'
                 }
+                // Copy JGroups files
+                copy {
+                    from 'template'
+                    into "${version}/${variant}"
+                    include "jgroups/*"
+                    filteringCharset = 'UTF-8'
+                }
             }
         }
     }

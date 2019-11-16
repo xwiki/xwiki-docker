@@ -39,6 +39,11 @@ function other_starts() {
 function xwiki_replace() {
   sed -i s~"\\#\\? \\?\$2 \\?=.*"~"\$2=\$3"~g "\$1"
 }
+# \$1 - the setting/property to set
+# \$2 - the new value
+function xwiki_replace_example() {
+  sed -i s~"\\#-# Example:\\? \\?\$1 \\?=.*"~"\$1=\$2"~g "/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties"
+}
 
 # \$1 - the setting/property to set
 # \$2 - the new value
@@ -104,6 +109,17 @@ function restoreConfigurationFile() {
   fi
 }
 
+function enableClustering() {
+  echo 'Setting clustering...'
+  xwiki_set_properties 'observation.remote.enabled' 'true'
+  if [ \$CLUSTER_CHANNEL ]; then
+    echo "Setting cluster channel to \$CLUSTER_CHANNEL"
+    xwiki_replace_example 'observation.remote.channels' "\$CLUSTER_CHANNEL"
+  else
+    xwiki_replace_example 'observation.remote.channels' 'udp'
+  fi
+}
+
 function configure() {
   echo 'Configuring XWiki...'
 
@@ -136,6 +152,10 @@ function configure() {
     echo '  Configuring remote Solr Index'
     xwiki_set_properties 'solr.type' 'remote'
     xwiki_set_properties 'solr.remote.url' "http://\$INDEX_HOST:\$INDEX_PORT/solr/xwiki"
+  fi
+
+  if [ \$CLUSTER ]; then 
+    enableClustering
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
