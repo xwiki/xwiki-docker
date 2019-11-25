@@ -602,7 +602,7 @@ MySQL:
 
 ## Update Docker Images
 
-- Create a JIRA issue on the XDOCKER project with subject `Upgrade stable version to <version>`.
+- Create a JIRA issue on the [XDOCKER project](https://jira.xwiki.org/browse/XDOCKER) with subject `Upgrade stable version to <version>`.
 - Update the version of XWiki in the `build.gradle` file found in the XWiki Docker repository (clone it locally first).
 - To know how to generate the sha256, check the doc inside `build.gradle`. You need to download in advance the XWiki WAR file and run the according command in order to generate.
 	- On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly:
