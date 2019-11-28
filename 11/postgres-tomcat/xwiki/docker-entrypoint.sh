@@ -23,7 +23,7 @@ set -e
 
 function first_start() {
   configure
-  touch /usr/local/tomcat/webapps/ROOT/.first_start_completed
+  touch /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed
 }
 
 function other_starts() {
@@ -43,13 +43,13 @@ function xwiki_replace() {
 # $1 - the setting/property to set
 # $2 - the new value
 function xwiki_set_cfg() {
-  xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg "$1" "$2"
+  xwiki_replace /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.cfg "$1" "$2"
 }
 
 # $1 - the setting/property to set
 # $2 - the new value
 function xwiki_set_properties() {
-  xwiki_replace /usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties "$1" "$2"
+  xwiki_replace /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.properties "$1" "$2"
 }
 
 # usage: file_env VAR [DEFAULT]
@@ -86,10 +86,10 @@ function safesed {
 function saveConfigurationFile() {
   if [ -f "/usr/local/xwiki/data/$1" ]; then
      echo "  Reusing existing config file $1..."
-     cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/$1"
+     cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1"
   else
      echo "  Saving config file $1..."
-     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/$1" "/usr/local/xwiki/data/$1"
+     cp "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1" "/usr/local/xwiki/data/$1"
   fi
 }
 
@@ -97,10 +97,10 @@ function saveConfigurationFile() {
 function restoreConfigurationFile() {
   if [ -f "/usr/local/xwiki/data/$1" ]; then
      echo "  Synchronizing config file $1..."
-     cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/ROOT/WEB-INF/$1"
+     cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1"
   else
      echo "  No config file $1 found, using default from container..."
-     cp "/usr/local/tomcat/webapps/ROOT/WEB-INF/$1" "/usr/local/xwiki/data/$1"
+     cp "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1" "/usr/local/xwiki/data/$1"
   fi
 }
 
@@ -115,17 +115,22 @@ function configure() {
   file_env 'INDEX_HOST' 'localhost'
   file_env 'INDEX_PORT' '8983'
 
+  echo "  Deploying XWiki in the $CONTEXT_PATH context"
+  if [ "$CONTEXT_PATH" == "ROOT" ]; then
+    xwiki_set_cfg 'xwiki.webapppath' ''
+  else
+    mv /usr/local/tomcat/webapps/ROOT /usr/local/tomcat/webapps/$CONTEXT_PATH
+  fi
+
   echo 'Replacing environment variables in files'
-  safesed "replaceuser" $DB_USER /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacepassword" $DB_PASSWORD /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
-  safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+  safesed "replaceuser" $DB_USER /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacepassword" $DB_PASSWORD /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 
   echo '  Generating authentication validation and encryption keys...'
   xwiki_set_cfg 'xwiki.authentication.validationKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
   xwiki_set_cfg 'xwiki.authentication.encryptionKey' "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
-  echo '  Deploying XWiki in the ROOT context'
-  xwiki_set_cfg 'xwiki.webapppath' ""
 
   echo '  Setting permanent directory...'
   xwiki_set_properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
@@ -155,7 +160,8 @@ fi
 
 # Check for the expected command
 if [ "$1" = 'xwiki' ]; then
-  if [[ ! -f /usr/local/tomcat/webapps/ROOT/.first_start_completed ]]; then
+  file_env 'CONTEXT_PATH' 'ROOT'
+  if [[ ! -f /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed ]]; then
     first_start
   else
     other_starts

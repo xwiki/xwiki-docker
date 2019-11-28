@@ -97,6 +97,8 @@ VOLUME /usr/local/xwiki
 #                hibernate.cfg.xml file.
 # - DB_HOST: The name of the host (or docker container) containing the database. Default is "db". This is used to
 #            configure xwiki's hibernate.cfg.xml file.
+# - CONTEXT_PATH: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll
+#                 be deployed as ROOT.
 
 # Example:
 #   docker run -it -e "DB_USER=xwiki" -e "DB_PASSWORD=xwiki" <imagename>

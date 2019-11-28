@@ -546,7 +546,9 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
 -	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
 -	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
-
+-   `CONTEXT_PATH`: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll be deployed as ROOT.
+    -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
+    
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 
 -	`DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
