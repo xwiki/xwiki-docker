@@ -115,7 +115,7 @@ function configure() {
   file_env 'INDEX_HOST' 'localhost'
   file_env 'INDEX_PORT' '8983'
 
-  echo "  Deploying XWiki in the $CONTEXT_PATH context"
+  echo "  Deploying XWiki in the '$CONTEXT_PATH' context"
   if [ "$CONTEXT_PATH" == "ROOT" ]; then
     xwiki_set_cfg 'xwiki.webapppath' ''
   else
