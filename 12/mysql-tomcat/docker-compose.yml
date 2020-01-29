@@ -25,7 +25,7 @@ services:
   # The container that runs XWiki + Tomcat
   web:
     build: .
-    container_name: xwiki-${db}-tomcat-web
+    container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
     ports:
@@ -33,20 +33,20 @@ services:
     # Default values defined in .env file.
     # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_HOST variables are used in the hibernate.cfg.xml file.
     environment:
-      - XWIKI_VERSION=\${XWIKI_VERSION}
-      - DB_USER=\${DB_USER}
-      - DB_PASSWORD=\${DB_PASSWORD}
-      - DB_DATABASE=\${DB_DATABASE}
-      - DB_HOST=xwiki-${db}-db
+      - XWIKI_VERSION=${XWIKI_VERSION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_HOST=xwiki-mysql-db
     # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
     # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
       - bridge
-  # The container that runs the database (${db})
+  # The container that runs the database (mysql)
   db:
-    <% if (db == 'mysql') print '''image: "mysql:5.7"
+    image: "mysql:5.7"
     container_name: xwiki-mysql-db
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
@@ -62,23 +62,12 @@ services:
     # See https://hub.docker.com/_/mysql/ for more details.
     # Default values defined in .env file.
     environment:
-      - MYSQL_ROOT_PASSWORD=\${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=\${DB_USER}
-      - MYSQL_PASSWORD=\${DB_PASSWORD}
-      - MYSQL_DATABASE=\${DB_DATABASE}'''
-
-    else if (db == 'postgres') print '''image: "postgres:12-alpine"
-    container_name: xwiki-postgres-db
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_ROOT_PASSWORD=\${POSTGRES_ROOT_PASSWORD}
-      - POSTGRES_PASSWORD=\${DB_PASSWORD}
-      - POSTGRES_USER=\${DB_USER}
-      - POSTGRES_DB=\${DB_DATABASE}
-      - POSTGRES_INITDB_ARGS="--encoding=UTF8"''' %>
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
     networks:
       - bridge
 volumes:
-  ${db}-data: {}
+  mysql-data: {}
   xwiki-data: {}
