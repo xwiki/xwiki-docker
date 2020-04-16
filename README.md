@@ -534,7 +534,9 @@ If you've followed the instructions above you've mapped the XWiki permanent dire
 
 All you need to do to upgrade is to stop the running XWiki container and start the new version of it that you want to upgrade to. You should keep your DB container running.
 
-Note that your current XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) will be preserved.
+Note that your current XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) will be preserved. 
+
+You should always check the [Release Notes](https://www.xwiki.org/xwiki/bin/view/ReleaseNotes/) for all releases that happened between your current version and the new version you're upgrading to, as there could be some manual steps to perform (such as updating your XWiki configuration files).
 
 # Details for the xwiki image
 
