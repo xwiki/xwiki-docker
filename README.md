@@ -76,7 +76,13 @@ Then run a container for the database and make sure it's configured to use an UT
 
 #### Starting MySQL
 
-First you need to create a file under a `/my/path/mysql-init` directory (you can name it the way you want, for example `init.sql`), with the following content:
+We will bind mount two local directories to be used by the MySQL container - one to be used at database initialization,
+to create the user and grants for the application to use, and one to contain the MySQL database files.  For example:
+
+- `/my/path/mysql-init`
+- `/my/path/mysql`
+
+You need to make sure these directories exist, and then create a file under the `/my/path/mysql-init` directory (you can name it the way you want, for example `init.sql`), with the following content:
 
 ```sql
 grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
@@ -85,6 +91,8 @@ grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
 This will provide enough permissions for the `xwiki` user to create new schemas which is required to be able to create sub-wikis. 
 
 The command below will also configure the MySQL container to save its data on your localhost in a `/my/path/mysql` directory, and to execute the SQL file defined above at startup:
+
+Note: you must make sure the directories you are mounting into the container are fully-qualified, and aren't relative paths.
 
 ```console
 docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
@@ -102,7 +110,13 @@ docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v
 
 #### Starting PostgreSQL
 
-The command below will also configure the PostgreSQL container to save its data on your localhost in a `/my/path/postgres` directory:
+We will bind mount a local directory to be used by the PostgreSQL container - to contain the database files.  For example:
+
+- `/my/path/postgres`
+
+You need to make sure this directory exists, before proceeding.
+
+The command below will also configure the PostgreSQL container to save its data on your localhost in a `/my/path/postgres` directory.  Make sure the directory you specify is specified with the fully-qualified path, not a relative path.
 
 ```console
 docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:9.5
@@ -112,7 +126,11 @@ You should adapt the command line to use the passwords that you wish for the Pos
 
 #### Starting XWiki
 
-Then run XWiki in another container by issuing one of the following command.
+We will also bind mount a local directory for the XWiki application config and state, for example:
+
+- `/my/path/xwiki`
+
+Ensure this directory exists, and then run XWiki in another container by issuing one of the following command.  Again, you must ensure the directory you are mounting into the container is fully qualified.
 
 For MySQL:
 
