@@ -647,6 +647,7 @@ MySQL:
 - [Test](#testing-docker-images) the docker container
 - If all is ok commit, push and close the jira issue created above
 - Note down the SHA1 of the last commit and [update the official library file](https://github.com/docker-library/official-images/blob/master/library/xwiki) with it by creating a Pull Request (you can edit directly on the GitHub web page and create a Pull Request).
+	- Important: Make sure to also add the `.0` version when releasing the first minor version for a given major. For example when releasing version `12.3`, also add the `12.3.0` tag so that users can refer to this exact version. Otherwise, when releasing `12.3.1, the meaning of the `12.3` tag will change and will now mean `12.3.1`.
 - Make sure to update this file if the documentation needs to be updated.
 
 ## Testing Docker Images
