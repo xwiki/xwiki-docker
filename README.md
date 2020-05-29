@@ -87,7 +87,7 @@ For example:
 You need to make sure these directories exist, and then create a file under the `/my/path/mysql-init` directory (you can name it the way you want, for example `init.sql`), with the following content:
 
 ```sql
-grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
+grant all privileges on *.* to xwiki@'%'
 ```
 
 This will provide enough permissions for the `xwiki` user to create new schemas which is required to be able to create sub-wikis. 
