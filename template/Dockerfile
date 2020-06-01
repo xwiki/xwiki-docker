@@ -41,15 +41,13 @@ RUN apt-get update && \\
     curl \\
     libreoffice \\
     unzip \\
-    procps \\
-    <% if (db == 'mysql') print 'libmysql-java'
-       if (db == 'postgres') print 'libpostgresql-jdbc-java' %> && \\
+    procps <% if (db == 'postgres') print '\\\n    libpostgresql-jdbc-java ' %>&& \\
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION=$xwikiVersion
+ENV XWIKI_VERSION="$xwikiVersion"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/\${XWIKI_VERSION}"
 ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
 RUN rm -rf /usr/local/tomcat/webapps/* && \\
@@ -61,10 +59,17 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
-<% if (db == 'mysql')
-      print 'RUN cp /usr/share/java/mysql-connector-java-*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
-   else if (db == 'postgres')
-      print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/' %>
+<% if (db == 'mysql') {
+  println "# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to "
+  println "# date Debian repository for it anymore."
+  println "ENV MYSQL_JDBC_VERSION=\"8.0.20\""
+  println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/mysql/mysql-connector-java/\${MYSQL_JDBC_VERSION}\""
+  println "ENV MYSQL_JDBC_ARTIFACT=\"mysql-connector-java-\${MYSQL_JDBC_VERSION}.jar\""
+  println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
+  print "RUN curl -fSL \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET"
+} else if (db == 'postgres') {
+  print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
+} %>
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
