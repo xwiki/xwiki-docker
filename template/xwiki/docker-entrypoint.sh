@@ -129,8 +129,8 @@ function configure() {
   safesed "replacedatabase" \$DB_DATABASE /usr/local/tomcat/webapps/\$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 
   # Set any non-default main wiki database name in the xwiki.cfg file.
-  if [ "$DB_DATABASE" != "xwiki" ]; then
-    xwiki_set_cfg "xwiki.db" $DB_DATABASE
+  if [ "\$DB_DATABASE" != "xwiki" ]; then
+    xwiki_set_cfg "xwiki.db" \$DB_DATABASE
   fi
 
   echo '  Generating authentication validation and encryption keys...'
