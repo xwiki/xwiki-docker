@@ -1,1 +1,1 @@
-grant all privileges on *.* to xwiki@'%' identified by 'xwiki'
+grant all privileges on *.* to xwiki@'%'
