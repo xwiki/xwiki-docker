@@ -72,6 +72,7 @@ docker network create -d bridge xwiki-nw
 Then run a container for the database and make sure it's configured to use an UTF8 encoding. The following databases are supported out of the box:
 
 -	MySQL
+-	MariaDB
 -	PostgreSQL
 
 #### Starting MySQL
@@ -114,6 +115,16 @@ Notes:
     ```console
     docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     ```
+
+#### Starting MariaDB
+
+This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:10.3`.
+
+Full command example:
+
+```console
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:10.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+```
 
 #### Starting PostgreSQL
 
