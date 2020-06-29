@@ -39,8 +39,8 @@ def tokens = [
         xwikiSha256: 'b08c8a9f0abbbf2bef5c61852688165dd4b2a9a7217da29047647e81c1ec3058'
     ],
     '12': [
-        xwikiVersion: '12.4',
-        xwikiSha256: 'f42fe7b84a323b0f637c0e9c60e885741821b2fd05f0196d4d41729d5888d2cc'
+        xwikiVersion: '12.5',
+        xwikiSha256: '59b8dc502d2706de10db2295e4d301c9983d9f09be497a8ea15ab5db2254e8d0'
     ]
 ]
 
