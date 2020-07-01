@@ -87,7 +87,6 @@
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
-    <property name="dialect">org.hibernate.dialect.MySQL5InnoDBDialect</property>
     <property name="dbcp.poolPreparedStatements">true</property>
     <property name="dbcp.maxOpenPreparedStatements">20</property>
 
