@@ -91,7 +91,6 @@
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">org.postgresql.Driver</property>
-    <property name="dialect">org.hibernate.dialect.PostgreSQLDialect</property>
     <property name="jdbc.use_streams_for_binary">false</property>
     <property name="xwiki.virtual_mode">schema</property>
 
