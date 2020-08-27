@@ -604,7 +604,7 @@ In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secret
 
 The main XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) are available in the mapped local directory for the permanent directory on your host.
 
-If you need to perform some advanced configuration, you can execute another container and attach to the running XWiki container by issuing (but note that these won't be saved if you remove the container):
+If you need to perform some advanced configuration, you can get a shell inside the running XWiki container by issuing the following (but note that these won't be saved if you remove the container):
 
 ```console
 docker exec -it <xwiki container id> bash -l
