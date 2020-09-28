@@ -57,7 +57,7 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to 
 # date Debian repository for it anymore.
-ENV MYSQL_JDBC_VERSION="8.0.20"
+ENV MYSQL_JDBC_VERSION="8.0.21"
 ENV MYSQL_JDBC_SHA256="56a42553b516660ae0bcd08f7f4f5f375294afbd62200d6c0c88a8c61c668ede"
 ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/mysql/mysql-connector-java/${MYSQL_JDBC_VERSION}"
 ENV MYSQL_JDBC_ARTIFACT="mysql-connector-java-${MYSQL_JDBC_VERSION}.jar"
