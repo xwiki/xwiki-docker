@@ -62,8 +62,10 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
 <% if (db == 'mysql') {
   println "# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to "
   println "# date Debian repository for it anymore."
-  println "ENV MYSQL_JDBC_VERSION=\"8.0.21\""
-  println "ENV MYSQL_JDBC_SHA256=\"2f62d886270a75ebc8e8fd89127d4a30ccc711f02256ade2cfb7090817132003\""
+  println "ENV MYSQL_JDBC_VERSION=\"8.0.22\""
+  # Get the SHA256 from the JAR at https://search.maven.org/artifact/mysql/mysql-connector-java and using the
+  # command line defined in build.gradle.
+  println "ENV MYSQL_JDBC_SHA256=\"5019defbd12316295e97a6e88f2a9b07f118345a4e982710bba232e499b22f4f\""
   println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/mysql/mysql-connector-java/\${MYSQL_JDBC_VERSION}\""
   println "ENV MYSQL_JDBC_ARTIFACT=\"mysql-connector-java-\${MYSQL_JDBC_VERSION}.jar\""
   println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
