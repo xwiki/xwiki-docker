@@ -34,13 +34,9 @@ def variants = ['mysql-tomcat', 'postgres-tomcat']
 // - Mac: shasum --algorithm 256 <binary name>
 
 def tokens = [
-    '11': [
-        xwikiVersion: '11.10.12',
-        xwikiSha256: '472d7bb0d1ff8a7c3a5addf69e5c7b844edaa631d6df8e7b86d42c6b32cd3368'
-    ],
     '12': [
-        xwikiVersion: '12.10.1',
-        xwikiSha256: '34799ea52ef4d38e10ed64d54f36679aaf9c098feab1f8b614bc1fac857138ea'
+        xwikiVersion: '12.10.2',
+        xwikiSha256: '148984aa1503a65d6648d2a375b141fd5ae5f7948c93355c8ff67ab265d0a7f7'
     ]
 ]
 
