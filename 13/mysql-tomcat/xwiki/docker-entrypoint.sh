@@ -112,8 +112,8 @@ function configure() {
   file_env 'DB_PASSWORD' 'xwiki'
   file_env 'DB_HOST' 'db'
   file_env 'DB_DATABASE' 'xwiki'
-  file_env 'INDEX_HOST' 'localhost'
-  file_env 'INDEX_PORT' '8983'
+  file_env 'INDEX_BASEURL' 'http://localhost:8983/solr/xwiki'
+  file_env 'INDEX_TYPE' 'embedded'
 
   echo "  Deploying XWiki in the '$CONTEXT_PATH' context"
   if [ "$CONTEXT_PATH" == "ROOT" ]; then
@@ -142,10 +142,10 @@ function configure() {
   echo '  Configure libreoffice...'
   xwiki_set_properties 'openoffice.autoStart' 'true'
 
-  if [ $INDEX_HOST != 'localhost' ]; then
+  if [ "$INDEX_TYPE" != 'embedded' ]; then
     echo '  Configuring remote Solr Index'
-    xwiki_set_properties 'solr.type' 'remote'
-    xwiki_set_properties 'solr.remote.url' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
+    xwiki_set_properties 'solr.type' "$INDEX_TYPE"
+    xwiki_set_properties 'solr.remote.baseURL' "$INDEX_BASEURL"
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config

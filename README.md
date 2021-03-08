@@ -423,18 +423,18 @@ From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwik
 >
 > You can also find more Solr-specific performance details on https://wiki.apache.org/solr/SolrPerformanceProblems. Standalone Solr also comes with a very nice UI, along with monitoring and test tools.
 
-This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
+This image provides the configuration parameters `INDEX_BASEURL` and `INDEX_TYPE` which are used to configure `xwiki.properties` with:
 
 ```data
-solr.type=remote  
-solr.remote.url=http://$INDEX_HOST:$INDEX_PORT/solr/xwiki
+solr.type=$INDEX_TYPE  
+solr.remote.baseURL=$INDEX_BASEURL
 ```
 
 #### Preparing Solr container
 
 The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
 
--	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
+-	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/) (Note: it's usually better to synchronize it with your version of XWiki)
 -	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
 -	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
 -	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
@@ -456,7 +456,7 @@ docker run \
   -d solr:7.2
 ```
 
-Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
+Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_BASEURL=` environment variable which specifies the baseURL of the Solr container.
 
 ```console
 docker run \
@@ -468,7 +468,7 @@ docker run \
   -e DB_PASSWORD=xwiki \
   -e DB_DATABASE=xwiki \
   -e DB_HOST=mysql-xwiki \
-  -e INDEX_HOST=solr-xwiki \
+  -e INDEX_BASEURL=http://localhost:8983/solr/xwiki \
   -d xwiki:lts-mysql-tomcat
 ```
 
@@ -496,7 +496,7 @@ services:
       - DB_PASSWORD=xwiki
       - DB_DATABASE=xwiki
       - DB_HOST=xwiki-db
-      - INDEX_HOST=xwiki-index
+      - INDEX_BASEURL=http://localhost:8983/solr/xwiki
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
@@ -586,8 +586,7 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_PASSWORD`: The user password used by XWiki to read/write to the DB.
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
--	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
--	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
+- `INDEX_BASEURL`: The base URL of an externally configured Solr instance. Defaults to "http://localhost:8983/solr/xwiki", and configures an embedded Solr instance
 -   `CONTEXT_PATH`: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll be deployed as ROOT.
     -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
     
