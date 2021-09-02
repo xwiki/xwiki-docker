@@ -18,9 +18,9 @@
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
 <% if (xwikiVersion.startsWith('10.'))
-     print 'FROM tomcat:8-jdk8-adoptopenjdk-hotspot'
+     print 'FROM tomcat:8-jdk8-temurin'
    else
-     print 'FROM tomcat:8-jdk11-adoptopenjdk-hotspot'
+     print 'FROM tomcat:8-jdk11-temurin'
 %>
 
 #    ____  ____  ____      ____  _   __        _
