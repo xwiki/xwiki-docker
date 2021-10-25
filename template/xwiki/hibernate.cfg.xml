@@ -125,8 +125,5 @@
     <mapping resource="instance.hbm.xml"/>
     <mapping resource="notification-filter-preferences.hbm.xml"/>
     <mapping resource="mailsender.hbm.xml"/>''' %>
-    <% if (!xwikiVersion.startsWith('11.'))
-      print '<mapping resource="activitystream.hbm.xml"/>'
-    %>
   </session-factory>
 </hibernate-configuration>
