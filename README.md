@@ -550,15 +550,15 @@ Here are some example steps you can follow:
 
 This allows you to rebuild the XWiki docker image locally. Here are the steps:
 
--	Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from the GitHub UI. Then go to the directory corresponding to the docker tag you wish to use. For example: `cd 8/mysql-tomcat`
-	-	The `8/mysql-tomcat` directory will get you the latest released XWiki version of the 8.x cycle running on Tomcat and for MySQL.
-	-	The `8/postgres-tomcat` directory will get you the latest released XWiki version of the 8.x cycle running on Tomcat and for MySQL.
-	-	The `9/mysql-tomcat` directory will get you the latest released XWiki version of the 9.x cycle running on Tomcat and for MySQL.
+-	Install Git and run `git clone https://github.com/xwiki-contrib/docker-xwiki.git` or download the sources from the GitHub UI. Then go to the directory corresponding to the docker tag you wish to use. For example: `cd 13/mysql-tomcat`
+	-	The `13/mysql-tomcat` directory will get you the latest released XWiki version of the 13.x cycle running on Tomcat and for MySQL.
+	-	The `13/postgres-tomcat` directory will get you the latest released XWiki version of the 13.x cycle running on Tomcat and for MySQL.
+	-	The `12/mysql-tomcat` directory will get you the latest released XWiki version of the 12.x cycle running on Tomcat and for MySQL.
 	-	etc.
 -	Run `docker-compose up`
 -	Start a browser and point it to `http://localhost:8080`
 
-Note that if you want to set a custom version of XWiki you can edit the `.env` file and set the values you need in there. It's also possible to override them on the command line with `docker-compose run -e "XWIKI_VERSION=8.4.4"`.
+Note that if you want to set a custom version of XWiki you can edit the `.env` file and set the values you need in there. It's also possible to override them on the command line with `docker-compose run -e "XWIKI_VERSION=12.10.10"`.
 
 Note that `docker-compose up` will automatically build the XWiki image on the first run. If you need to rebuild it you can issue `docker-compose up --build`. You can also build the image with `docker build . -t xwiki-mysql-tomcat:latest` for example.
 
@@ -622,6 +622,18 @@ docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v xwiki:/usr/local/xwiki -e
 
 Notice the mapping of the port with `p 5005:5005` which expose the port and thus allows you to debug XWiki from within your IDE for example.
 
+## Configuration Files
+
+There are 3 important configuration files for XWiki that you may want to modify:
+-	`xwiki.cfg`
+-	`xwiki.properties`
+-	`hibernate.cfg.xml`
+
+In order to make it easy to modify them outside the container, the XWiki image does the following:
+
+-	On the first XWiki container start, these 3 files are copied from inside the container (they're located in `[xwiki servlet context]/WEB-INF`) to your local permanent directory (that you've mapped as a volume when you're executing the XWiki container). This creates a timestamp file named `/usr/local/tomcat/webapps/[xwiki servlet context]/.first_start_completed` in the XWiki container.
+-	On the next XWiki container starts, if the timestamp file exists, then, the 3 files are copied from your local permanent directory inside the XWiki container (overwriting any default config files there), so that your config if used. If one of these files doesn't exist, then the default one is used instead.
+
 ## Miscellaneous
 
 Volumes:
@@ -652,13 +664,13 @@ MySQL:
 	- On Linux, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
 		```console
-		VERSION="9.11.8"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+		VERSION="12.10.10"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && sha256sum xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
 		```
 
 	- On Mac, use the following one-liner and replace the value of the `VERSION` variable accordingly:
 
 		```console
-		VERSION="10.11"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
+		VERSION="12.10.10"; wget http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war/${VERSION}/xwiki-platform-distribution-war-${VERSION}.war && shasum --algorithm 256 xwiki-platform-distribution-war-${VERSION}.war && rm xwiki-platform-distribution-war-${VERSION}.war
 		```
 
 - Execute the Gradle build (run `./gradlew`) to generate the various Dockerfiles and other resources for all image tags
