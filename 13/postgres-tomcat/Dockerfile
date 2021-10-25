@@ -17,7 +17,7 @@
 # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
-FROM tomcat:8-jdk11-temurin
+FROM tomcat:9
 
 #    ____  ____  ____      ____  _   __        _
 #   |_  _||_  _||_  _|    |_  _|(_) [  |  _   (_)
@@ -26,7 +26,7 @@ FROM tomcat:8-jdk11-temurin
 #    _/ /'`\ \_     \  /\  /    | |  | |`\ \  | |
 #   |____||____|     \/  \/    [___][__|  \_][___]
 
-MAINTAINER Vincent Massol <vincent@massol.net>
+MAINTAINER XWiki Committers
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
