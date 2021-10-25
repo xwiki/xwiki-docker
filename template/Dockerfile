@@ -26,7 +26,7 @@ FROM tomcat:9
 #    _/ /'`\\ \\_     \\  /\\  /    | |  | |`\\ \\  | |
 #   |____||____|     \\/  \\/    [___][__|  \\_][___]
 
-MAINTAINER Vincent Massol <vincent@massol.net>
+MAINTAINER XWiki Committers
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
