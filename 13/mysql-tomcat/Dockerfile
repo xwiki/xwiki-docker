@@ -26,7 +26,7 @@ FROM tomcat:9
 #    _/ /'`\ \_     \  /\  /    | |  | |`\ \  | |
 #   |____||____|     \/  \/    [___][__|  \_][___]
 
-MAINTAINER XWiki Committers
+LABEL maintainer="XWiki Development Team <committers@xwiki.org>"
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
