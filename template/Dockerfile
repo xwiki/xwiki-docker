@@ -26,7 +26,12 @@ FROM tomcat:9-jdk11
 #    _/ /'`\\ \\_     \\  /\\  /    | |  | |`\\ \\  | |
 #   |____||____|     \\/  \\/    [___][__|  \\_][___]
 
-LABEL maintainer="XWiki Development Team <committers@xwiki.org>"
+LABEL org.opencontainers.image.authors='XWiki Development Team <committers@xwiki.org>'
+LABEL org.opencontainers.image.url='https://hub.docker.com/_/xwiki'
+LABEL org.opencontainers.image.documentation='https://hub.docker.com/_/xwiki'
+LABEL org.opencontainers.image.source='https://github.com/xwiki/xwiki-docker.git'
+LABEL org.opencontainers.image.vendor='xwiki.org'
+LABEL org.opencontainers.image.licenses='LGPL-2.1'
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
