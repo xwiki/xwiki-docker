@@ -689,21 +689,21 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 	- Make sure you open Docker before running the commands.
 		- Linux (except Ubuntu): `sudo systemctl start docker`
 - Create a network: `docker network create -d bridge xwiki-test`
-- Execute the following command to start a MySQL database (for example):
+- Execute the following command to start a Postgres database (for example):
   
 	```console
-	docker run --net=xwiki-test --name mysql-xwiki-test -v /tmp/xwiki-docker-test/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:5.7 --character-set-server=utf8 --collation-server=utf8_bin --explicit-defaults-for-timestamp=1
+    docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
 	```
 	
-- Navigate to the directory to test, e.g. `10/mysql-tomcat` and issue:
+- Navigate to the directory to test, e.g. `14/postgres-tomcat` and issue:
 	- Build the image: `docker build -t xwiki-test .`
-	- Start XWiki (using the started MySQL container in this example): 
+	- Start XWiki (using the started Postgres container in this example): 
   
 		```console 
-		docker run --net=xwiki-test --name xwiki-test -p 8080:8080 -v /tmp/xwiki-docker-test/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki-test xwiki-test
+		docker run --net=xwiki-test --name xwiki-test -p 8080:8080 -v /tmp/xwiki-docker-test/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki-test xwiki-test
 		```
 	
-  	Note that same as for the MyQSL container above you'll need to remove the container if it already exists.
+  	Note that same as for the Postgres container above you'll need to remove the container if it already exists.
   	
 	- In case you had an XWiki instance running on 8080 and the above command fails (i.e. address already in use), you cannot simply run it again. If you do (and you should try, actually), will try to recreate the container with the `xwiki-test` name that is now already in use by a container for which you are given the ID (note that down). Instead, you need to simply start the mentioned container ID which previously failed by running `docker start <FAILED_START_CONTAINER_ID>`.
 	- Open your browser to http://localhost:8080 and try to setup XWiki and verify it works
@@ -716,8 +716,8 @@ Execute:
 ```console
 docker stop xwiki-test
 docker rm xwiki-test
-docker stop mysql-xwiki-test
-docker rm mysql-xwiki-test
+docker stop postgres-xwiki-test
+docker rm postgres-xwiki-test
 docker network rm xwiki-test
 docker rmi xwiki-test
 sudo rm -Rf /tmp/xwiki-docker-test
