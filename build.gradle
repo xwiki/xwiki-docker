@@ -27,7 +27,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 defaultTasks 'generate'
 
-def variants = ['mysql-tomcat', 'postgres-tomcat']
+def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
 // Note: To compute the sha256, download the XWiki WAR and issue:
 // - Unix: sha256sum <binary name>

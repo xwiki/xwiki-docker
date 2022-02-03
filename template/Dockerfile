@@ -72,6 +72,18 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
   println "RUN curl -fSL \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET && \\"
   print "  echo \"\$MYSQL_JDBC_SHA256 \$MYSQL_JDBC_TARGET\" | sha256sum -c -"
+} else if (db == 'mariadb') {
+  println "# For MariaDB, download the MariaDB driver version from the Maven Central repository to control the version "
+  println "# used."
+  println "ENV MARIADB_JDBC_VERSION=\"3.0.3\""
+  // Get the SHA256 from the JAR at https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and using the
+  // command line defined in build.gradle.
+  println "ENV MARIADB_JDBC_SHA256=\"613086a0a20f177dfcf5e227f519272bc6be88bde4011de0f23c533231a7ae05\""
+  println "ENV MARIADB_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/\${MARIADB_JDBC_VERSION}\""
+  println "ENV MARIADB_JDBC_ARTIFACT=\"mariadb-java-client-\${MARIADB_JDBC_VERSION}.jar\""
+  println "ENV MARIADB_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MARIADB_JDBC_ARTIFACT}\""
+  println "RUN curl -fSL \"\${MARIADB_JDBC_PREFIX}/\${MARIADB_JDBC_ARTIFACT}\" -o \$MARIADB_JDBC_TARGET && \\"
+  print "  echo \"\$MARIADB_JDBC_SHA256 \$MARIADB_JDBC_TARGET\" | sha256sum -c -"
 } else if (db == 'postgres') {
   print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
 } %>
