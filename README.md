@@ -119,12 +119,12 @@ Notes:
 
 #### Starting MariaDB
 
-This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:10.3`.
+This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:10.5`.
 
 Full command example:
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:10.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:10.5 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 #### Starting PostgreSQL
@@ -177,18 +177,18 @@ docker run -d --net=xwiki-nw ...
 
 Another solution is to use the Docker Compose files we provide.
 
-#### For MySQL
+#### For MySQL on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/12/mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/12/mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/12/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/12/mysql-tomcat/mysql/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/docker-compose-mysql.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/docker-compose-mysql.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
 -	You can edit the compose file retrieved to change the default username/password and other environment variables.
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/docker-compose-mysql.yml)):
+For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/mysql-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -212,7 +212,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:5.7"
+    image: "mysql:5"
     container_name: xwiki-mysql-db
     volumes:
       - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
@@ -230,14 +230,67 @@ volumes:
   xwiki-data: {}
 ```
 
-#### For PostgreSQL
+#### For MariaDB on Tomcat
 
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/docker-compose-postgres.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/docker-compose-postgres.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/xwiki.cnf`: This will download the MAriaDB configuration (UTF8, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/xwiki.cnf -o xwiki.cnf`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
 -	You can edit the compose file retrieved to change the default username/password and other environment variables.
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki-contrib/docker-xwiki/blob/master/docker-compose-postgres.yml)):
+For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/mariadb-tomcat/docker-compose.yml)):
+
+```yaml
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  web:
+    image: "xwiki:lts-mariadb-tomcat"
+    container_name: xwiki-mariadb-tomcat-web
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_USER=xwiki
+      - DB_PASSWORD=xwiki
+      - DB_HOST=xwiki-mariadb-db
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
+  db:
+    image: "mariadb:10.5"
+    container_name: xwiki-mariadb-db
+    volumes:
+      - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
+      - mariadb-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=xwiki
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
+    networks:
+      - bridge
+volumes:
+  mariadb-data: {}
+  xwiki-data: {}
+```
+
+#### For PostgreSQL on Tomcat
+
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/postgres-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
+-	You can edit the compose file retrieved to change the default username/password and other environment variables.
+-	`docker-compose up`
+
+For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/postgres-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -261,7 +314,7 @@ services:
     networks:
       - bridge
   db:
-    image: "postgres:9.5"
+    image: "postgres:13"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -321,7 +374,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "mysql:5.7"
+    image: "mysql:5"
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -387,7 +440,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "postgres:9.5"
+    image: "postgres:13"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -454,7 +507,7 @@ docker run \
   --name solr-xwiki \
   -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
   -v /my/path/solr:/opt/solr/server/solr/xwiki \
-  -d solr:7.2
+  -d solr:8
 ```
 
 Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
@@ -503,7 +556,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:5.7"
+    image: "mysql:5"
     container_name: xwiki-db
     volumes:
       - ./mysql/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
@@ -516,7 +569,7 @@ services:
     networks:
       - bridge
   index:
-    image: "solr:7.2"
+    image: "solr:8"
     container_name: xwiki-index
     volumes:
       - ./solr:/docker-entrypoint-initdb.d
