@@ -124,7 +124,7 @@ This is exactly similar to starting MySQL and you should thus follow exactly the
 Full command example:
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:10.5 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mariadb-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MARIADB_ROOT_PASSWORD=xwiki -e MARIADB_USER=xwiki -e MARIADB_PASSWORD=xwiki -e MARIADB_DATABASE=xwiki -d mariadb:10.5 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 #### Starting PostgreSQL
@@ -157,6 +157,11 @@ For MySQL:
 
 ```console
 docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat
+```
+
+For MariaDB:
+```console
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mariadb-xwiki xwiki:stable-mariadb
 ```
 
 For PostgreSQL:
