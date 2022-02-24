@@ -480,8 +480,8 @@ From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwik
 This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
 
 ```data
-solr.type=remote  
-solr.remote.url=http://$INDEX_HOST:$INDEX_PORT/solr/xwiki
+solr.type=remote
+solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
 ```
 
 #### Preparing Solr container
