@@ -103,6 +103,7 @@ VOLUME /usr/local/xwiki
 #            configure xwiki's hibernate.cfg.xml file.
 # - CONTEXT_PATH: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll
 #                 be deployed as ROOT.
+# - ADDITIONAL_JDBC_PARAM: Additional JDBC parameters. An example could be '&allowPublicKeyRetrieval=true'
 
 # Example:
 #   docker run -it -e "DB_USER=xwiki" -e "DB_PASSWORD=xwiki" <imagename>
