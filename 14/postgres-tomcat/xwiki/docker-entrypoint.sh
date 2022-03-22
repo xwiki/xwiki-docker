@@ -127,6 +127,7 @@ function configure() {
   safesed "replacepassword" $DB_PASSWORD /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacejdbcparam" $ADDITIONAL_JDBC_PARAM /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 
   # Set any non-default main wiki database name in the xwiki.cfg file.
   if [ "$DB_DATABASE" != "xwiki" ]; then
