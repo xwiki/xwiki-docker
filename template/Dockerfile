@@ -63,10 +63,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
 <% if (db == 'mysql') {
   println "# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to "
   println "# date Debian repository for it anymore."
-  println "ENV MYSQL_JDBC_VERSION=\"8.0.28\""
-  // Get the SHA256 from the JAR at https://search.maven.org/artifact/mysql/mysql-connector-java and using the
-  // command line defined in build.gradle.
-  println "ENV MYSQL_JDBC_SHA256=\"a00ccdf537ff50e50067b989108c2235197ffb65e197149bbb669db843cd1c3e\""
+  println "ENV MYSQL_JDBC_VERSION=\"$mysqlJDBCVersion\""
+  println "ENV MYSQL_JDBC_SHA256=\"$mysqlJDBCSha256\""
   println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/mysql/mysql-connector-java/\${MYSQL_JDBC_VERSION}\""
   println "ENV MYSQL_JDBC_ARTIFACT=\"mysql-connector-java-\${MYSQL_JDBC_VERSION}.jar\""
   println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
@@ -75,10 +73,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
 } else if (db == 'mariadb') {
   println "# For MariaDB, download the MariaDB driver version from the Maven Central repository to control the version "
   println "# used."
-  println "ENV MARIADB_JDBC_VERSION=\"3.0.3\""
-  // Get the SHA256 from the JAR at https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and using the
-  // command line defined in build.gradle.
-  println "ENV MARIADB_JDBC_SHA256=\"613086a0a20f177dfcf5e227f519272bc6be88bde4011de0f23c533231a7ae05\""
+  println "ENV MARIADB_JDBC_VERSION=\"$mariadbJDBCVersion\""
+  println "ENV MARIADB_JDBC_SHA256=\"$mariadbJDBCSha256\""
   println "ENV MARIADB_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/\${MARIADB_JDBC_VERSION}\""
   println "ENV MARIADB_JDBC_ARTIFACT=\"mariadb-java-client-\${MARIADB_JDBC_VERSION}.jar\""
   println "ENV MARIADB_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MARIADB_JDBC_ARTIFACT}\""

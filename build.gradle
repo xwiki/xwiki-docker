@@ -29,18 +29,34 @@ defaultTasks 'generate'
 
 def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
-// Note: To compute the sha256, download the XWiki WAR and issue:
-// - Unix: sha256sum <binary name>
-// - Mac: shasum --algorithm 256 <binary name>
+// Notes:
+// - To compute the XWiki sha256, download the XWiki WAR and issue:
+//   - Unix: sha256sum <binary name>
+//   - Mac: shasum --algorithm 256 <binary name>
+// - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/mysql/mysql-connector-java and
+//   do the same as for the XWiki sha256.
+// - To compute the mysql JDBC sha256, get the JAR at
+//   https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
+// - Use the JDBC driver versions found in the XWiki POM for the specified versions:
+//   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L97 (link for master)
+//   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L100 (link for master)
 
 def tokens = [
     '14': [
         xwikiVersion: '14.1',
-        xwikiSha256: '71d739098e9edc2f343c7a7c15034cf0651ad8e97f1cb59ae0c979181fc677a3'
+        xwikiSha256: '71d739098e9edc2f343c7a7c15034cf0651ad8e97f1cb59ae0c979181fc677a3',
+        mysqlJDBCVersion: '8.0.28',
+        mysqlJDBCSha256: 'a00ccdf537ff50e50067b989108c2235197ffb65e197149bbb669db843cd1c3e',
+        mariadbJDBCVersion: '3.0.3',
+        mariadbJDBCSha256: '613086a0a20f177dfcf5e227f519272bc6be88bde4011de0f23c533231a7ae05'
     ],
     '13': [
         xwikiVersion: '13.10.3',
-        xwikiSha256: 'f4f13dcab88baffb0e62fccc5d6375a6d023e4ac7414c502375dd1e8d503cbbd'
+        xwikiSha256: 'f4f13dcab88baffb0e62fccc5d6375a6d023e4ac7414c502375dd1e8d503cbbd',
+        mysqlJDBCVersion: '8.0.28',
+        mysqlJDBCSha256: 'a00ccdf537ff50e50067b989108c2235197ffb65e197149bbb669db843cd1c3e',
+        mariadbJDBCVersion: '3.0.3',
+        mariadbJDBCSha256: '613086a0a20f177dfcf5e227f519272bc6be88bde4011de0f23c533231a7ae05'
     ]
 ]
 
