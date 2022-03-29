@@ -742,6 +742,7 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 	- Make sure you open Docker before running the commands.
 		- Linux (except Ubuntu): `sudo systemctl start docker`
 - Create a network: `docker network create -d bridge xwiki-test`
+- Make sure that `/tmp/xwiki-docker-test/postgres` and `/tmp/xwiki-docker-test/xwiki` exist (you can run the clean up script below to create them)
 - Execute the following command to start a Postgres database (for example):
   
 	```console
@@ -773,7 +774,9 @@ docker stop postgres-xwiki-test
 docker rm postgres-xwiki-test
 docker network rm xwiki-test
 docker rmi xwiki-test
-sudo rm -Rf /tmp/xwiki-docker-test
+rm -Rf /tmp/xwiki-docker-test
+mkdir -p /tmp/xwiki-docker-test/postgres
+mkdir -p /tmp/xwiki-docker-test/xwiki
 ```
 
 # License
