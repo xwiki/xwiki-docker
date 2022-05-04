@@ -17,7 +17,7 @@
 # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
-FROM tomcat:9-jdk11
+FROM tomcat:9-jre11
 
 #    ____  ____  ____      ____  _   __        _
 #   |_  _||_  _||_  _|    |_  _|(_) [  |  _   (_)
@@ -62,8 +62,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to 
 # date Debian repository for it anymore.
-ENV MYSQL_JDBC_VERSION="8.0.28"
-ENV MYSQL_JDBC_SHA256="a00ccdf537ff50e50067b989108c2235197ffb65e197149bbb669db843cd1c3e"
+ENV MYSQL_JDBC_VERSION="8.0.29"
+ENV MYSQL_JDBC_SHA256="d4e32d2a6026b5acc00300b73a86c28fb92681ae9629b21048ee67014c911db6"
 ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/mysql/mysql-connector-java/${MYSQL_JDBC_VERSION}"
 ENV MYSQL_JDBC_ARTIFACT="mysql-connector-java-${MYSQL_JDBC_VERSION}.jar"
 ENV MYSQL_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MYSQL_JDBC_ARTIFACT}"
