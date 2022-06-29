@@ -50,6 +50,14 @@ def tokens = [
         mariadbJDBCVersion: '3.0.5',
         mariadbJDBCSha256: 'e9532d9bca07c1263c32b00b495bd3ec7f2b79320513cabd762bf39ea09e68d9'
     ],
+    '14.4': [
+        xwikiVersion: '14.4.2',
+        xwikiSha256: '99797621f35e6e95208e88f67c2b3294212c70243f363ee37ea65416a1cba98b',
+        mysqlJDBCVersion: '8.0.29',
+        mysqlJDBCSha256: 'd4e32d2a6026b5acc00300b73a86c28fb92681ae9629b21048ee67014c911db6',
+        mariadbJDBCVersion: '3.0.5',
+        mariadbJDBCSha256: 'e9532d9bca07c1263c32b00b495bd3ec7f2b79320513cabd762bf39ea09e68d9'
+    ],
     '13': [
         xwikiVersion: '13.10.7',
         xwikiSha256: 'b886e886ed34e8d7bea8feb2e74e94edb3fb88030f90ab68c7bbc87dcf453d00',
