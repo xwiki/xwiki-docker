@@ -48,9 +48,9 @@ RUN apt-get update && \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="14.5"
+ENV XWIKI_VERSION="14.6"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 fdf6397ebb0036920953d5e7f6d3896b3b8744517b8f00822c31380c24a3e170
+ENV XWIKI_DOWNLOAD_SHA256 9676cc9eeae3cf47bccae037bff67ce2468e3bec1d126f903b4d3fe61bff8723
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \

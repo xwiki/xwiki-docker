@@ -48,9 +48,9 @@ RUN apt-get update && \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="14.5"
+ENV XWIKI_VERSION="14.6"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 fdf6397ebb0036920953d5e7f6d3896b3b8744517b8f00822c31380c24a3e170
+ENV XWIKI_DOWNLOAD_SHA256 9676cc9eeae3cf47bccae037bff67ce2468e3bec1d126f903b4d3fe61bff8723
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \
@@ -62,8 +62,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # For MariaDB, download the MariaDB driver version from the Maven Central repository to control the version 
 # used.
-ENV MARIADB_JDBC_VERSION="3.0.5"
-ENV MARIADB_JDBC_SHA256="e9532d9bca07c1263c32b00b495bd3ec7f2b79320513cabd762bf39ea09e68d9"
+ENV MARIADB_JDBC_VERSION="3.0.6"
+ENV MARIADB_JDBC_SHA256="977ca7980b777b5aa8d32678204296a108f3eacbc4f210887e39b19869fad0d3"
 ENV MARIADB_JDBC_PREFIX="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${MARIADB_JDBC_VERSION}"
 ENV MARIADB_JDBC_ARTIFACT="mariadb-java-client-${MARIADB_JDBC_VERSION}.jar"
 ENV MARIADB_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MARIADB_JDBC_ARTIFACT}"

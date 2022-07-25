@@ -43,8 +43,8 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
 def tokens = [
     '14': [
-        xwikiVersion: '14.5',
-        xwikiSha256: 'fdf6397ebb0036920953d5e7f6d3896b3b8744517b8f00822c31380c24a3e170',
+        xwikiVersion: '14.6',
+        xwikiSha256: '9676cc9eeae3cf47bccae037bff67ce2468e3bec1d126f903b4d3fe61bff8723',
         mysqlJDBCVersion: '8.0.29',
         mysqlJDBCSha256: 'd4e32d2a6026b5acc00300b73a86c28fb92681ae9629b21048ee67014c911db6',
         mariadbJDBCVersion: '3.0.6',
