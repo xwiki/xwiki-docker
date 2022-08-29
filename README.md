@@ -25,6 +25,7 @@ As an application wiki, XWiki allows for the storing of structured data and the 
     -	[Configuring Tomcat](#configuring-tomcat)
     -	[Building](#building)
 - [Upgrading XWiki](#upgrading-xwiki)
+- [Troubleshooting](#troubleshooting)
 - [Details for the xwiki image](#details-for-the-xwiki-image)
     -	[Configuration Options](#configuration-options)
     -	[Passing JVM options](#passing-jvm-options)
