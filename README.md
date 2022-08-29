@@ -708,6 +708,15 @@ MySQL:
 	-	Execute bash in the mysql container: `docker exec -it <containerid> bash -l`
 	-	Once inside the mysql container execute the `mysql` command: `mysql --user=xwiki --password=xwiki`
 
+# Troubleshooting
+
+## Problem with eclipse-temurin base image
+
+If you're hitting a problem when running the XWiki docker image related to the use of eclipse-temurin in the XWiki base image, there are 2 workarounds:
+
+-	Make sure you use a Docker version >= 20.10.16
+-	If that's not possible run the XWiki Docker container without the default seccomp profile
+
 # For Maintainers
 
 ## Update Docker Images
