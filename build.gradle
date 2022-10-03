@@ -47,24 +47,24 @@ def tokens = [
         xwikiSha256: '87d2ffb0c5c179fe854e92b52707ee2a147d588b0fdf1bb0945657ce27163356',
         mysqlJDBCVersion: '8.0.30',
         mysqlJDBCSha256: 'b5bf2f0987197c30adf74a9e419b89cda4c257da2d1142871f508416d5f2227a',
-        mariadbJDBCVersion: '3.0.7',
-        mariadbJDBCSha256: '96c7bb2e6228ccbdf88dd4b071346979fa1216196a24aca3d1fb9e4199698bef'
+        mariadbJDBCVersion: '3.0.8',
+        mariadbJDBCSha256: '83697e1c44e77476123ab63cd8bb2ca96c1a349269f307c339f97caced2d0dd6'
     ],
     '14.4': [
         xwikiVersion: '14.4.5',
         xwikiSha256: 'a0fc9a83a4f2d2fb406fd4e0483492a82244c8fadfb9dc62f28574328c64d533',
         mysqlJDBCVersion: '8.0.30',
         mysqlJDBCSha256: 'b5bf2f0987197c30adf74a9e419b89cda4c257da2d1142871f508416d5f2227a',
-        mariadbJDBCVersion: '3.0.7',
-        mariadbJDBCSha256: '96c7bb2e6228ccbdf88dd4b071346979fa1216196a24aca3d1fb9e4199698bef'
+        mariadbJDBCVersion: '3.0.8',
+        mariadbJDBCSha256: '83697e1c44e77476123ab63cd8bb2ca96c1a349269f307c339f97caced2d0dd6'
     ],
     '13': [
         xwikiVersion: '13.10.9',
         xwikiSha256: 'ad57639016b1bfd1cdf84de764b310a65416832645c6bbfd933ec26fd977bb6a',
         mysqlJDBCVersion: '8.0.30',
         mysqlJDBCSha256: 'b5bf2f0987197c30adf74a9e419b89cda4c257da2d1142871f508416d5f2227a',
-        mariadbJDBCVersion: '3.0.7',
-        mariadbJDBCSha256: '96c7bb2e6228ccbdf88dd4b071346979fa1216196a24aca3d1fb9e4199698bef'
+        mariadbJDBCVersion: '3.0.8',
+        mariadbJDBCSha256: '83697e1c44e77476123ab63cd8bb2ca96c1a349269f307c339f97caced2d0dd6'
     ]
 ]
 
