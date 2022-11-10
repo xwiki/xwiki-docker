@@ -1,0 +1,19 @@
+import Foundation
+
+func fibonacci(n: Int) -> Int {
+  if n == 0 {
+    return 0
+  } else if n == 1 {
+    return 1
+  } else {
+    return fibonacci(n: n - 1) + fibonacci(n: n - 2)
+  }
+}
+
+var fibonacci_array = [Int]()
+for i in 0...100 {
+  fibonacci_array.append(fibonacci(n: i))
+}
+for i in stride(from: 99, through: 0, by: -1) {
+  print(fibonacci_array[i])
+}
