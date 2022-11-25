@@ -33,10 +33,10 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // - To compute the XWiki sha256, download the XWiki WAR and issue:
 //   - Unix: sha256sum <binary name>
 //   - Mac: shasum --algorithm 256 <binary name>
-// - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com.mysql/mysql-connector-j and
+// - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com/mysql/mysql-connector-j and
 //   do the same as for the XWiki sha256.
 // - To compute the mysql JDBC sha256, get the JAR at
-//   https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
+//   https://search.maven.org/artifact/org/mariadb/jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
 // - Use the JDBC driver versions found in the XWiki POM for the specified versions:
 //   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L101 (link for master)
 //   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L104 (link for master)

@@ -65,7 +65,7 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   println "# date Debian repository for it anymore."
   println "ENV MYSQL_JDBC_VERSION=\"$mysqlJDBCVersion\""
   println "ENV MYSQL_JDBC_SHA256=\"$mysqlJDBCSha256\""
-  println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/com.mysql/mysql-connector-j/\${MYSQL_JDBC_VERSION}\""
+  println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/\${MYSQL_JDBC_VERSION}\""
   println "ENV MYSQL_JDBC_ARTIFACT=\"mysql-connector-j-\${MYSQL_JDBC_VERSION}.jar\""
   println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
   println "RUN curl -fSL \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET && \\"
