@@ -33,10 +33,10 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // - To compute the XWiki sha256, download the XWiki WAR and issue:
 //   - Unix: sha256sum <binary name>
 //   - Mac: shasum --algorithm 256 <binary name>
-// - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com/mysql/mysql-connector-j and
+// - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com.mysql/mysql-connector-j and
 //   do the same as for the XWiki sha256.
 // - To compute the mysql JDBC sha256, get the JAR at
-//   https://search.maven.org/artifact/org/mariadb/jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
+//   https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
 // - Use the JDBC driver versions found in the XWiki POM for the specified versions:
 //   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L101 (link for master)
 //   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L104 (link for master)
@@ -47,24 +47,24 @@ def tokens = [
         xwikiSha256: '88d84d3fdf6acabea7e0ab5ad10d3191da8320b5820b1ca83adf05db5c6b457a',
         mysqlJDBCVersion: '8.0.31',
         mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.0.9',
-        mariadbJDBCSha256: '2a004c8ab43173a2a0d10d25aadfc57b8012fe1f68bbd816196df814b5000c1a'
+        mariadbJDBCVersion: '3.1.0',
+        mariadbJDBCSha256: 'bf78c92310a848b348f8478667f68fd17f8b80963c67474e8199f5abc8acbd50'
     ],
     '14.4': [
         xwikiVersion: '14.4.7',
         xwikiSha256: '4545869f5e088c88401556f473edf356ff9e358652edd766d2588e8164ef68e0',
         mysqlJDBCVersion: '8.0.31',
         mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.0.9',
-        mariadbJDBCSha256: '2a004c8ab43173a2a0d10d25aadfc57b8012fe1f68bbd816196df814b5000c1a'
+        mariadbJDBCVersion: '3.1.0',
+        mariadbJDBCSha256: 'bf78c92310a848b348f8478667f68fd17f8b80963c67474e8199f5abc8acbd50'
     ],
     '13': [
         xwikiVersion: '13.10.10',
         xwikiSha256: 'bae87a16d291d321d0848fcba55e455bfcd4b1890597cd9b735d98013cf44bad',
         mysqlJDBCVersion: '8.0.31',
         mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.0.9',
-        mariadbJDBCSha256: '2a004c8ab43173a2a0d10d25aadfc57b8012fe1f68bbd816196df814b5000c1a'
+        mariadbJDBCVersion: '3.1.0',
+        mariadbJDBCSha256: 'bf78c92310a848b348f8478667f68fd17f8b80963c67474e8199f5abc8acbd50'
     ]
 ]
 
