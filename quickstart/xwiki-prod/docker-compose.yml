@@ -1,0 +1,57 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.9"
+    container_name: "traefik"
+    restart: unless-stopped
+    depends_on:
+      - xwiki
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=$EMAIL"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # Uncomment for test mode. This allows detailed logging and creation of a fake certificate.
+      # - "--log.level=DEBUG"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+    ports:
+      - "443:443"
+    volumes:
+      - "./data/traefik/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  
+  xwiki:
+    image: "xwiki:13.10.10-postgres-tomcat"
+    container_name: xwiki-web
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - DB_USER=xwiki
+      - DB_PASSWORD=$DB_USER_PASSWORD
+      - DB_HOST=xwiki-postgres-db
+    volumes:
+      - ./data/xwiki:/usr/local/xwiki
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`$DOMAIN`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+
+  db:
+    image: "postgres:13.9"
+    container_name: xwiki-postgres-db
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+      - POSTGRES_PASSWORD=$DB_USER_PASSWORD
+      - POSTGRES_USER=xwiki
+      - POSTGRES_DB=xwiki
+      - POSTGRES_INITDB_ARGS="--encoding=UTF8"

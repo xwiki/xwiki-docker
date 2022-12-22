@@ -1,0 +1,28 @@
+version: '3.3'
+
+services:
+  web:
+    image: "xwiki:13.10.10-postgres-tomcat"
+    container_name: xwiki-web
+    depends_on:
+      - db
+    ports:
+      - 8080:8080
+    volumes:
+      - ./data/xwiki:/usr/local/xwiki
+    environment:
+      - DB_USER=xwiki
+      - DB_PASSWORD=db-user-password
+      - DB_HOST=xwiki-postgres-db
+
+  db:
+    image: "postgres:13.9"
+    container_name: xwiki-postgres-db
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_ROOT_PASSWORD=db-root-password
+      - POSTGRES_PASSWORD=db-user-password
+      - POSTGRES_USER=xwiki
+      - POSTGRES_DB=xwiki
+      - POSTGRES_INITDB_ARGS="--encoding=UTF8"
