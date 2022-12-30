@@ -39,9 +39,9 @@ services:
       - ./data/xwiki:/usr/local/xwiki
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`$DOMAIN`)"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+      - "traefik.http.routers.xwiki.rule=Host(`$DOMAIN`)"
+      - "traefik.http.routers.xwiki.entrypoints=websecure"
+      - "traefik.http.routers.xwiki.tls.certresolver=myresolver"
 
   db:
     image: "postgres:13.9"
