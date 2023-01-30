@@ -48,9 +48,9 @@ RUN apt-get update && \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="13.10.11"
+ENV XWIKI_VERSION="15.0"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 fd4f65fdef717f64008ab54845f8bd2973916fe8621c0c9298b45a50901c84ca
+ENV XWIKI_DOWNLOAD_SHA256 79ba0f479bbc49521c113821adc9d91141075a9470d7f9bbb6994ca59c30d121
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \
@@ -60,15 +60,15 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
-# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to 
-# date Debian repository for it anymore.
-ENV MYSQL_JDBC_VERSION="8.0.31"
-ENV MYSQL_JDBC_SHA256="5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f"
-ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_JDBC_VERSION}"
-ENV MYSQL_JDBC_ARTIFACT="mysql-connector-j-${MYSQL_JDBC_VERSION}.jar"
-ENV MYSQL_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MYSQL_JDBC_ARTIFACT}"
-RUN curl -fSL "${MYSQL_JDBC_PREFIX}/${MYSQL_JDBC_ARTIFACT}" -o $MYSQL_JDBC_TARGET && \
-  echo "$MYSQL_JDBC_SHA256 $MYSQL_JDBC_TARGET" | sha256sum -c -
+# For MariaDB, download the MariaDB driver version from the Maven Central repository to control the version 
+# used.
+ENV MARIADB_JDBC_VERSION="3.1.1"
+ENV MARIADB_JDBC_SHA256="a554541fd88047905fb0c4c10e1d85295f5e38c7bb5fb408b425392a79fc26e3"
+ENV MARIADB_JDBC_PREFIX="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${MARIADB_JDBC_VERSION}"
+ENV MARIADB_JDBC_ARTIFACT="mariadb-java-client-${MARIADB_JDBC_VERSION}.jar"
+ENV MARIADB_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MARIADB_JDBC_ARTIFACT}"
+RUN curl -fSL "${MARIADB_JDBC_PREFIX}/${MARIADB_JDBC_ARTIFACT}" -o $MARIADB_JDBC_TARGET && \
+  echo "$MARIADB_JDBC_SHA256 $MARIADB_JDBC_TARGET" | sha256sum -c -
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
