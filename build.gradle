@@ -45,26 +45,26 @@ def tokens = [
     '15': [
         xwikiVersion: '15.0',
         xwikiSha256: '79ba0f479bbc49521c113821adc9d91141075a9470d7f9bbb6994ca59c30d121',
-        mysqlJDBCVersion: '8.0.31',
-        mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.1.1',
-        mariadbJDBCSha256: 'a554541fd88047905fb0c4c10e1d85295f5e38c7bb5fb408b425392a79fc26e3'
+        mysqlJDBCVersion: '8.0.32',
+        mysqlJDBCSha256: '522329fe925980f02e5eb89b59d227245d345415ff0c08932a68c9765c13acc5',
+        mariadbJDBCVersion: '3.1.2',
+        mariadbJDBCSha256: 'aaec1ad348d030a65b25c93c65cdaf472bf8b4b6b314b965e5ba13aec81bc622'
     ],
     '14': [
         xwikiVersion: '14.10.4',
         xwikiSha256: '2fcfb622319172c2e424b9c11848ebfabe27cf8ef69cba39ceb5d124b7ebe713',
-        mysqlJDBCVersion: '8.0.31',
-        mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.1.1',
-        mariadbJDBCSha256: 'a554541fd88047905fb0c4c10e1d85295f5e38c7bb5fb408b425392a79fc26e3'
+        mysqlJDBCVersion: '8.0.32',
+        mysqlJDBCSha256: '522329fe925980f02e5eb89b59d227245d345415ff0c08932a68c9765c13acc5',
+        mariadbJDBCVersion: '3.1.2',
+        mariadbJDBCSha256: 'aaec1ad348d030a65b25c93c65cdaf472bf8b4b6b314b965e5ba13aec81bc622'
     ],
     '14.4': [
         xwikiVersion: '14.4.7',
         xwikiSha256: '4545869f5e088c88401556f473edf356ff9e358652edd766d2588e8164ef68e0',
-        mysqlJDBCVersion: '8.0.31',
-        mysqlJDBCSha256: '5249e3dc6d6531b37790e3f61845b96db5e41e891d3d8edb0e2e3a1b53ca2f4f',
-        mariadbJDBCVersion: '3.1.1',
-        mariadbJDBCSha256: 'a554541fd88047905fb0c4c10e1d85295f5e38c7bb5fb408b425392a79fc26e3'
+        mysqlJDBCVersion: '8.0.32',
+        mysqlJDBCSha256: '522329fe925980f02e5eb89b59d227245d345415ff0c08932a68c9765c13acc5',
+        mariadbJDBCVersion: '3.1.2',
+        mariadbJDBCSha256: 'aaec1ad348d030a65b25c93c65cdaf472bf8b4b6b314b965e5ba13aec81bc622'
     ]
 ]
 
