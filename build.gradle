@@ -30,7 +30,8 @@ defaultTasks 'generate'
 def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
 // Notes:
-// - To compute the XWiki sha256, download the XWiki WAR and issue:
+// - To compute the XWiki sha256, download the XWiki WAR from
+//   http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war, and issue:
 //   - Unix: sha256sum <binary name>
 //   - Mac: shasum --algorithm 256 <binary name>
 // - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com.mysql/mysql-connector-j and
@@ -51,8 +52,8 @@ def tokens = [
         mariadbJDBCSha256: 'aaec1ad348d030a65b25c93c65cdaf472bf8b4b6b314b965e5ba13aec81bc622'
     ],
     '14': [
-        xwikiVersion: '14.10.4',
-        xwikiSha256: '2fcfb622319172c2e424b9c11848ebfabe27cf8ef69cba39ceb5d124b7ebe713',
+        xwikiVersion: '14.10.5',
+        xwikiSha256: 'f58465d0869e4c5605ae8375a09c79399d1149c7131fed3cf9959918267eb6a8',
         mysqlJDBCVersion: '8.0.32',
         mysqlJDBCSha256: '522329fe925980f02e5eb89b59d227245d345415ff0c08932a68c9765c13acc5',
         mariadbJDBCVersion: '3.1.2',
