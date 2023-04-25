@@ -753,6 +753,7 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 		- Linux (except Ubuntu): `sudo systemctl start docker`
 - Create a network: `docker network create -d bridge xwiki-test`
 - Make sure that `/tmp/xwiki-docker-test/postgres` and `/tmp/xwiki-docker-test/xwiki` exist (you can run the clean up script below to create them)
+- Update the PostgreSQL image to use the latest version: `docker pull postgres:latest`
 - Execute the following command to start a Postgres database (for example):
   
 	```console
@@ -760,6 +761,7 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 	```
 	
 - Navigate to the directory to test, e.g. `14/postgres-tomcat` and issue:
+	- Update the Tomcat image to use the latest version: `docker pull <image name here>`, where the image name is found in the `FROM` command inside the [Dockerfile](https://github.com/xwiki/xwiki-docker/blob/master/template/Dockerfile#L20)
 	- Build the image: `docker build -t xwiki-test .`
 	- Start XWiki (using the started Postgres container in this example): 
   
