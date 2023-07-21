@@ -20,15 +20,13 @@
 
 # Use the curl image to download required Solr cores
 FROM curlimages/curl:8.2.0 AS downloader
-ARG XWIKI_VERSION=15.5
 WORKDIR /home/curl_user
-ENV SOLR_SERVER_CORE_URL=https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/${XWIKI_VERSION}/xwiki-platform-search-solr-server-core-${XWIKI_VERSION}.jar
-ENV SOLR_CORE_MINIMAL_URL=https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/${XWIKI_VERSION}/xwiki-platform-search-solr-server-core-minimal-${XWIKI_VERSION}.zip
+ENV solrCoreUrl="$solrCoreUrl"
+ENV solrMinimalCoreUrl="$solrMinimalCoreUrl"
 
 # Downloading the Solr cores
-RUN echo $SOLR_SERVER_CORE_URL && \
-    curl $SOLR_SERVER_CORE_URL -o ./xwiki-server-core.zip && \
-    curl $SOLR_CORE_MINIMAL_URL -o ./xwiki-minimal-core.zip
+RUN curl $solrCoreUrl -o ./xwiki-server-core.zip && \
+    curl $solrMinimalCoreUrl -o ./xwiki-minimal-core.zip
 
 # Unzipping the downloaded Solr cores
 FROM dockerqa/unzip:latest AS builder

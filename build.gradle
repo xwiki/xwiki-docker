@@ -27,7 +27,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 defaultTasks 'generate'
 
-def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
+def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat', 'solr-tomcat']
 
 // Notes:
 // - To compute the XWiki sha256, download the XWiki WAR from
@@ -45,6 +45,8 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 def tokens = [
     '15': [
         xwikiVersion: '15.5',
+        solrCoreUrl: 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/15.5/xwiki-platform-search-solr-server-core-15.5.jar',
+        solrMinimalCoreUrl: 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/15.5/xwiki-platform-search-solr-server-core-minimal-15.5.zip',
         xwikiSha256: 'e552586d371da33b012cfbd974b3ba80d1b147a5c892ad6cf989960212cdaa02',
         mysqlJDBCVersion: '8.0.33',
         mysqlJDBCSha256: 'e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9',
@@ -53,6 +55,8 @@ def tokens = [
     ],
     '14': [
         xwikiVersion: '14.10.14',
+        solrCoreUrl: 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/14.10.14/xwiki-platform-search-solr-server-core-14.10.14.jar',
+        solrMinimalCoreUrl: 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/14.10.14/xwiki-platform-search-solr-server-core-minimal-14.10.14.zip',
         xwikiSha256: 'db20de131a847c8d9e52cc410db35216c494179dd2ac85dcf3cee9a35703bcb0',
         mysqlJDBCVersion: '8.0.33',
         mysqlJDBCSha256: 'e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9',
