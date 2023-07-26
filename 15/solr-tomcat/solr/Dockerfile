@@ -21,30 +21,26 @@
 # Use the curl image to download required Solr cores
 FROM curlimages/curl:8.2.0 AS downloader
 WORKDIR /home/curl_user
-ENV solrCoreUrl="$solrCoreUrl"
-ENV solrMinimalCoreUrl="$solrMinimalCoreUrl"
+ENV solrCoreUrl="https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/15.5/xwiki-platform-search-solr-server-core-15.5.jar"
+ENV solrMinimalCoreUrl="https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/15.5/xwiki-platform-search-solr-server-core-minimal-15.5.zip"
 
 # Downloading the Solr cores
-RUN curl $solrCoreUrl -o ./xwiki-server-core.zip && \
-    curl $solrMinimalCoreUrl -o ./xwiki-minimal-core.zip
+RUN curl https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core/15.5/xwiki-platform-search-solr-server-core-15.5.jar -o ./xwiki-server-core.zip &&     curl https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/15.5/xwiki-platform-search-solr-server-core-minimal-15.5.zip -o ./xwiki-minimal-core.zip
 
 # Unzipping the downloaded Solr cores
 FROM dockerqa/unzip:latest AS builder
 COPY --from=downloader /home/curl_user/*.zip /unzip/
-RUN unzip -qq /unzip/xwiki-server-core.zip -d /home/xwiki && \
-    unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_events && \
-    unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_extension_index && \
-    unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_ratings
+RUN unzip -qq /unzip/xwiki-server-core.zip -d /home/xwiki &&     unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_events &&     unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_extension_index &&     unzip -qq /unzip/xwiki-minimal-core.zip -d /home/xwiki_ratings
 
 # Final image using the official Solr 8 image as the base
 FROM solr:8
 
 #    ____  ____  ____      ____  _   __        _
 #   |_  _||_  _||_  _|    |_  _|(_) [  |  _   (_)
-#     \\ \\  / /    \\ \\  /\\  / /  __   | | / ]  __
-#      > `' <      \\ \\/  \\/ /  [  |  | '' <  [  |
-#    _/ /'`\\ \\_     \\  /\\  /    | |  | |`\\ \\  | |
-#   |____||____|     \\/  \\/    [___][__|  \\_][___]
+#     \ \  / /    \ \  /\  / /  __   | | / ]  __
+#      > `' <      \ \/  \/ /  [  |  | '' <  [  |
+#    _/ /'`\ \_     \  /\  /    | |  | |`\ \  | |
+#   |____||____|     \/  \/    [___][__|  \_][___]
 
 LABEL org.opencontainers.image.authors='XWiki Development Team <committers@xwiki.org>'
 LABEL org.opencontainers.image.url='https://hub.docker.com/_/xwiki'
