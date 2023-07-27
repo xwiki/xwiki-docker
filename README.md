@@ -485,46 +485,17 @@ solr.type=remote
 solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
 ```
 
-#### Preparing Solr container
-
-The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
-
--	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
--	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
--	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
--	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
--	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
--	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
-
 #### Docker run example
 
 Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
 
-The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
+The command below shows how to start the Solr container:
 
 ```console
 docker run \
   --net=xwiki-nw \
   --name solr-xwiki \
-  -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/path/solr:/opt/solr/server/solr/xwiki \
-  -d solr:8
-```
-
-Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
-
-```console
-docker run \
-  --net=xwiki-nw \
-  --name xwiki \
-  -p 8080:8080 \
-  -v /my/path/xwiki:/usr/local/xwiki \
-  -e DB_USER=xwiki \
-  -e DB_PASSWORD=xwiki \
-  -e DB_DATABASE=xwiki \
-  -e DB_HOST=mysql-xwiki \
-  -e INDEX_HOST=solr-xwiki \
-  -d xwiki:lts-mysql-tomcat
+  -d xwiki:solr
 ```
 
 #### Docker Compose example
