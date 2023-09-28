@@ -67,7 +67,7 @@ services:
       - MYSQL_PASSWORD=\${DB_PASSWORD}
       - MYSQL_DATABASE=\${DB_DATABASE}'''
 
-    else if (db == 'mariadb') print '''image: "mariadb:10.5"
+    else if (db == 'mariadb') print '''image: "mariadb:11.1"
     container_name: xwiki-mariadb-db
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
