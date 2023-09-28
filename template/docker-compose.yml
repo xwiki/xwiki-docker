@@ -46,7 +46,7 @@ services:
       - bridge
   # The container that runs the database (${db})
   db:
-    <% if (db == 'mysql') print '''image: "mysql:5.7"
+    <% if (db == 'mysql') print '''image: "mysql:8.1"
     container_name: xwiki-mysql-db
     # - We provide a xwiki.cnf file in order to configure the mysql db to support UTF8 and be case-insensitive
     # We have to do it here since we use an existing image and that's how this image allows customizations.
