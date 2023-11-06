@@ -80,10 +80,12 @@
 
     <% if (db == 'mysql') print '''<!-- MySQL configuration.
          Notes:
-           - if you want the main wiki database to be different than "xwiki"
+           - If you want the main wiki database to be different than "xwiki"
              you will also have to set the property xwiki.db in xwiki.cfg file
+           - Use the local timezone to work around a bug in the MySQL 8.x which often does not understand the server
+              timezone and crash
     -->
-    <property name="connection.url">jdbc:mysql://replacecontainer/replacedatabase?useSSL=false</property>
+    <property name="connection.url">jdbc:mysql://replacecontainer/replacedatabasereplacejdbcparams</property>
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">com.mysql.cj.jdbc.Driver</property>
@@ -102,10 +104,10 @@
 
     else if (db == 'mariadb') print '''<!-- MariaDB configuration.
          Notes:
-           - if you want the main wiki database to be different than "xwiki"
+           - If you want the main wiki database to be different than "xwiki"
              you will also have to set the property xwiki.db in xwiki.cfg file
     -->
-    <property name="connection.url">jdbc:mariadb://replacecontainer/replacedatabase?useSSL=false</property>
+    <property name="connection.url">jdbc:mariadb://replacecontainer/replacedatabasereplacejdbcparams</property>
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">org.mariadb.jdbc.Driver</property>
@@ -131,7 +133,7 @@
            - if you want the main wiki database to be different than "xwiki" (or "public" in schema mode)
              you will also have to set the property xwiki.db in xwiki.cfg file
     -->
-    <property name="connection.url">jdbc:postgresql://replacecontainer:5432/replacedatabase</property>
+    <property name="connection.url">jdbc:postgresql://replacecontainer:5432/replacedatabasereplacejdbcparams</property>
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">org.postgresql.Driver</property>

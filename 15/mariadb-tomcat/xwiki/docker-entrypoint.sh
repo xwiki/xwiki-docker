@@ -114,6 +114,7 @@ function configure() {
   file_env 'DB_DATABASE' 'xwiki'
   file_env 'INDEX_HOST' 'localhost'
   file_env 'INDEX_PORT' '8983'
+  file_env 'JDBC_PARAMS' '?useSSL=false'
 
   echo "  Deploying XWiki in the '$CONTEXT_PATH' context"
   if [ "$CONTEXT_PATH" == "ROOT" ]; then
@@ -127,6 +128,7 @@ function configure() {
   safesed "replacepassword" $DB_PASSWORD /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacejdbcparams" $JDBC_PARAMS /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 
   # Set any non-default main wiki database name in the xwiki.cfg file.
   if [ "$DB_DATABASE" != "xwiki" ]; then

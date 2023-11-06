@@ -105,13 +105,6 @@ You should adapt the command line to use the passwords that you wish for the MyS
 
 Notes:
 
--   If you're using MySQL8, you also need to configure the `mysql_native_password` authentication plugin the native password mechanism that XWiki uses to connect:
-
-    ```console
-    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1 --default-authentication-plugin=mysql_native_password
-    ```
-
--   If you want to use `utf8` instead of `utf8mb4` (you won't have emojis though), you could use instead: `character-set-server=utf8 --collation-server=utf8_bin`.
 -   The `explicit-defaults-for-timestamp` parameter was introduced in MySQL 5.6.6 and will thus work only for that version and beyond. If you are using an older MySQL version, please use the following instead:
 
     ```console
@@ -157,13 +150,13 @@ Ensure this directory exists, and then run XWiki in a container by issuing one o
 For MySQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:latest-mysql-tomcat
 ```
 
 For PostgreSQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:lts-postgres-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:latest-postgres-tomcat
 ```
 
 Be careful to use the same DB username, password and database names that you've used on the first command to start the DB container. Also, please don't forget to add a `-e DB_HOST=` environment variable with the name of the previously created DB container so that XWiki knows where its database is.
@@ -180,16 +173,15 @@ Another solution is to use the Docker Compose files we provide.
 
 #### For MySQL on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/xwiki.cnf`: This will download the MySQL configuration (UTF8, etc)
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/xwiki.cnf -o xwiki.cnf`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/mysql/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
--	You can edit the compose file retrieved to change the default username/password and other environment variables.
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/mysql/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/mysql-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/mysql-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -198,7 +190,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:lts-mysql-tomcat"
+    image: "xwiki:latest-mysql-tomcat"
     container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
@@ -213,10 +205,9 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:5"
+    image: "mysql:8.1"
     container_name: xwiki-mysql-db
     volumes:
-      - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mysql-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
@@ -224,6 +215,10 @@ services:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_bin"
+      - "--explicit-defaults-for-timestamp=1"
     networks:
       - bridge
 volumes:
@@ -233,16 +228,15 @@ volumes:
 
 #### For MariaDB on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/xwiki.cnf`: This will download the MAriaDB configuration (UTF8, etc)
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/xwiki.cnf -o xwiki.cnf`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/mariadb/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
--	You can edit the compose file retrieved to change the default username/password and other environment variables.
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/mariadb/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/mariadb-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/mariadb-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -251,7 +245,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:lts-mariadb-tomcat"
+    image: "xwiki:latest-mariadb-tomcat"
     container_name: xwiki-mariadb-tomcat-web
     depends_on:
       - db
@@ -269,7 +263,6 @@ services:
     image: "mariadb:11.1"
     container_name: xwiki-mariadb-db
     volumes:
-      - ./xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
@@ -277,6 +270,10 @@ services:
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_bin"
+      - "--explicit-defaults-for-timestamp=1"
     networks:
       - bridge
 volumes:
@@ -286,12 +283,13 @@ volumes:
 
 #### For PostgreSQL on Tomcat
 
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/postgres-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/14/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
--	You can edit the compose file retrieved to change the default username/password and other environment variables.
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/14/postgres-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/postgres-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -300,7 +298,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:lts-postgres-tomcat"
+    image: "xwiki:latest-postgres-tomcat"
     container_name: xwiki-postgres-tomcat-web
     depends_on:
       - db
@@ -315,7 +313,7 @@ services:
     networks:
       - bridge
   db:
-    image: "postgres:13"
+    image: "postgres:16"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -351,7 +349,6 @@ You can create these secrets and configs with the following:
 -	`echo ${MY_XWIKI_USER:-xwiki} | docker secret create xwiki-db-username -`
 -	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-password -`
 -	`echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1) | docker secret create xwiki-db-root-password -`
--	`docker config create xwiki-mysql-config /path/to/mysql/xwiki.cnf`
 
 To deploy this example, save the following YAML as `xwiki-stack.yaml`, then run:
 
@@ -361,7 +358,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml`, then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:lts-mysql-tomcat"
+    image: "xwiki:latest-mysql-tomcat"
     ports:
       - "8080:8080"
     environment:
@@ -375,7 +372,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "mysql:5"
+    image: "mysql:8.1"
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -383,13 +380,14 @@ services:
       - MYSQL_USER_FILE=/run/secrets/xwiki-db-username
       - MYSQL_PASSWORD_FILE=/run/secrets/xwiki-db-password
       - MYSQL_DATABASE=xwiki
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_bin"
+      - "--explicit-defaults-for-timestamp=1"
     secrets:
       - xwiki-db-username
       - xwiki-db-password
       - xwiki-db-root-password
-    configs: 
-      - source: mysql-config
-        target: /etc/mysql/conf.d/xwiki.cnf
 volumes:
   mysql-data:
   xwiki-data:
@@ -403,10 +401,6 @@ secrets:
   xwiki-db-root-password:
     external:
       name: xwiki-db-root-password
-configs:
-  mysql-config:
-    external:
-      name: xwiki-mysql-config
 ```
 
 #### PostgreSQL Example
@@ -427,7 +421,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml` then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:lts-postgres-tomcat"
+    image: "xwiki:latest-postgres-tomcat"
     ports:
       - "8080:8080"
     environment:
@@ -441,7 +435,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "postgres:13"
+    image: "postgres:16"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -524,7 +518,7 @@ docker run \
   -e DB_DATABASE=xwiki \
   -e DB_HOST=mysql-xwiki \
   -e INDEX_HOST=solr-xwiki \
-  -d xwiki:lts-mysql-tomcat
+  -d xwiki:latest-mysql-tomcat
 ```
 
 #### Docker Compose example
@@ -538,7 +532,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:lts-mysql-tomcat"
+    image: "xwiki:latest-mysql-tomcat"
     container_name: xwiki-web
     depends_on:
       - db
@@ -557,16 +551,19 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:5"
+    image: "mysql:8.1"
     container_name: xwiki-db
     volumes:
-      - ./mysql/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
       - mysql-data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=xwiki
       - MYSQL_USER=xwiki
       - MYSQL_PASSWORD=xwiki
       - MYSQL_DATABASE=xwiki
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_bin"
+      - "--explicit-defaults-for-timestamp=1"
     networks:
       - bridge
   index:
@@ -592,14 +589,14 @@ If you want to modify the existing configuration rather than provide a brand new
 Here are some example steps you can follow:
 
 -   Create a docker container from the XWiki image with `docker create`.
-    -   Example: `docker create --name xwiki xwiki:lts-mysql-tomcat`.
+    -   Example: `docker create --name xwiki xwiki:latest-mysql-tomcat`.
 -   Copy the Tomcat configuration from the container to the host to start with some existing configuration files, using `docker cp`.
     -   Example: `sudo docker cp xwiki:/usr/local/tomcat/conf /tmp/tomcat`.
 -   Modify the Tomcat configuration locally to bring the changes you need.
 -   Delete the created XWiki container since it was only used to copy the configuration files and we'll need to create a new one with different parameters.
     -   Example: `docker rm xwiki`.
 -   Run the container with the Tomcat mount and the other parameters.
-    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:lts-mysql-tomcat`
+    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:latest-mysql-tomcat`
 
 ## Building
 
@@ -645,6 +642,7 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
 -   `CONTEXT_PATH`: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll be deployed as ROOT.
     -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
+-	`JDBC_PARAMS`: Custom JDB parameters to pass to the JBC connection. Setting this value overwrites the default parameters used (which depend on the DB used). The value must start with a question mark and the content be XML-encoded. For example: `?useSSL=false&amp;connectionTimeZone=LOCAL&amp;allowPublicKeyRetrieval=true`.
     
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 
@@ -654,6 +652,7 @@ In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secret
 -	`DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
 -	`INDEX_HOST_FILE`: The location, inside the container, of a file containing the value for `INDEX_HOST`
 -	`INDEX_PORT_FILE`: The location, inside the container, of a file containing the value for `INDEX_PORT`
+-	`JDBC_PARAMS_FILE`: The location, inside the container, of a file containing the value for `JDBC_PARAMS`
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
 
