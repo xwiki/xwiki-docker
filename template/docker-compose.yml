@@ -46,7 +46,7 @@ services:
       - bridge
   # The container that runs the database (${db})
   db:
-    <% if (db == 'mysql') print '''image: "mysql:8.1"
+    <% if (db == 'mysql') print '''image: "mysql:8.2"
     container_name: xwiki-mysql-db
     # - Provide a name instead of an auto-generated id for the mysql data, to make it simpler to identify in
     # 'docker volume ls'
