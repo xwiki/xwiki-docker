@@ -150,13 +150,13 @@ Ensure this directory exists, and then run XWiki in a container by issuing one o
 For MySQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:latest-mysql-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:stable-mysql-tomcat
 ```
 
 For PostgreSQL:
 
 ```console
-docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:latest-postgres-tomcat
+docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /my/path/xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=postgres-xwiki xwiki:stable-postgres-tomcat
 ```
 
 Be careful to use the same DB username, password and database names that you've used on the first command to start the DB container. Also, please don't forget to add a `-e DB_HOST=` environment variable with the name of the previously created DB container so that XWiki knows where its database is.
@@ -190,7 +190,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:latest-mysql-tomcat"
+    image: "xwiki:stable-mysql-tomcat"
     container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
@@ -245,7 +245,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:latest-mariadb-tomcat"
+    image: "xwiki:stable-mariadb-tomcat"
     container_name: xwiki-mariadb-tomcat-web
     depends_on:
       - db
@@ -298,7 +298,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:latest-postgres-tomcat"
+    image: "xwiki:stable-postgres-tomcat"
     container_name: xwiki-postgres-tomcat-web
     depends_on:
       - db
@@ -358,7 +358,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml`, then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:latest-mysql-tomcat"
+    image: "xwiki:stable-mysql-tomcat"
     ports:
       - "8080:8080"
     environment:
@@ -421,7 +421,7 @@ To deploy this example, save the following YAML as `xwiki-stack.yaml` then run:
 version: '3.3'
 services:
   web:
-    image: "xwiki:latest-postgres-tomcat"
+    image: "xwiki:stable-postgres-tomcat"
     ports:
       - "8080:8080"
     environment:
@@ -518,7 +518,7 @@ docker run \
   -e DB_DATABASE=xwiki \
   -e DB_HOST=mysql-xwiki \
   -e INDEX_HOST=solr-xwiki \
-  -d xwiki:latest-mysql-tomcat
+  -d xwiki:stable-mysql-tomcat
 ```
 
 #### Docker Compose example
@@ -532,7 +532,7 @@ networks:
     driver: bridge
 services:
   web:
-    image: "xwiki:latest-mysql-tomcat"
+    image: "xwiki:stable-mysql-tomcat"
     container_name: xwiki-web
     depends_on:
       - db
@@ -589,14 +589,14 @@ If you want to modify the existing configuration rather than provide a brand new
 Here are some example steps you can follow:
 
 -   Create a docker container from the XWiki image with `docker create`.
-    -   Example: `docker create --name xwiki xwiki:latest-mysql-tomcat`.
+    -   Example: `docker create --name xwiki xwiki:stable-mysql-tomcat`.
 -   Copy the Tomcat configuration from the container to the host to start with some existing configuration files, using `docker cp`.
     -   Example: `sudo docker cp xwiki:/usr/local/tomcat/conf /tmp/tomcat`.
 -   Modify the Tomcat configuration locally to bring the changes you need.
 -   Delete the created XWiki container since it was only used to copy the configuration files and we'll need to create a new one with different parameters.
     -   Example: `docker rm xwiki`.
 -   Run the container with the Tomcat mount and the other parameters.
-    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:latest-mysql-tomcat`
+    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:stable-mysql-tomcat`
 
 ## Building
 
