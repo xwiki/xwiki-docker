@@ -43,6 +43,14 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L104 (link for master)
 
 def tokens = [
+    '16': [
+        xwikiVersion: '16.0.0',
+        xwikiSha256: '955c175d0ac0e7039eeafd8569d87ad8a7967092ad8d018decb80a42a7eb941f',
+        mysqlJDBCVersion: '8.2.0',
+        mysqlJDBCSha256: '06f14fbd664d0e382347489e66495ca27ab7e6c2e1d9969a496931736197465f',
+        mariadbJDBCVersion: '3.3.2',
+        mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
+    ],
     '15': [
         xwikiVersion: '15.10.5',
         xwikiSha256: '3775334377ae7fb8bcf6a21e6eb099a8cfbea43044dc0716c01cb3b5117988a2',
