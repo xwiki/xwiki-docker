@@ -46,32 +46,32 @@ def tokens = [
     '16': [
         xwikiVersion: '16.0.0',
         xwikiSha256: '955c175d0ac0e7039eeafd8569d87ad8a7967092ad8d018decb80a42a7eb941f',
-        mysqlJDBCVersion: '8.2.0',
-        mysqlJDBCSha256: '06f14fbd664d0e382347489e66495ca27ab7e6c2e1d9969a496931736197465f',
+        mysqlJDBCVersion: '8.3.0',
+        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
         mariadbJDBCVersion: '3.3.2',
         mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
     ],
     '15': [
         xwikiVersion: '15.10.5',
         xwikiSha256: '3775334377ae7fb8bcf6a21e6eb099a8cfbea43044dc0716c01cb3b5117988a2',
-        mysqlJDBCVersion: '8.2.0',
-        mysqlJDBCSha256: '06f14fbd664d0e382347489e66495ca27ab7e6c2e1d9969a496931736197465f',
+        mysqlJDBCVersion: '8.3.0',
+        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
         mariadbJDBCVersion: '3.3.2',
         mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
     ],
     '15.5': [
         xwikiVersion: '15.5.4',
         xwikiSha256: '271159495bfe8461f209dc2674faef918b74e4c5a97edfc51e9608a419aa78e6',
-        mysqlJDBCVersion: '8.2.0',
-        mysqlJDBCSha256: '06f14fbd664d0e382347489e66495ca27ab7e6c2e1d9969a496931736197465f',
+        mysqlJDBCVersion: '8.3.0',
+        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
         mariadbJDBCVersion: '3.3.2',
         mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
     ],
     '14': [
         xwikiVersion: '14.10.20',
         xwikiSha256: 'c418601676d61893ccb9e066b1f2bcce56717b49e5c2456656b6960db6bd6e4c',
-        mysqlJDBCVersion: '8.2.0',
-        mysqlJDBCSha256: '06f14fbd664d0e382347489e66495ca27ab7e6c2e1d9969a496931736197465f',
+        mysqlJDBCVersion: '8.3.0',
+        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
         mariadbJDBCVersion: '3.3.2',
         mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
     ]
