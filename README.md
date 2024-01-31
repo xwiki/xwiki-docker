@@ -98,7 +98,7 @@ This will provide enough permissions for the `xwiki` user to create new schemas 
 Note: Make sure the directories you are mounting into the container are fully-qualified, and aren't relative paths.
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.2 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 You should adapt the command line to use the passwords that you wish for the MySQL root password and for the `xwiki` user password (make sure to also change the GRANT command).
@@ -108,7 +108,7 @@ Notes:
 -   The `explicit-defaults-for-timestamp` parameter was introduced in MySQL 5.6.6 and will thus work only for that version and beyond. If you are using an older MySQL version, please use the following instead:
 
     ```console
-    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.2 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     ```
 
 #### Starting MariaDB
@@ -205,7 +205,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:8.2"
+    image: "mysql:8.3"
     container_name: xwiki-mysql-db
     volumes:
       - mysql-data:/var/lib/mysql
@@ -372,7 +372,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "mysql:8.2"
+    image: "mysql:8.3"
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -551,7 +551,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:8.2"
+    image: "mysql:8.3"
     container_name: xwiki-db
     volumes:
       - mysql-data:/var/lib/mysql
