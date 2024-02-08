@@ -60,8 +60,8 @@ def tokens = [
         mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
     ],
     '15.5': [
-        xwikiVersion: '15.5.4',
-        xwikiSha256: '271159495bfe8461f209dc2674faef918b74e4c5a97edfc51e9608a419aa78e6',
+        xwikiVersion: '15.5.5',
+        xwikiSha256: '895f3dcaa878b4eef56788e31be61b3812c625f3c400b309697a947245265b5d',
         mysqlJDBCVersion: '8.3.0',
         mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
         mariadbJDBCVersion: '3.3.2',
