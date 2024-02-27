@@ -36,7 +36,7 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   - Mac: shasum --algorithm 256 <binary name>
 // - To compute the mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com.mysql/mysql-connector-j and
 //   do the same as for the XWiki sha256.
-// - To compute the mysql JDBC sha256, get the JAR at
+// - To compute the MariaDB JDBC sha256, get the JAR at
 //   https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
 // - Use the JDBC driver versions found in the XWiki POM for the specified versions:
 //   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L101 (link for master)
@@ -48,24 +48,24 @@ def tokens = [
         xwikiSha256: 'e236fc101710a0bfefed2328cc66652e265f21ab40dd30e6b7ce52300da744d5',
         mysqlJDBCVersion: '8.3.0',
         mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
-        mariadbJDBCVersion: '3.3.2',
-        mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
+        mariadbJDBCVersion: '3.3.3',
+        mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796'
     ],
     '15': [
         xwikiVersion: '15.10.6',
         xwikiSha256: '1491cbfd91d8fe7362c65d01ade6ce36ce7a8adfa4b99e4f339783771d8ab675',
         mysqlJDBCVersion: '8.3.0',
         mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
-        mariadbJDBCVersion: '3.3.2',
-        mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
+        mariadbJDBCVersion: '3.3.3',
+        mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796'
     ],
     '14': [
         xwikiVersion: '14.10.21',
         xwikiSha256: '72a634e2aeb085878dce2629a3e5e6136887d0c22712dcee5a284be8143135ea',
         mysqlJDBCVersion: '8.3.0',
         mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
-        mariadbJDBCVersion: '3.3.2',
-        mariadbJDBCSha256: '2a67ef3cc1ca481965a0e7f2d4174d126f3464d02b4055a441261fad8c196769'
+        mariadbJDBCVersion: '3.3.3',
+        mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796'
     ]
 ]
 
