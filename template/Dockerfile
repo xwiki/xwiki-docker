@@ -60,9 +60,10 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
-<% if (db == 'mysql') {
-  println "# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to "
-  println "# date Debian repository for it anymore."
+<%
+println "# We take the database driver version from the Maven Central repository since we want to control the version "
+println "# used and have it being consistent with what is tested in the CI."
+if (db == 'mysql') {
   println "ENV MYSQL_JDBC_VERSION=\"$mysqlJDBCVersion\""
   println "ENV MYSQL_JDBC_SHA256=\"$mysqlJDBCSha256\""
   println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/\${MYSQL_JDBC_VERSION}\""
@@ -71,8 +72,6 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   println "RUN curl -fSL \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET && \\"
   print "  echo \"\$MYSQL_JDBC_SHA256 \$MYSQL_JDBC_TARGET\" | sha256sum -c -"
 } else if (db == 'mariadb') {
-  println "# For MariaDB, download the MariaDB driver version from the Maven Central repository to control the version "
-  println "# used."
   println "ENV MARIADB_JDBC_VERSION=\"$mariadbJDBCVersion\""
   println "ENV MARIADB_JDBC_SHA256=\"$mariadbJDBCSha256\""
   println "ENV MARIADB_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/\${MARIADB_JDBC_VERSION}\""
@@ -81,7 +80,13 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \\
   println "RUN curl -fSL \"\${MARIADB_JDBC_PREFIX}/\${MARIADB_JDBC_ARTIFACT}\" -o \$MARIADB_JDBC_TARGET && \\"
   print "  echo \"\$MARIADB_JDBC_SHA256 \$MARIADB_JDBC_TARGET\" | sha256sum -c -"
 } else if (db == 'postgres') {
-  print 'RUN cp /usr/share/java/postgresql-jdbc4.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/'
+  println "ENV POSTGRES_JDBC_VERSION=\"$postgresJDBCVersion\""
+  println "ENV POSTGRES_JDBC_SHA256=\"$postgresJDBCSha256\""
+  println "ENV POSTGRES_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/postgresql/postgresql/\${POSTGRES_JDBC_VERSION}\""
+  println "ENV POSTGRES_JDBC_ARTIFACT=\"postgresql-\${POSTGRES_JDBC_VERSION}.jar\""
+  println "ENV POSTGRES_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${POSTGRES_JDBC_ARTIFACT}\""
+  println "RUN curl -fSL \"\${POSTGRES_JDBC_PREFIX}/\${POSTGRES_JDBC_ARTIFACT}\" -o \$POSTGRES_JDBC_TARGET && \\"
+  print "  echo \"\$POSTGRES_JDBC_SHA256 \$POSTGRES_JDBC_TARGET\" | sha256sum -c -"
 } %>
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
