@@ -60,8 +60,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
-# For MYSQL, download the MySQL driver version from the Maven Central repository since there's no up to 
-# date Debian repository for it anymore.
+# We take the database driver version from the Maven Central repository since we want to control the version 
+# used and have it being consistent with what is tested in the CI.
 ENV MYSQL_JDBC_VERSION="8.3.0"
 ENV MYSQL_JDBC_SHA256="94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295"
 ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_JDBC_VERSION}"
