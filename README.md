@@ -14,6 +14,9 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 
 - [Introduction](#introduction)
 - [How to use this image](#how-to-use-this-image)
+    -	[Quickstart](#quickstart)
+        -	[Local Test Instance](#local-test-instance)
+        -	[Production Instance](#production-instance)
     -	[Pulling existing image](#pulling-an-existing-image)
         -	[Using docker run](#using-docker-run)
         -	[Using docker-compose](#using-docker-compose)
@@ -55,6 +58,34 @@ Then there are several options:
 
 1.	Pull the xwiki image from DockerHub.
 2.	Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
+
+## Quickstart
+
+This Quickstart is an opinionated approach to get XWiki running out of the box with Docker Compose with minimal effort. The default database is PostgreSQL. There are two deployment options:
+
+### Local Test Instance
+
+The test instance can be used to take a first look at XWiki's graphical user interface to get to know the basic design and features. This setup simply consists of XWiki and PostgreSQL. It is recommended to deploy the test instance on your working PC or on a host in your LAN.
+
+```bash
+git clone --depth 1 https://github.com/xwiki/xwiki-docker.git
+cd xwiki-docker/quickstart/xwiki-test
+docker-compose up -d
+```
+
+XWiki should be accessible at `http://localhost:8080` or `http://<hosts-lan-ip>:8080`.
+
+### Production Instance 
+
+If you like XWiki, you can easily set it up for production. In addition to XWiki and PostgreSQL, a Traefik reverse proxy is used to automatically take care of certificate creation. A domain configured to address the public IP address of the host device is required. Simply navigate to the `xwiki-prod` folder, enter the custom values in the `.env` file and start the setup via Docker Compose:
+
+````bash
+cd xwiki-docker/quickstart/xwiki-prod
+vi .env # Alternatively, any other text editor can be used to edit this file.
+docker-compose up -d
+````
+
+XWiki will be accessible at `https://<domain-entered-in-.env-file>` . During the installation process, it may be necessary to reload the Step 2 - Flavor page in the browser because the default flavor option sometimes does not load properly.
 
 ## Pulling an existing image
 
@@ -644,6 +675,7 @@ The first time you create a container out of the xwiki image, a shell script (`/
     -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
 -	`JDBC_PARAMS`: Custom JDB parameters to pass to the JBC connection. Setting this value overwrites the default parameters used (which depend on the DB used). The value must start with a question mark and the content be XML-encoded. For example: `?useSSL=false&amp;connectionTimeZone=LOCAL&amp;allowPublicKeyRetrieval=true`.
     
+
 In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secrets/), these configuration values can also be given to the container as files containing that value.
 
 -	`DB_USER_FILE`: The location, inside the container, of a file containing the value for `DB_USER`
