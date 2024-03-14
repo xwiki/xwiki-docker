@@ -36,20 +36,31 @@ function other_starts() {
 # $1 - the path to xwiki.[cfg|properties]
 # $2 - the setting/property to set
 # $3 - the new value
-function xwiki_replace() {
-  sed -i s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1"
+function xwiki_replace_or_add() {
+  local file_path="$1"
+  local setting="$2"
+  local new_value="$3"
+
+  # Check if the setting exists in the file
+  if grep -Eq "^ *#? *$setting=" "$file_path"; then
+    # If the setting exists, replace the occurrence with the new value
+    sed -i 's|^\( *#\? *\)'"$setting"'=.*$|'"$setting"'='"$new_value"'|g' "$file_path"
+  else
+    # If the setting doesn't exist, add it at the end of the file
+    echo "$setting=$new_value" >> "$file_path"
+  fi
 }
 
 # $1 - the setting/property to set
 # $2 - the new value
 function xwiki_set_cfg() {
-  xwiki_replace /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.cfg "$1" "$2"
+  xwiki_replace_or_add /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.cfg "$1" "$2"
 }
 
 # $1 - the setting/property to set
 # $2 - the new value
 function xwiki_set_properties() {
-  xwiki_replace /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.properties "$1" "$2"
+  xwiki_replace_or_add /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/xwiki.properties "$1" "$2"
 }
 
 # usage: file_env VAR [DEFAULT]
@@ -143,7 +154,7 @@ function configure() {
   if [ $INDEX_HOST != 'localhost' ]; then
     echo '  Configuring remote Solr Index'
     xwiki_set_properties 'solr.type' 'remote'
-    xwiki_set_properties 'solr.remote.url' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
+    xwiki_set_properties 'solr.remote.baseURL' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
