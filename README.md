@@ -393,14 +393,14 @@ volumes:
   xwiki-data:
 secrets:
   xwiki-db-username:
-    external:
-      name: xwiki-db-username
+    name: xwiki-db-username
+    external: true
   xwiki-db-password:
-    external:
-      name: xwiki-db-password
+    name: xwiki-db-password
+    external: true
   xwiki-db-root-password:
-    external:
-      name: xwiki-db-root-password
+    name: xwiki-db-root-password
+    external: true
 ```
 
 #### PostgreSQL Example
@@ -452,14 +452,14 @@ volumes:
   xwiki-data:
 secrets:
   xwiki-db-username:
-    external:
-      name: xwiki-db-username
+    name: xwiki-db-username
+    external: true
   xwiki-db-password:
-    external:
-      name: xwiki-db-password
+    name: xwiki-db-password
+    external: true
   xwiki-db-root-password:
-    external:
-      name: xwiki-db-root-password
+    name: xwiki-db-root-password
+    external: true
 ```
 
 ## Using an external Solr service
