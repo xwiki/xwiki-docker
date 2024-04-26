@@ -285,8 +285,8 @@ volumes:
 
 -	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml`
 	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env -o .env`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/.env -o .env`
 -	`docker-compose up`
 
 For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/postgres-tomcat/docker-compose.yml)):
