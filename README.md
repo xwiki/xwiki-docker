@@ -29,6 +29,7 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 - [Details for the xwiki image](#details-for-the-xwiki-image)
     -	[Configuration Options](#configuration-options)
     -	[Passing JVM options](#passing-jvm-options)
+    -	[Remote Debugging](#remote-debugging)
     -	[Configuration Files](#configuration-files)
     -	[Miscellaneous](#miscellaneous)
 - [For Maintainers](#for-maintainers)
@@ -664,17 +665,23 @@ If you need to perform some advanced configuration, you can get a shell inside t
 docker exec -it <xwiki container id> bash -l
 ```
 
-## Passing JVM options
+## Passing JVM Options
 
 It's possible to pass JVM options to Tomcat by defining the `JAVA_OPTS` environment property.
 
-For example to debug XWiki, you could use:
+See an example below, used to perform remote debugging of an XWiki instance.
+
+## Remote Debugging
+
+To perform remote debugging on an XWiki instance started using a Docker container, you'll need to do 2 things:
+-	Expose the debugging port (using the `-p` option when executing `docker run`)
+-   Configure Tomcat to start Java in debug mode (using the `JAVA_OPTS` environment variable)
+
+This can be achieved with:
 
 ```console
 docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v xwiki:/usr/local/xwiki -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki -e JAVA_OPTS="-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" -p 5005:5005 xwiki
 ```
-
-Notice the mapping of the port with `p 5005:5005` which expose the port and thus allows you to debug XWiki from within your IDE for example.
 
 ## Configuration Files
 
