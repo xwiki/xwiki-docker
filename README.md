@@ -255,7 +255,7 @@ services:
     environment:
       - DB_USER=xwiki
       - DB_PASSWORD=xwiki
-      - DB_HOST=xwiki-mariadb-db
+      - DB_HOST=db
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
@@ -308,7 +308,7 @@ services:
     environment:
       - DB_USER=xwiki
       - DB_PASSWORD=xwiki
-      - DB_HOST=xwiki-postgres-db
+      - DB_HOST=db
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
