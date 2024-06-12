@@ -49,8 +49,8 @@ def tokens = [
     '16': [
         xwikiVersion: '16.4.0',
         xwikiSha256: 'ced263c074f3a61384717cafa192a52aebd34db122e9467f69af2999ab3b600e',
-        mysqlJDBCVersion: '8.3.0',
-        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
+        mysqlJDBCVersion: '8.4.0',
+        mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.3.3',
         mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796',
         postgresJDBCVersion: '42.7.3',
@@ -59,8 +59,8 @@ def tokens = [
     '15': [
         xwikiVersion: '15.10.10',
         xwikiSha256: 'fda9b5b4c1f471dc47e8cf2cb72b7550dbe6d6772887201be94c522a13b6078e',
-        mysqlJDBCVersion: '8.3.0',
-        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
+        mysqlJDBCVersion: '8.4.0',
+        mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.3.3',
         mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796',
         postgresJDBCVersion: '42.7.3',
@@ -69,8 +69,8 @@ def tokens = [
     '14': [
         xwikiVersion: '14.10.21',
         xwikiSha256: '72a634e2aeb085878dce2629a3e5e6136887d0c22712dcee5a284be8143135ea',
-        mysqlJDBCVersion: '8.3.0',
-        mysqlJDBCSha256: '94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295',
+        mysqlJDBCVersion: '8.4.0',
+        mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.3.3',
         mariadbJDBCSha256: '89d71a6ffd800c032b23e588108688d391631f0aba962ba2381cc82cb111b796',
         postgresJDBCVersion: '42.7.3',
