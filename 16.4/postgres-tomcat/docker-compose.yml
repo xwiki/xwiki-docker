@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------------------
+# See the NOTICE file distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+# ---------------------------------------------------------------------------
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  # The container that runs XWiki in Tomcat, with the appropriate JDBC driver (for postgres).
+  web:
+    image: "xwiki:${XWIKI_VERSION}-postgres-tomcat"
+    container_name: xwiki-postgres-tomcat-web
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    # Default values defined in .env file.
+    # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_HOST variables are used in the hibernate.cfg.xml file.
+    environment:
+      - XWIKI_VERSION=${XWIKI_VERSION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_HOST=xwiki-postgres-db
+    # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
+    # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
+  # The container that runs the database (postgres)
+  db:
+    image: "postgres:16"
+    container_name: xwiki-postgres-db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_ROOT_PASSWORD=${POSTGRES_ROOT_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_INITDB_ARGS="--encoding=UTF8"
+    networks:
+      - bridge
+volumes:
+  postgres-data: {}
+  xwiki-data: {}
