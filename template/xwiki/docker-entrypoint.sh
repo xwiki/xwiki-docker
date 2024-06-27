@@ -137,10 +137,15 @@ function configure() {
   safesed "replacedatabase" \$DB_DATABASE /usr/local/tomcat/webapps/\$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacejdbcparams" \$JDBC_PARAMS /usr/local/tomcat/webapps/\$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 
-  # Set any non-default main wiki database name in the xwiki.cfg file.
-  if [ "\$DB_DATABASE" != "xwiki" ]; then
-    xwiki_set_cfg "xwiki.db" \$DB_DATABASE
-  fi
+  <% // XWiki uses PostgreSQL schemas by default and the schema name is defined by xwiki.db. Thus we shouldn't change it
+  // when the db name is not the default one (the schema must remain being "public"). For MySQL and MariaDB, we use
+  // different dbs (and not schemas and tbus "xwiki.db" must be set.
+  if (db != 'postgres') {
+    println '''# Set any non-default main wiki database name in the xwiki.cfg file.'''
+    println '''  if [ "\$DB_DATABASE" != "xwiki" ]; then'''
+    println '''    xwiki_set_cfg "xwiki.db" \$DB_DATABASE'''
+    print '''  fi'''
+  } %>
 
   echo '  Setting permanent directory...'
   xwiki_set_properties 'environment.permanentDirectory' '/usr/local/xwiki/data'
