@@ -483,13 +483,12 @@ You can also just build the image by issuing `docker build -t xwiki .` and then 
 
 You've installed an XWiki docker image and used it and now comes the time when you'd like to upgrade XWiki to a newer version.
 
-If you've followed the instructions above you've mapped the XWiki permanent directory to a local directory on your host.
+If you've followed the instructions above, you've mapped the XWiki permanent directory to a local directory on your host, and you've done the same for each configuration files that you have needed to customize (see [Configuration Files](#configuration-files)) 
 
-All you need to do to upgrade is to stop the running XWiki container and start the new version of it that you want to upgrade to. You should keep your DB container running.
-
-Note that your current XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) will be preserved. 
-
-You should always check the [Release Notes](https://www.xwiki.org/xwiki/bin/view/ReleaseNotes/) for all releases that happened between your current version and the new version you're upgrading to, as there could be some manual steps to perform (such as updating your XWiki configuration files).
+Follow these steps:
+* Stop the running XWiki container. You should keep your DB container running.
+* Check the [Release Notes](https://www.xwiki.org/xwiki/bin/view/ReleaseNotes/) for all releases that happened between your current version and the new version you're upgrading to, as there could be some manual steps to perform (such as updating your XWiki configuration files).
+* Start the new version of the XWiki container that you want to upgrade to. 
 
 # Details for the xwiki image
 
@@ -519,14 +518,6 @@ In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secret
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
 
-The main XWiki configuration files (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) are available in the mapped local directory for the permanent directory on your host.
-
-If you need to perform some advanced configuration, you can get a shell inside the running XWiki container by issuing the following (but note that these won't be saved if you remove the container):
-
-```console
-docker exec -it <xwiki container id> bash -l
-```
-
 ## Passing JVM Options
 
 It's possible to pass JVM options to Tomcat by defining the `JAVA_OPTS` environment property.
@@ -547,15 +538,60 @@ docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v xwiki:/usr/local/xwiki -e
 
 ## Configuration Files
 
-There are 3 important configuration files for XWiki that you may want to modify:
--	`xwiki.cfg`
--	`xwiki.properties`
--	`hibernate.cfg.xml`
+You will find below all the XWiki configuration files that exist and that you may want to configure. In order to do so, the strategy is to map Docker volumes for these files from your local host machine to their locations inside the XWiki Docker image. 
 
-In order to make it easy to modify them outside the container, the XWiki image does the following:
+Full list of configuration files, with their location inside the XWiki Docker image:
+-	[Permanent directory](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Configuration/#HPermanentDirectory): `/usr/local/xwiki`
+-	`xwiki.cfg`: `$WEB-INF/xwiki.cfg`
+-	`xwiki.properties`: `$WEB-INF/xwiki.properties`
+-	`hibernate.cfg.xml`: `$WEB-INF/hibernate.cfg.xml`
+-	Clustering (JGroups directory): `$WEB-INF/observation/remote/jgroups`
+-	`logback.xml` (logging) : `$WEB-INF/classes/logback.xml`
+-	`web.xml` : `$WEB-INF/web.xml`
 
--	On the first XWiki container start, these 3 files are copied from inside the container (they're located in `[xwiki servlet context]/WEB-INF`) to your local permanent directory (that you've mapped as a volume when you're executing the XWiki container). This creates a timestamp file named `/usr/local/tomcat/webapps/[xwiki servlet context]/.first_start_completed` in the XWiki container.
--	On the next XWiki container starts, if the timestamp file exists, then, the 3 files are copied from your local permanent directory inside the XWiki container (overwriting any default config files there), so that your config if used. If one of these files doesn't exist, then the default one is used instead.
+where:
+* `$WEB-INF` is the location of the XWiki WAR's `WEB-INF` directory, at `/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/`.
+* `$CONTEXT_PATH` is the Servlet context deployment name for the XWiki webapp, by default it's `ROOT`.
+
+Notes: 
+* In the past, the first 3 configuration files listed above (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) had a special handling, and they were copied automatically on the first XWiki container start, from the XWiki image into the local permanent directory. This was removed starting with XWiki 16.6.0/15.10.12. However, in order to preserve backward compatibility, if these files are found in the permanent directory, they are copied on container start to their location inside the container.
+* It's recommended to only map volumes for configuration files that you need to customize. This is because when you upgrade you'll need to perform a merge between XWiki's default configuration files and the ones you modified. If you haven't modified them, then there's no merge to do. 
+
+### Example for `docker run`
+
+If your config files are in a local `/my/xwiki/config/path` directory, you would use the following for `docker run`:
+
+```console
+docker run ... -v /my/xwiki/config/path/xwiki.cfg:/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg -v ... xwiki
+```
+
+### Example for `docker-compose`
+
+```yaml
+[...]
+services:
+  web:
+    image: "xwiki:stable-mysql-tomcat"
+    [...]
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+      - xwiki-cfg:/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg
+      - xwiki-properties:/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.properties
+      - xwiki-hibernate:/usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
+      - xwiki-jgroups:/usr/local/tomcat/webapps/ROOT/WEB-INF/observation/remote/jgroups
+      - xwiki-logback:/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/logback.xml
+	  - xwiki-webxml:/usr/local/tomcat/webapps/ROOT/WEB-INF/web.xml
+    [...]
+volumes:
+  [...]
+  xwiki-data: {}
+  xwiki-cfg: {}
+  xwiki-properties: {}
+  xwiki-hibernate: {}
+  xwiki-jgroups: {}
+  xwiki-logback: {}
+  xwiki-webxml: {}
+```
 
 ## Configuring Tomcat
 

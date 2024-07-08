@@ -37,7 +37,11 @@ function other_starts() {
 # $2 - the setting/property to set
 # $3 - the new value
 function xwiki_replace() {
-  sed -i s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1"
+  # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
+  # which makes it fail if you map the initial file as a Docker volume mount.
+  sed s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1" > "$1.old"
+  cp "$1.old" "$1"
+  rm "$1.old"
 }
 
 # $1 - the setting/property to set
@@ -79,7 +83,11 @@ file_env() {
 # $2 - the replacement text
 # $3 - the file in which to do the search/replace
 function safesed {
-  sed -i "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" $3
+  # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
+  # which makes it fail if you map the initial file as a Docker volume mount.
+  sed "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" "$3" > "$3.old"
+  cp "$3.old" "$3"
+  rm "$3.old"
 }
 
 # $1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")
@@ -87,9 +95,6 @@ function saveConfigurationFile() {
   if [ -f "/usr/local/xwiki/data/$1" ]; then
      echo "  Reusing existing config file $1..."
      cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1"
-  else
-     echo "  Saving config file $1..."
-     cp "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1" "/usr/local/xwiki/data/$1"
   fi
 }
 
@@ -98,9 +103,6 @@ function restoreConfigurationFile() {
   if [ -f "/usr/local/xwiki/data/$1" ]; then
      echo "  Synchronizing config file $1..."
      cp "/usr/local/xwiki/data/$1" "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1"
-  else
-     echo "  No config file $1 found, using default from container..."
-     cp "/usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/$1" "/usr/local/xwiki/data/$1"
   fi
 }
 
@@ -146,9 +148,7 @@ function configure() {
     xwiki_set_properties 'solr.remote.url' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
   fi
 
-  # If the files already exist then copy them to the XWiki's WEB-INF directory. Otherwise copy the default config
-  # files to the permanent directory so that they can be easily modified by the user. They'll be synced at the next
-  # start.
+  # If the files already exist then copy them to the XWiki's WEB-INF directory.
   mkdir -p /usr/local/xwiki/data
   saveConfigurationFile 'hibernate.cfg.xml'
   saveConfigurationFile 'xwiki.cfg'
