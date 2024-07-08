@@ -1,37 +1,35 @@
 # What is XWiki
 
-[XWiki](https://xwiki.org/) is a free wiki software platform written in Java with a design emphasis on extensibility. XWiki is an enterprise wiki. It includes WYSIWYG editing, OpenDocument based document import/export, semantic annotations and tagging, and advanced permissions management.
+[XWiki](https://xwiki.org/) is a free and open source wiki software platform written in Java with a design emphasis on extensibility.
 
-As an application wiki, XWiki allows for the storing of structured data and the execution of server side script within the wiki interface. Scripting languages including Velocity, Groovy, Python, Ruby and PHP can be written directly into wiki pages using wiki macros. User-created data structures can be defined in wiki documents and instances of those structures can be attached to wiki documents, stored in a database, and queried using either Hibernate query language or XWiki's own query language.
+See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article about XWiki](https://en.wikipedia.org/wiki/XWiki) to know more about XWiki.
 
-[XWiki.org's extension wiki](https://extensions.xwiki.org/) is home to XWiki extensions ranging from [code snippets](https://snippets.xwiki.org/) which can be pasted into wiki pages to loadable core modules. Many of XWiki Enterprise's features are provided by extensions which are bundled with it.
-
-![logo](https://www.xwiki.org/xwiki/bin/view/Main/Logo?xpage=plain&act=svg&finput=logo-xwikiorange.svg&foutput=logo-xwikiorange.png&width=200)
+![logo](https://www.xwiki.org/xwiki/bin/download/Main/Logo/logo-xwikiorange.svg)
 
 # Table of contents
 
-<!-- generated with pandoc -f gfm --toc -o readme-toc.md README.md -->
+<!-- Can be generated with pandoc -f gfm --toc -o readme-toc.md README.md -->
 
 - [Introduction](#introduction)
 - [How to use this image](#how-to-use-this-image)
-    -	[Pulling existing image](#pulling-an-existing-image)
-        -	[Using docker run](#using-docker-run)
-        -	[Using docker-compose](#using-docker-compose)
+    -	[Pulling an existing image](#pulling-an-existing-image)
+        -	[Using `docker run`](#using-docker-run)
+        -	[Using `docker-compose`](#using-docker-compose)
         -	[Using Docker Swarm](#using-docker-swarm)
-    -	[Using an external Solr service](#using-an-external-solr-service)
-        -	[Preparing Solr container](#preparing-solr-container)
-        -	[Docker run example](#docker-run-example)
-        -	[Docker Compose example](#docker-compose-example)
-    -	[Configuring Tomcat](#configuring-tomcat)
     -	[Building](#building)
 - [Upgrading XWiki](#upgrading-xwiki)
-- [Troubleshooting](#troubleshooting)
 - [Details for the xwiki image](#details-for-the-xwiki-image)
     -	[Configuration Options](#configuration-options)
     -	[Passing JVM options](#passing-jvm-options)
     -	[Remote Debugging](#remote-debugging)
     -	[Configuration Files](#configuration-files)
+    -	[Configuring Tomcat](#configuring-tomcat)
     -	[Miscellaneous](#miscellaneous)
+- [Using an external Solr service](#using-an-external-solr-service)
+    -	[Preparing Solr container](#preparing-solr-container)
+    -	[Example with `docker run`](#docker-run-example)
+    -	[Example with `docker-compose`](#docker-compose-example)
+- [Troubleshooting](#troubleshooting)
 - [For Maintainers](#for-maintainers)
     -	[Update Docker Images](#update-docker-images)
     -	[Testing Docker Images](#testing-docker-images)
@@ -46,15 +44,15 @@ As an application wiki, XWiki allows for the storing of structured data and the 
 The goal is to provide a production-ready XWiki system running in Docker. This is why:
 
 -	The OS is based on Debian and not on some smaller-footprint distribution like Alpine
--	Several containers are used with Docker Compose: one for the DB and another for XWiki + Servlet container. This allows the ability to run them on different machines for example. 
+-	Several containers are used with Docker Compose: one for the DB and another for XWiki + Servlet container. This provides the ability to run them on different machines for example. 
 
 # How to use this image
 
 You should first install [Docker](https://www.docker.com/) on your machine.
 
-Then there are several options:
+Then, there are several options:
 
-1.	Pull the xwiki image from DockerHub.
+1.	Pull the `xwiki` image from DockerHub.
 2.	Get the [sources of this project](https://github.com/xwiki-contrib/docker-xwiki) and build them.
 
 ## Pulling an existing image
@@ -64,7 +62,7 @@ You need to run 2 containers:
 -	One for the XWiki image
 -	One for the database image to which XWiki connects to
 
-### Using docker run
+### Using `docker run`
 
 Start by creating a dedicated docker network:
 
@@ -99,7 +97,7 @@ This will provide enough permissions for the `xwiki` user to create new schemas 
 Note: Make sure the directories you are mounting into the container are fully-qualified, and aren't relative paths.
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 You should adapt the command line to use the passwords that you wish for the MySQL root password and for the `xwiki` user password (make sure to also change the GRANT command).
@@ -109,7 +107,7 @@ Notes:
 -   The `explicit-defaults-for-timestamp` parameter was introduced in MySQL 5.6.6 and will thus work only for that version and beyond. If you are using an older MySQL version, please use the following instead:
 
     ```console
-    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:8.3 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     ```
 
 #### Starting MariaDB
@@ -168,21 +166,21 @@ At this point, XWiki should start in interactive blocking mode, allowing you to 
 docker run -d --net=xwiki-nw ...
 ```
 
-### Using docker-compose
+### Using `docker-compose`
 
 Another solution is to use the Docker Compose files we provide.
 
 #### For MySQL on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/mysql/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mysql-tomcat/.env -o .env`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/mysql/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/mysql-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/mysql-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -206,7 +204,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:8.3"
+    image: "mysql:9.0"
     container_name: xwiki-mysql-db
     volumes:
       - mysql-data:/var/lib/mysql
@@ -229,15 +227,15 @@ volumes:
 
 #### For MariaDB on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/mariadb/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/mariadb-tomcat/.env -o .env`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/mariadb/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/mariadb-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/mariadb-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -284,13 +282,13 @@ volumes:
 
 #### For PostgreSQL on Tomcat
 
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/15/postgres-tomcat/.env -o .env`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/.env -o .env`
 -	`docker-compose up`
 
-For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/15/postgres-tomcat/docker-compose.yml)):
+For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/postgres-tomcat/docker-compose.yml)):
 
 ```yaml
 version: '2'
@@ -373,7 +371,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "mysql:8.3"
+    image: "mysql:9.0"
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -462,142 +460,6 @@ secrets:
     name: xwiki-db-root-password
     external: true
 ```
-
-## Using an external Solr service
-
-From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
-
-> By default XWiki ships with an embedded Solr. This is mostly for ease of use but the embedded instance is not really recommended by the Solr team so you might want to externalize it when starting to have a wiki with a lots of pages. Solr is using a lot of memory and a standalone Solr instance is generally better in term of speed than the embedded one. It should not be much noticeable in a small wiki but if you find yourself starting to have memory issues and slow search results you should probably try to install and setup an external instance of Solr using the guide.
->
-> Also the speed of the drive where the Solr index is located can be very important because Solr/Lucene is quite filesystem intensive. For example putting it in a SSD might give a noticeable boost.
->
-> You can also find more Solr-specific performance details on https://wiki.apache.org/solr/SolrPerformanceProblems. Standalone Solr also comes with a very nice UI, along with monitoring and test tools.
-
-This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
-
-```data
-solr.type=remote
-solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
-```
-
-#### Preparing Solr container
-
-The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
-
--	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
--	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
--	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
--	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
--	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
--	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
-
-#### Docker run example
-
-Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
-
-The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
-
-```console
-docker run \
-  --net=xwiki-nw \
-  --name solr-xwiki \
-  -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/path/solr:/opt/solr/server/solr/xwiki \
-  -d solr:8
-```
-
-Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
-
-```console
-docker run \
-  --net=xwiki-nw \
-  --name xwiki \
-  -p 8080:8080 \
-  -v /my/path/xwiki:/usr/local/xwiki \
-  -e DB_USER=xwiki \
-  -e DB_PASSWORD=xwiki \
-  -e DB_DATABASE=xwiki \
-  -e DB_HOST=mysql-xwiki \
-  -e INDEX_HOST=solr-xwiki \
-  -d xwiki:stable-mysql-tomcat
-```
-
-#### Docker Compose example
-
-The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
-
-```yaml
-version: '2'
-networks:
-  bridge:
-    driver: bridge
-services:
-  web:
-    image: "xwiki:stable-mysql-tomcat"
-    container_name: xwiki-web
-    depends_on:
-      - db
-      - index
-    ports:
-      - "8080:8080"
-    environment:
-      - XWIKI_VERSION=xwiki
-      - DB_USER=xwiki
-      - DB_PASSWORD=xwiki
-      - DB_DATABASE=xwiki
-      - DB_HOST=xwiki-db
-      - INDEX_HOST=xwiki-index
-    volumes:
-      - xwiki-data:/usr/local/xwiki
-    networks:
-      - bridge
-  db:
-    image: "mysql:8.3"
-    container_name: xwiki-db
-    volumes:
-      - mysql-data:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=xwiki
-      - MYSQL_USER=xwiki
-      - MYSQL_PASSWORD=xwiki
-      - MYSQL_DATABASE=xwiki
-    command:
-      - "--character-set-server=utf8mb4"
-      - "--collation-server=utf8mb4_bin"
-      - "--explicit-defaults-for-timestamp=1"
-    networks:
-      - bridge
-  index:
-    image: "solr:8"
-    container_name: xwiki-index
-    volumes:
-      - ./solr:/docker-entrypoint-initdb.d
-      - solr-data:/opt/solr/server/solr
-    networks:
-      - bridge
-volumes:
-  mysql-data: {}
-  xwiki-data: {}
-  solr-data: {}
-```
-
-## Configuring Tomcat
-
-If you need to configure Tomcat (for example to setup a reverse proxy configuration), you'll need to mount the Tomcat configuration directory (`/usr/local/tomcat/conf`) inside the image onto your local host.  
-
-If you want to modify the existing configuration rather than provide a brand new one, you'll need to use `docker cp` to copy the configuration from the container to your local host.
-
-Here are some example steps you can follow:
-
--   Create a docker container from the XWiki image with `docker create`.
-    -   Example: `docker create --name xwiki xwiki:stable-mysql-tomcat`.
--   Copy the Tomcat configuration from the container to the host to start with some existing configuration files, using `docker cp`.
-    -   Example: `sudo docker cp xwiki:/usr/local/tomcat/conf /tmp/tomcat`.
--   Modify the Tomcat configuration locally to bring the changes you need.
--   Delete the created XWiki container since it was only used to copy the configuration files and we'll need to create a new one with different parameters.
-    -   Example: `docker rm xwiki`.
--   Run the container with the Tomcat mount and the other parameters.
-    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:stable-mysql-tomcat`
 
 ## Building
 
@@ -695,6 +557,24 @@ In order to make it easy to modify them outside the container, the XWiki image d
 -	On the first XWiki container start, these 3 files are copied from inside the container (they're located in `[xwiki servlet context]/WEB-INF`) to your local permanent directory (that you've mapped as a volume when you're executing the XWiki container). This creates a timestamp file named `/usr/local/tomcat/webapps/[xwiki servlet context]/.first_start_completed` in the XWiki container.
 -	On the next XWiki container starts, if the timestamp file exists, then, the 3 files are copied from your local permanent directory inside the XWiki container (overwriting any default config files there), so that your config if used. If one of these files doesn't exist, then the default one is used instead.
 
+## Configuring Tomcat
+
+If you need to configure Tomcat (for example to setup a reverse proxy configuration), you'll need to mount the Tomcat configuration directory (`/usr/local/tomcat/conf`) inside the image onto your local host.  
+
+If you want to modify the existing configuration rather than provide a brand new one, you'll need to use `docker cp` to copy the configuration from the container to your local host.
+
+Here are some example steps you can follow:
+
+-   Create a docker container from the XWiki image with `docker create`.
+    -   Example: `docker create --name xwiki xwiki:stable-mysql-tomcat`.
+-   Copy the Tomcat configuration from the container to the host to start with some existing configuration files, using `docker cp`.
+    -   Example: `sudo docker cp xwiki:/usr/local/tomcat/conf /tmp/tomcat`.
+-   Modify the Tomcat configuration locally to bring the changes you need.
+-   Delete the created XWiki container since it was only used to copy the configuration files and we'll need to create a new one with different parameters.
+    -   Example: `docker rm xwiki`.
+-   Run the container with the Tomcat mount and the other parameters.
+    -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:stable-mysql-tomcat`
+
 ## Miscellaneous
 
 Volumes:
@@ -714,6 +594,124 @@ MySQL:
 	-	Find the container id with `docker ps`
 	-	Execute bash in the mysql container: `docker exec -it <containerid> bash -l`
 	-	Once inside the mysql container execute the `mysql` command: `mysql --user=xwiki --password=xwiki`
+
+## Using an external Solr service
+
+From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwiki/bin/view/Extension/Solr%20Search%20API):
+
+> By default XWiki ships with an embedded Solr. This is mostly for ease of use but the embedded instance is not really recommended by the Solr team so you might want to externalize it when starting to have a wiki with a lots of pages. Solr is using a lot of memory and a standalone Solr instance is generally better in term of speed than the embedded one. It should not be much noticeable in a small wiki but if you find yourself starting to have memory issues and slow search results you should probably try to install and setup an external instance of Solr using the guide.
+>
+> Also the speed of the drive where the Solr index is located can be very important because Solr/Lucene is quite filesystem intensive. For example putting it in a SSD might give a noticeable boost.
+>
+> You can also find more Solr-specific performance details on https://wiki.apache.org/solr/SolrPerformanceProblems. Standalone Solr also comes with a very nice UI, along with monitoring and test tools.
+
+This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
+
+```data
+solr.type=remote
+solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
+```
+
+#### Preparing Solr container
+
+The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
+
+-	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
+-	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
+-	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
+-	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
+-	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
+-	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
+
+#### Example with `docker run`
+
+Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
+
+The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
+
+```console
+docker run \
+  --net=xwiki-nw \
+  --name solr-xwiki \
+  -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
+  -v /my/path/solr:/opt/solr/server/solr/xwiki \
+  -d solr:8
+```
+
+Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
+
+```console
+docker run \
+  --net=xwiki-nw \
+  --name xwiki \
+  -p 8080:8080 \
+  -v /my/path/xwiki:/usr/local/xwiki \
+  -e DB_USER=xwiki \
+  -e DB_PASSWORD=xwiki \
+  -e DB_DATABASE=xwiki \
+  -e DB_HOST=mysql-xwiki \
+  -e INDEX_HOST=solr-xwiki \
+  -d xwiki:stable-mysql-tomcat
+```
+
+#### Example with `docker-compose`
+
+The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
+
+```yaml
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  web:
+    image: "xwiki:stable-mysql-tomcat"
+    container_name: xwiki-web
+    depends_on:
+      - db
+      - index
+    ports:
+      - "8080:8080"
+    environment:
+      - XWIKI_VERSION=xwiki
+      - DB_USER=xwiki
+      - DB_PASSWORD=xwiki
+      - DB_DATABASE=xwiki
+      - DB_HOST=xwiki-db
+      - INDEX_HOST=xwiki-index
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
+  db:
+    image: "mysql:9.0"
+    container_name: xwiki-db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=xwiki
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_bin"
+      - "--explicit-defaults-for-timestamp=1"
+    networks:
+      - bridge
+  index:
+    image: "solr:8"
+    container_name: xwiki-index
+    volumes:
+      - ./solr:/docker-entrypoint-initdb.d
+      - solr-data:/opt/solr/server/solr
+    networks:
+      - bridge
+volumes:
+  mysql-data: {}
+  xwiki-data: {}
+  solr-data: {}
+```
 
 # Troubleshooting
 
