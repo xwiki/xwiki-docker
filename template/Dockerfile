@@ -42,7 +42,7 @@ RUN apt-get update && \\
     curl \\
     libreoffice \\
     unzip \\
-    procps <% if (db == 'postgres') print '\\\n    libpostgresql-jdbc-java ' %>&& \\
+    procps && \\
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
