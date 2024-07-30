@@ -51,8 +51,8 @@ def tokens = [
         xwikiSha256: '504e3fc3707d222d4a2be7c4e51e01242d4a7092380234d5076616d170390fe7',
         mysqlJDBCVersion: '9.0.0',
         mysqlJDBCSha256: 'a221c4106b7fe68a45912cdbf8351f1b43ad3c53a43c3bc966181cc14f86fa30',
-        mariadbJDBCVersion: '3.4.0',
-        mariadbJDBCSha256: 'd83970dcda3198ca480e59b38e9e7055df09833e40d898c8ec5778a1e767f93b',
+        mariadbJDBCVersion: '3.4.1',
+        mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
         postgresJDBCVersion: '42.7.3',
         postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
     ],
@@ -61,8 +61,8 @@ def tokens = [
         xwikiSha256: '50d018ee5dc68a17d959403249307f8051a78055c04329d1e35cd03fc3b45e04',
         mysqlJDBCVersion: '8.4.0',
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
-        mariadbJDBCVersion: '3.4.0',
-        mariadbJDBCSha256: 'd83970dcda3198ca480e59b38e9e7055df09833e40d898c8ec5778a1e767f93b',
+        mariadbJDBCVersion: '3.4.1',
+        mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
         postgresJDBCVersion: '42.7.3',
         postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
     ],
@@ -71,8 +71,8 @@ def tokens = [
         xwikiSha256: 'b69de0d6ae0d2cdd10efcd1913065f750de62b5147f553bc6772e42cc66e2e2c',
         mysqlJDBCVersion: '8.4.0',
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
-        mariadbJDBCVersion: '3.4.0',
-        mariadbJDBCSha256: 'd83970dcda3198ca480e59b38e9e7055df09833e40d898c8ec5778a1e767f93b',
+        mariadbJDBCVersion: '3.4.1',
+        mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
         postgresJDBCVersion: '42.7.3',
         postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
     ],
@@ -81,8 +81,8 @@ def tokens = [
         xwikiSha256: '72a634e2aeb085878dce2629a3e5e6136887d0c22712dcee5a284be8143135ea',
         mysqlJDBCVersion: '8.4.0',
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
-        mariadbJDBCVersion: '3.4.0',
-        mariadbJDBCSha256: 'd83970dcda3198ca480e59b38e9e7055df09833e40d898c8ec5778a1e767f93b',
+        mariadbJDBCVersion: '3.4.1',
+        mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
         postgresJDBCVersion: '42.7.3',
         postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
     ]
