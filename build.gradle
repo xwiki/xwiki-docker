@@ -53,8 +53,8 @@ def tokens = [
         mysqlJDBCSha256: 'a221c4106b7fe68a45912cdbf8351f1b43ad3c53a43c3bc966181cc14f86fa30',
         mariadbJDBCVersion: '3.4.1',
         mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
-        postgresJDBCVersion: '42.7.3',
-        postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
+        postgresJDBCVersion: '42.7.4',
+        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
     ],
     '16.4': [
         xwikiVersion: '16.4.2',
@@ -63,8 +63,8 @@ def tokens = [
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.4.1',
         mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
-        postgresJDBCVersion: '42.7.3',
-        postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
+        postgresJDBCVersion: '42.7.4',
+        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
     ],
     '15': [
         xwikiVersion: '15.10.11',
@@ -73,8 +73,8 @@ def tokens = [
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.4.1',
         mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
-        postgresJDBCVersion: '42.7.3',
-        postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
+        postgresJDBCVersion: '42.7.4',
+        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
     ],
     '14': [
         xwikiVersion: '14.10.21',
@@ -83,8 +83,8 @@ def tokens = [
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.4.1',
         mariadbJDBCSha256: 'f60e4b282f1f4bdb74f0a26436ba7078a5e480b6f6702f6a7b45d9ba5e604a24',
-        postgresJDBCVersion: '42.7.3',
-        postgresJDBCSha256: 'a2644cbfba1baa145ff7e8c8ef582a6eed7a7ec4ca792f7f054122bdec756268'
+        postgresJDBCVersion: '42.7.4',
+        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
     ]
 ]
 
