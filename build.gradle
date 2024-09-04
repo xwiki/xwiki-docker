@@ -57,8 +57,8 @@ def tokens = [
         postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
     ],
     '16.4': [
-        xwikiVersion: '16.4.2',
-        xwikiSha256: '59a00c0f3a681f5931575a6fa13799a6e1cdf16a31e5a9075a698662b9f414b7',
+        xwikiVersion: '16.4.3',
+        xwikiSha256: '419a7a7f2e6dab33197d4b12f36708885c45c7f165235343836473907a656018',
         mysqlJDBCVersion: '8.4.0',
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.4.1',
