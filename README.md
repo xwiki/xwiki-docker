@@ -671,7 +671,7 @@ docker run \
   --name solr-xwiki \
   -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
   -v /my/path/solr:/opt/solr/server/solr/xwiki \
-  -d solr:8
+  -d solr:9
 ```
 
 Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
@@ -736,7 +736,7 @@ services:
     networks:
       - bridge
   index:
-    image: "solr:8"
+    image: "solr:9"
     container_name: xwiki-index
     volumes:
       - ./solr:/docker-entrypoint-initdb.d
