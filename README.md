@@ -97,7 +97,7 @@ This will provide enough permissions for the `xwiki` user to create new schemas 
 Note: Make sure the directories you are mounting into the container are fully-qualified, and aren't relative paths.
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 You should adapt the command line to use the passwords that you wish for the MySQL root password and for the `xwiki` user password (make sure to also change the GRANT command).
@@ -107,17 +107,17 @@ Notes:
 -   The `explicit-defaults-for-timestamp` parameter was introduced in MySQL 5.6.6 and will thus work only for that version and beyond. If you are using an older MySQL version, please use the following instead:
 
     ```console
-    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mysql:/var/lib/mysql -v /my/path/mysql-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mysql:9.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     ```
 
 #### Starting MariaDB
 
-This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:11.4`.
+This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:11.5`.
 
 Full command example:
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:11.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:11.5 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 #### Starting PostgreSQL
@@ -131,7 +131,7 @@ You need to make sure this directory exists, before proceeding.
 Note Make sure the directory you specify is specified with the fully-qualified path, not a relative path.
 
 ```console
-docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:16
+docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:17
 ```
 
 You should adapt the command line to use the passwords that you wish for the PostgreSQL root password and for the xwiki user password.
@@ -204,7 +204,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:9.0"
+    image: "mysql:9.1"
     container_name: xwiki-mysql-db
     volumes:
       - mysql-data:/var/lib/mysql
@@ -259,7 +259,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mariadb:11.4"
+    image: "mariadb:11.5"
     container_name: xwiki-mariadb-db
     volumes:
       - mariadb-data:/var/lib/mysql
@@ -312,7 +312,7 @@ services:
     networks:
       - bridge
   db:
-    image: "postgres:16"
+    image: "postgres:17"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -371,7 +371,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "mysql:9.0"
+    image: "mysql:9.1"
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -434,7 +434,7 @@ services:
       - xwiki-db-username
       - xwiki-db-password
   db:
-    image: "postgres:16"
+    image: "postgres:17"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -720,7 +720,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mysql:9.0"
+    image: "mysql:9.1"
     container_name: xwiki-db
     volumes:
       - mysql-data:/var/lib/mysql
@@ -796,7 +796,7 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 - Execute the following command to start a Postgres database (for example):
   
 	```console
-    docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
+    docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:17
 	```
 	
 - Navigate to the directory to test, e.g. `14/postgres-tomcat` and issue:
