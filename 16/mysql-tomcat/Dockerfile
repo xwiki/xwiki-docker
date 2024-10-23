@@ -62,8 +62,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # We take the database driver version from the Maven Central repository since we want to control the version 
 # used and have it being consistent with what is tested in the CI.
-ENV MYSQL_JDBC_VERSION="9.0.0"
-ENV MYSQL_JDBC_SHA256="a221c4106b7fe68a45912cdbf8351f1b43ad3c53a43c3bc966181cc14f86fa30"
+ENV MYSQL_JDBC_VERSION="9.1.0"
+ENV MYSQL_JDBC_SHA256="8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62"
 ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_JDBC_VERSION}"
 ENV MYSQL_JDBC_ARTIFACT="mysql-connector-j-${MYSQL_JDBC_VERSION}.jar"
 ENV MYSQL_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MYSQL_JDBC_ARTIFACT}"
