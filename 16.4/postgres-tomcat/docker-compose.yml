@@ -46,7 +46,7 @@ services:
       - bridge
   # The container that runs the database (postgres)
   db:
-    image: "postgres:16"
+    image: "postgres:17"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -55,7 +55,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_DB=${DB_DATABASE}
-      - POSTGRES_INITDB_ARGS="--encoding=UTF8"
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=builtin --locale=C.UTF-8
     networks:
       - bridge
 volumes:
