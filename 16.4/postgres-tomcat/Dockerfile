@@ -34,7 +34,6 @@ LABEL org.opencontainers.image.vendor='xwiki.org'
 LABEL org.opencontainers.image.licenses='LGPL-2.1'
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
-
 # Install LibreOffice + other tools
 # Note that procps is required to get ps which is used by JODConverter to start LibreOffice
 RUN apt-get update && \
@@ -42,15 +41,17 @@ RUN apt-get update && \
     curl \
     libreoffice \
     unzip \
+    unrar \
     procps && \
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="16.9.0-micord-1.0"
-ENV XWIKI_URL_PREFIX "https://repo.micord.ru/repository/ext-releases-local/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 fef784c42b2bbb50db1a6bb30f341c42530d20951828df852df750834c5f6991
+ENV XWIKI_VERSION="16.4.5"
+
+ENV XWIKI_URL_PREFIX="https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
+ENV XWIKI_DOWNLOAD_SHA256=363ef72ced7e9867079b38420a72e45d176c9a01208021838de202360cea58fe
 RUN rm -rf /usr/local/tomcat/webapps/* && \
   mkdir -p /usr/local/tomcat/temp && \
   mkdir -p /usr/local/xwiki/data && \
@@ -59,8 +60,26 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
   rm -f xwiki.war
 
+ENV XWIKI_EXT_URL_PREFIX="https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-flavor-xip/${XWIKI_VERSION}"
+RUN mkdir -p /usr/local/xwiki/data/extension/repository && \
+    cd /usr/local/xwiki/data/extension/repository && \
+    curl -fSL "${XWIKI_EXT_URL_PREFIX}/xwiki-platform-distribution-flavor-xip-${XWIKI_VERSION}.xip" -o xwiki.zip && \
+    unzip xwiki.zip && \
+    rm -rf xwiki.zip && \
+    pwd && ls -la
+
+# Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
+# across runs)
+#VOLUME /usr/local/xwiki
+
+RUN cd /usr/local/tomcat/webapps/ROOT/resources/icons/xwiki && \
+    rm -rf favicon*.*
+
+COPY themes/micord-theme-import.xar /usr/local/xwiki/data/extension
+COPY icons/* /usr/local/tomcat/webapps/ROOT/resources/icons/xwiki
+
 # Copy the JDBC driver in the XWiki webapp
-# We take the database driver version from the Maven Central repository since we want to control the version 
+# We take the database driver version from the Maven Central repository since we want to control the version
 # used and have it being consistent with what is tested in the CI.
 ENV POSTGRES_JDBC_VERSION="42.7.4"
 ENV POSTGRES_JDBC_SHA256="188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e"
@@ -85,10 +104,6 @@ RUN sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war/<id>org.xwi
 # CHMOD after a COPY will sometimes fail, depending on different host-specific factors (especially on AUFS).
 COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-# Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
-# across runs)
-VOLUME /usr/local/xwiki
-
 # At this point the image is done and what remains below are the runtime configuration used by the user to configure
 # the container that will be created out of the image. Namely the user can override some environment variables with
 #   docker run -e "var1=val1" -e "var2=val2" ...
@@ -112,5 +127,5 @@ VOLUME /usr/local/xwiki
 # are also passed to docker-entrypoint.sh. If "xwiki" is passed then XWiki will be configured the first time the
 # container executes and Tomcat will be started. If some other parameter is passed then it'll be executed to comply
 # with best practices defined at https://github.com/docker-library/official-images#consistency.
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["bash", "docker-entrypoint.sh"]
 CMD ["xwiki"]
