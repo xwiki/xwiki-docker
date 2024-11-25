@@ -41,7 +41,6 @@ RUN apt-get update && \
     curl \
     libreoffice \
     unzip \
-    unrar \
     procps && \
   rm -rf /var/lib/apt/lists/*
 
@@ -65,7 +64,7 @@ RUN mkdir -p /usr/local/xwiki/data/extension/repository && \
     cd /usr/local/xwiki/data/extension/repository && \
     curl -fSL "${XWIKI_EXT_URL_PREFIX}/xwiki-platform-distribution-flavor-xip-${XWIKI_VERSION}.xip" -o xwiki.zip && \
     unzip xwiki.zip && \
-    rm -rf xwiki.zip && \
+    rm -f xwiki.zip && \
     pwd && ls -la
 
 # Make the XWiki directory (the permanent directory is included in it) persist on the host (so that it's not recreated
@@ -73,7 +72,7 @@ RUN mkdir -p /usr/local/xwiki/data/extension/repository && \
 #VOLUME /usr/local/xwiki
 
 RUN cd /usr/local/tomcat/webapps/ROOT/resources/icons/xwiki && \
-    rm -rf favicon*.*
+    rm -f favicon*.*
 
 COPY themes/micord-theme-import.xar /usr/local/xwiki/data/extension
 COPY icons/* /usr/local/tomcat/webapps/ROOT/resources/icons/xwiki
