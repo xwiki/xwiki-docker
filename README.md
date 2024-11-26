@@ -112,12 +112,12 @@ Notes:
 
 #### Starting MariaDB
 
-This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:11.5`.
+This is exactly similar to starting MySQL and you should thus follow exactly the same steps as for MySQL. The only thing to change is the docker image for MariaDB: instead of `mysql:<tag>`, use `mariadb:<tag>`. For example: `mariadb:11.6`.
 
 Full command example:
 
 ```console
-docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:11.5 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
+docker run --net=xwiki-nw --name mysql-xwiki -v /my/path/mariadb:/var/lib/mysql -v /my/path/mariadb-init:/docker-entrypoint-initdb.d -e MYSQL_ROOT_PASSWORD=xwiki -e MYSQL_USER=xwiki -e MYSQL_PASSWORD=xwiki -e MYSQL_DATABASE=xwiki -d mariadb:11.6 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --explicit-defaults-for-timestamp=1
 ```
 
 #### Starting PostgreSQL
@@ -259,7 +259,7 @@ services:
     networks:
       - bridge
   db:
-    image: "mariadb:11.5"
+    image: "mariadb:11.6"
     container_name: xwiki-mariadb-db
     volumes:
       - mariadb-data:/var/lib/mysql
