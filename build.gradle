@@ -46,6 +46,17 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   - postgresql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L119 (link for master)
 
 def tokens = [
+    '17': [
+        xwikiVersion: '17.0.0',
+        xwikiSha256: 'fd4d25b42c5645d87f7ed242967161ccb2648688948de93649a5ca11a1845c34',
+        mysqlJDBCVersion: '9.1.0',
+        mysqlJDBCSha256: '8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62',
+        mariadbJDBCVersion: '3.5.1',
+        mariadbJDBCSha256: '50a50c4a3c13c30dfbd40587f7ad9a496197d285ede0948641d9eee68fdf2106',
+        postgresJDBCVersion: '42.7.4',
+        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e',
+        tomcatImageTag: '10.1-jdk21'
+    ],
     '16': [
         xwikiVersion: '16.10.2',
         xwikiSha256: '1a6287416db4243e3d40939e19509ca4ebe9e4f46f8fcf7204f223bcfff8b6e2',
@@ -59,16 +70,6 @@ def tokens = [
     '16.4': [
         xwikiVersion: '16.4.6',
         xwikiSha256: 'b41e9d29eafd31acdcf44c7ca5c81eacb2067ca129cf35391d10f493f6e623d3',
-        mysqlJDBCVersion: '8.4.0',
-        mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
-        mariadbJDBCVersion: '3.5.1',
-        mariadbJDBCSha256: '50a50c4a3c13c30dfbd40587f7ad9a496197d285ede0948641d9eee68fdf2106',
-        postgresJDBCVersion: '42.7.4',
-        postgresJDBCSha256: '188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e'
-    ],
-    '15': [
-        xwikiVersion: '15.10.16',
-        xwikiSha256: 'c3a7bca6a05cf185ecfbea6df886c5764c6e0fcfdfce988498909911ebe98dda',
         mysqlJDBCVersion: '8.4.0',
         mysqlJDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5',
         mariadbJDBCVersion: '3.5.1',
@@ -96,6 +97,10 @@ task generate() {
                 // Extract the db type and add it as a token
                 def (db, servlet) = variant.tokenize('-')
                 tokens[version].'db' = db
+                /// Set the tomcat image to 9-jre17 when undefined. XWiki 17.0.0+ are based on tomcat 10.1+
+                if(!tokens[version].tomcatImageTag) {
+                    tokens[version].tomcatImageTag = '9-jre17'
+                }
                 // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
