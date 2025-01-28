@@ -45,18 +45,7 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L113 (link for master)
 //   - postgresql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L119 (link for master)
 
-// Versions of tomcat, mysql, mariadb and postgres currently in use in the docker images.
-def tomcat = [
-    '10': [
-        tomcatVersion: '10.1',
-        javaVersion: '21'
-    ],
-    '9': [
-        tomcatVersion: '9',
-        javaVersion: '17'
-    ]
-]
-
+// Versions of mysql, mariadb and postgres currently in use in the docker images.
 def mysql = [
     '9': [
         JDBCVersion: '9.1.0',
@@ -98,8 +87,8 @@ def tokens = [
         postgresJDBCVersion: postgres['42'].JDBCVersion,
         postgresJDBCSha256: postgres['42'].JDBCSha256,
         tomcatImageTag: [
-            tomcatVersion: tomcat['10'].tomcatVersion,
-            javaVersion: tomcat['10'].javaVersion
+            tomcatVersion: '10',
+            javaVersion: '21'
         ]
     ],
     '16': [
@@ -112,8 +101,8 @@ def tokens = [
         postgresJDBCVersion: postgres['42'].JDBCVersion,
         postgresJDBCSha256: postgres['42'].JDBCSha256,
         tomcatImageTag: [
-            tomcatVersion: tomcat['9'].tomcatVersion,
-            javaVersion: tomcat['9'].javaVersion
+            tomcatVersion: '9',
+            javaVersion: '17'
         ]
     ],
     '16.4': [
@@ -126,9 +115,10 @@ def tokens = [
         postgresJDBCVersion: postgres['42'].JDBCVersion,
         postgresJDBCSha256: postgres['42'].JDBCSha256,
         tomcatImageTag: [
-            tomcatVersion: tomcat['9'].tomcatVersion,
-            javaVersion: tomcat['9'].javaVersion
+            tomcatVersion: '9',
+            javaVersion: '17'
         ]
+
     ],
     '14': [
         xwikiVersion: '14.10.21',
@@ -140,8 +130,8 @@ def tokens = [
         postgresJDBCVersion: postgres['42'].JDBCVersion,
         postgresJDBCSha256: postgres['42'].JDBCSha256,
         tomcatImageTag: [
-            tomcatVersion: tomcat['9'].tomcatVersion,
-            javaVersion: tomcat['9'].javaVersion
+            tomcatVersion: '9',
+            javaVersion: '17'
         ]
     ]
 ]
