@@ -102,7 +102,7 @@ def tokens = [
         postgresJDBCSha256: postgres['42'].JDBCSha256,
         tomcatImageTag: [
             tomcatVersion: '9',
-            javaVersion: '17'
+            javaVersion: '21'
         ]
     ],
     '16.4': [
