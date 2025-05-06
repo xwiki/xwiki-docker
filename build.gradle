@@ -48,8 +48,8 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // Versions of mysql, mariadb and postgres currently in use in the docker images.
 def mysql = [
     '9': [
-        JDBCVersion: '9.1.0',
-        JDBCSha256: '8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62'
+        JDBCVersion: '9.3.0',
+        JDBCSha256: '6c8e6692b521376d89bc5618c16cdeaf8c61854329f4fa25677ed08776c5bb76'
     ],
     '8': [
         JDBCVersion: '8.4.0',
