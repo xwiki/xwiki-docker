@@ -50,10 +50,6 @@ def mysql = [
     '9': [
         JDBCVersion: '9.3.0',
         JDBCSha256: '6c8e6692b521376d89bc5618c16cdeaf8c61854329f4fa25677ed08776c5bb76'
-    ],
-    '8': [
-        JDBCVersion: '8.4.0',
-        JDBCSha256: 'd77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5'
     ]
 ]
 
@@ -87,8 +83,8 @@ def tokens = [
         ]
     ],
     '16': [
-        xwikiVersion: '16.10.6',
-        xwikiSha256: 'b36e814a766e72ce0774a752f5c595ff144f712b36de34fd6869388b3c5f800e',
+        xwikiVersion: '16.10.7',
+        xwikiSha256: '819af797c94c1918cc3a4bbdf1f0c3c0f83e017c173c02a5ae4d7e42a2a2fb86',
         mysqlJDBCVersion: mysql['9'].JDBCVersion,
         mysqlJDBCSha256: mysql['9'].JDBCSha256,
         mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
@@ -98,20 +94,6 @@ def tokens = [
         tomcatImageTag: [
             tomcatVersion: '9',
             javaVersion: '21'
-        ]
-    ],
-    '16.4': [
-        xwikiVersion: '16.4.8',
-        xwikiSha256: '174348e6af5c241f4ffe4a2b5e638cc0a3018c9f428856f86d15405c321be6ec',
-        mysqlJDBCVersion: mysql['8'].JDBCVersion,
-        mysqlJDBCSha256: mysql['8'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '9',
-            javaVersion: '17'
         ]
     ]
 ]
