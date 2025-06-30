@@ -22,10 +22,10 @@ networks:
   bridge:
     driver: bridge
 services:
-  # The container that runs XWiki in Tomcat, with the appropriate JDBC driver (for ${db}).
+  # The container that runs XWiki in Tomcat, with the appropriate JDBC driver (for mysql).
   web:
-    image: "xwiki:\${XWIKI_VERSION}-${db}-tomcat"
-    container_name: xwiki-${db}-tomcat-web
+    image: "xwiki:${XWIKI_VERSION}-mysql-tomcat"
+    container_name: xwiki-mysql-tomcat-web
     depends_on:
       - db
     ports:
@@ -33,20 +33,20 @@ services:
     # Default values defined in .env file.
     # The DB_USER/DB_PASSWORD/DB_DATABASE/DB_HOST variables are used in the hibernate.cfg.xml file.
     environment:
-      - XWIKI_VERSION=\${XWIKI_VERSION}
-      - DB_USER=\${DB_USER}
-      - DB_PASSWORD=\${DB_PASSWORD}
-      - DB_DATABASE=\${DB_DATABASE}
-      - DB_HOST=xwiki-${db}-db
+      - XWIKI_VERSION=${XWIKI_VERSION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_HOST=xwiki-mysql-db
     # Provide a name instead of an auto-generated id for xwiki data (the permanent directory in included in it)
     # configured in the Dockerfile, to make it simpler to identify in 'docker volume ls'.
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
       - bridge
-  # The container that runs the database (${db})
+  # The container that runs the database (mysql)
   db:
-    <% if (db == 'mysql') print '''image: "mysql:9"
+    image: "mysql:9"
     container_name: xwiki-mysql-db
     # - Provide a name instead of an auto-generated id for the mysql data, to make it simpler to identify in
     # 'docker volume ls'
@@ -59,53 +59,18 @@ services:
     # See https://hub.docker.com/_/mysql/ for more details.
     # Default values defined in .env file.
     environment:
-      - MYSQL_ROOT_PASSWORD=\${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=\${DB_USER}
-      - MYSQL_PASSWORD=\${DB_PASSWORD}
-      - MYSQL_DATABASE=\${DB_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
 
     # Pass arguments to configure the database
     command:
       - "--character-set-server=utf8mb4"
       - "--collation-server=utf8mb4_bin"
-      - "--explicit-defaults-for-timestamp=1"'''
-
-    else if (db == 'mariadb') print '''image: "mariadb:11.8"
-    container_name: xwiki-mariadb-db
-    # - Provide a name instead of an auto-generated id for the mariadb data, to make it simpler to identify in
-    # 'docker volume ls'
-    # - Provide a SQL script to be executed when the db image starts (to set permissions to create subwikis)
-    volumes:
-      - mariadb-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
-    # Configure the MariaDB database and create a user with provided name/password.
-    # See https://hub.docker.com/_/mariadb/ for more details.
-    # Default values defined in .env file.
-    environment:
-      - MYSQL_ROOT_PASSWORD=\${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=\${DB_USER}
-      - MYSQL_PASSWORD=\${DB_PASSWORD}
-      - MYSQL_DATABASE=\${DB_DATABASE}
-
-    # Pass arguments to configure the database
-    command:
-      - "--character-set-server=utf8mb4"
-      - "--collation-server=utf8mb4_bin"
-      - "--explicit-defaults-for-timestamp=1"'''
-
-    else if (db == 'postgres') print '''image: "postgres:17"
-    container_name: xwiki-postgres-db
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_ROOT_PASSWORD=\${POSTGRES_ROOT_PASSWORD}
-      - POSTGRES_PASSWORD=\${DB_PASSWORD}
-      - POSTGRES_USER=\${DB_USER}
-      - POSTGRES_DB=\${DB_DATABASE}
-      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=builtin --locale=C.UTF-8''' %>
+      - "--explicit-defaults-for-timestamp=1"
     networks:
       - bridge
 volumes:
-  ${db}-data: {}
+  mysql-data: {}
   xwiki-data: {}
