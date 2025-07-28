@@ -69,8 +69,8 @@ def postgres = [
 
 def tokens = [
     '17': [
-        xwikiVersion: '17.5.0',
-        xwikiSha256: 'd3990a0f14897c6e748ca7160e748569e572e806c7beba820bf5018cc9fa933c',
+        xwikiVersion: '17.6.0',
+        xwikiSha256: '3a5f30089da81f41e861a90814c82e819daad5fc63d1d112573dd3671e9f3d47',
         mysqlJDBCVersion: mysql['9'].JDBCVersion,
         mysqlJDBCSha256: mysql['9'].JDBCSha256,
         mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
