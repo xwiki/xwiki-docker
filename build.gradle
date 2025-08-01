@@ -83,8 +83,8 @@ def tokens = [
         ]
     ],
     '17.4': [
-        xwikiVersion: '17.4.2',
-        xwikiSha256: '0d84644f8a099316d1cdf4722abff4264cc17da4679ca42d1026b43581352573',
+        xwikiVersion: '17.4.3',
+        xwikiSha256: '0344f4d162b6d59241e60a23ed73b2565ac64c5617592dae1a91cc87434997c1',
         mysqlJDBCVersion: mysql['9'].JDBCVersion,
         mysqlJDBCSha256: mysql['9'].JDBCSha256,
         mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
