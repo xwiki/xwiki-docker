@@ -46,7 +46,7 @@ services:
       - bridge
   # The container that runs the database (mariadb)
   db:
-    image: "mariadb:11.8"
+    image: "mariadb:12"
     container_name: xwiki-mariadb-db
     # - Provide a name instead of an auto-generated id for the mariadb data, to make it simpler to identify in
     # 'docker volume ls'
