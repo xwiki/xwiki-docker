@@ -62,8 +62,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # We take the database driver version from the Maven Central repository since we want to control the version 
 # used and have it being consistent with what is tested in the CI.
-ENV POSTGRES_JDBC_VERSION="42.7.4"
-ENV POSTGRES_JDBC_SHA256="188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e"
+ENV POSTGRES_JDBC_VERSION="42.7.7"
+ENV POSTGRES_JDBC_SHA256="157963d60ae66d607e09466e8c0cdf8087e9cb20d0159899ffca96bca2528460"
 ENV POSTGRES_JDBC_PREFIX="https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}"
 ENV POSTGRES_JDBC_ARTIFACT="postgresql-${POSTGRES_JDBC_VERSION}.jar"
 ENV POSTGRES_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${POSTGRES_JDBC_ARTIFACT}"
