@@ -62,8 +62,8 @@ RUN rm -rf /usr/local/tomcat/webapps/* && \
 # Copy the JDBC driver in the XWiki webapp
 # We take the database driver version from the Maven Central repository since we want to control the version 
 # used and have it being consistent with what is tested in the CI.
-ENV MARIADB_JDBC_VERSION="3.5.5"
-ENV MARIADB_JDBC_SHA256="81b9b10dbbd823e5dc9d81bc48435c76d7e92297a8515cfb75bc620917df9baa"
+ENV MARIADB_JDBC_VERSION="3.5.6"
+ENV MARIADB_JDBC_SHA256="a129703efd7b0f334564d46753de999f09b3a361489a2eb647e6020390981cc9"
 ENV MARIADB_JDBC_PREFIX="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${MARIADB_JDBC_VERSION}"
 ENV MARIADB_JDBC_ARTIFACT="mariadb-java-client-${MARIADB_JDBC_VERSION}.jar"
 ENV MARIADB_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MARIADB_JDBC_ARTIFACT}"
