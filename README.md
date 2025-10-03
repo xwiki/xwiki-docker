@@ -130,8 +130,16 @@ You need to make sure this directory exists, before proceeding.
 
 Note Make sure the directory you specify is specified with the fully-qualified path, not a relative path.
 
+For PostgreSQL < 17:
+
 ```console
 docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e "POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=builtin --locale=C.UTF-8" -d postgres:17
+```
+
+For PostgreSQL >= 18:
+
+```console
+docker run --net=xwiki-nw --name postgres-xwiki -v /my/path/postgres:/var/lib/postgresql -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e "POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=builtin --locale=C.UTF-8" -d postgres:17
 ```
 
 You should adapt the command line to use the passwords that you wish for the PostgreSQL root password and for the xwiki user password.
@@ -794,9 +802,17 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 - Make sure that `/tmp/xwiki-docker-test/postgres` and `/tmp/xwiki-docker-test/xwiki` exist (you can run the clean up script below to create them)
 - Update the PostgreSQL image to use the latest version: `docker pull postgres:latest`
 - Execute the following command to start a Postgres database (for example):
-  
+
+	For PostgreSQL < 17:
+ 
 	```console
     docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
+	```
+
+	For PostgreSQL >= 18:
+
+	```console
+	docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
 	```
 	
 - Navigate to the directory to test, e.g. `14/postgres-tomcat` and issue:
