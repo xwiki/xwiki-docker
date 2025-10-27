@@ -803,14 +803,6 @@ Test the modified files. On Linux, you need to use `sudo` on each docker command
 - Update the PostgreSQL image to use the latest version: `docker pull postgres:latest`
 - Execute the following command to start a Postgres database (for example):
 
-	For PostgreSQL < 17:
- 
-	```console
-    docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql/data -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
-	```
-
-	For PostgreSQL >= 18:
-
 	```console
 	docker run --net=xwiki-test --name postgres-xwiki-test -v /tmp/xwiki-docker-test/postgres:/var/lib/postgresql -e POSTGRES_ROOT_PASSWORD=xwiki -e POSTGRES_USER=xwiki -e POSTGRES_PASSWORD=xwiki -e POSTGRES_DB=xwiki -e POSTGRES_INITDB_ARGS="--encoding=UTF8" -d postgres:latest
 	```
