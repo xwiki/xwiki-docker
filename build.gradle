@@ -82,21 +82,6 @@ def tokens = [
             javaVersion: '21'
         ]
     ],
-    // To be removed: just added because of a missing release
-    '17.10.1': [
-        xwikiVersion: '17.10.1',
-        xwikiSha256: '09ba677f0b43f09c3ae70fa2989b5b2bb9d16da00f04676e9240cfb167e2f753',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
     '17.4': [
         xwikiVersion: '17.4.7',
         xwikiSha256: '9d1a7736c57ddfb8c996a5999ea50ab956b452e1533df70b9169fbc6c99def06',
