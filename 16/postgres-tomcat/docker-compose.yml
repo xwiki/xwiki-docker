@@ -46,7 +46,7 @@ services:
       - bridge
   # The container that runs the database (postgres)
   db:
-    image: "postgres:17"
+    image: "postgres:18"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql/data
