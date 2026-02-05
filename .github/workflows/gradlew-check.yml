@@ -15,7 +15,13 @@
 ## License along with this software; if not, write to the Free
 ## Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 ## 02110-1301 USA, or see the FSF site: http://www.fsf.org.
-name: Gradle Check
+##
+## The goal of this action is to help developers automatically detect missing updates to files derived from templates.
+## It works by running gradlew after each commit.
+## If this results in files being updated, it means that gradlew should have been run and its output should have been
+## added to the commit.
+## The action then ends with an error.
+name: Gradlew Check
 
 on:
   push:
