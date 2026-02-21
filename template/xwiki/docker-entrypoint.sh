@@ -129,7 +129,8 @@ function configure() {
   if [ "\$CONTEXT_PATH" == "ROOT" ]; then
     xwiki_set_cfg 'xwiki.webapppath' ''
   else
-    mv /usr/local/tomcat/webapps/ROOT /usr/local/tomcat/webapps/\$CONTEXT_PATH
+    mkdir -p -v /usr/local/tomcat/webapps/\$CONTEXT_PATH
+    cp -a --update=none /usr/local/tomcat/webapps/ROOT/.  /usr/local/tomcat/webapps/\$CONTEXT_PATH/
   fi
 
   echo 'Replacing environment variables in files'
