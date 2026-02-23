@@ -95,34 +95,6 @@ def tokens = [
             tomcatVersion: '10',
             javaVersion: '21'
         ]
-    ],
-    '17.4': [
-        xwikiVersion: '17.4.10',
-        xwikiSha256: '791b679392e7e1db0085d420be9495249789fad162670d483eef0658e29ebb8d',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '16': [
-        xwikiVersion: '16.10.17',
-        xwikiSha256: '4e43dde6d4f971e789b8d38c06404ce14f40c65e2e541303fbb7d2151c113a85',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '9',
-            javaVersion: '21'
-        ]
     ]
 ]
 
