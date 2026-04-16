@@ -55,8 +55,8 @@ def mysql = [
 
 def mariadb = [
     '3.5': [
-        JDBCVersion: '3.5.7',
-        JDBCSha256: '07bb1229dc184f3313a5aef4c5a6b3207c8dbaa09db4a26814c936f004b4c526'
+        JDBCVersion: '3.5.8',
+        JDBCSha256: '6127dc7858047b3d4482899139640b0e2ab2b8abdeb708cfb8c011117771cddf'
     ]
 ]
 
