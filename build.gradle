@@ -59,8 +59,8 @@ def mariadb = [
 
 def postgres = [
     '42': [
-        JDBCVersion: '42.7.10',
-        JDBCSha256: 'cab1cd67cfa25c25de4348e532298028288a877ba01c77d1619fe45416193387'
+        JDBCVersion: '42.7.11',
+        JDBCSha256: '1981b31d3993c58702783c1cddf10a34e48c1f413d70ff1cb6def0a143484647'
     ]
 ]
 
