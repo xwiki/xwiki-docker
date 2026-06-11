@@ -180,162 +180,31 @@ Another solution is to use the Docker Compose files we provide.
 
 #### For MySQL on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/mysql/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mysql-tomcat/.env -o .env`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/mysql/init.sql`: This will download some SQL to execute at startup for MySQL
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/mysql/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/.env -o .env`
 -	`docker-compose up`
-
-For reference here's a minimal Docker Compose file using MySQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/mysql-tomcat/docker-compose.yml)):
-
-```yaml
-version: '2'
-networks:
-  bridge:
-    driver: bridge
-services:
-  web:
-    image: "xwiki:stable-mysql-tomcat"
-    container_name: xwiki-mysql-tomcat-web
-    depends_on:
-      - db
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_USER=xwiki
-      - DB_PASSWORD=xwiki
-      - DB_HOST=xwiki-mysql-db
-    volumes:
-      - xwiki-data:/usr/local/xwiki
-    networks:
-      - bridge
-  db:
-    image: "mysql:9.1"
-    container_name: xwiki-mysql-db
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    environment:
-      - MYSQL_ROOT_PASSWORD=xwiki
-      - MYSQL_USER=xwiki
-      - MYSQL_PASSWORD=xwiki
-      - MYSQL_DATABASE=xwiki
-    command:
-      - "--character-set-server=utf8mb4"
-      - "--collation-server=utf8mb4_bin"
-      - "--explicit-defaults-for-timestamp=1"
-    networks:
-      - bridge
-volumes:
-  mysql-data: {}
-  xwiki-data: {}
-```
 
 #### For MariaDB on Tomcat
 
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/mariadb/init.sql -o init.sql`
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/mariadb-tomcat/.env -o .env`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/mariadb/init.sql`: This will download some SQL to execute at startup for MariaDB
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/mariadb/init.sql -o init.sql`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/.env -o .env`
 -	`docker-compose up`
-
-For reference here's a minimal Docker Compose file using MariaDB that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/mariadb-tomcat/docker-compose.yml)):
-
-```yaml
-version: '2'
-networks:
-  bridge:
-    driver: bridge
-services:
-  web:
-    image: "xwiki:stable-mariadb-tomcat"
-    container_name: xwiki-mariadb-tomcat-web
-    depends_on:
-      - db
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_USER=xwiki
-      - DB_PASSWORD=xwiki
-      - DB_HOST=xwiki-mariadb-db
-    volumes:
-      - xwiki-data:/usr/local/xwiki
-    networks:
-      - bridge
-  db:
-    image: "mariadb:11.6"
-    container_name: xwiki-mariadb-db
-    volumes:
-      - mariadb-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    environment:
-      - MYSQL_ROOT_PASSWORD=xwiki
-      - MYSQL_USER=xwiki
-      - MYSQL_PASSWORD=xwiki
-      - MYSQL_DATABASE=xwiki
-    command:
-      - "--character-set-server=utf8mb4"
-      - "--collation-server=utf8mb4_bin"
-      - "--explicit-defaults-for-timestamp=1"
-    networks:
-      - bridge
-volumes:
-  mariadb-data: {}
-  xwiki-data: {}
-```
 
 #### For PostgreSQL on Tomcat
 
--	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/docker-compose.yml`
-	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
--	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
-	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/16/postgres-tomcat/.env -o .env`
+-	`wget -O docker-compose.yml https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/docker-compose.yml`
+	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
+-	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
+	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/.env -o .env`
 -	`docker-compose up`
-
-For reference here's a minimal Docker Compose file using PostgreSQL that you could use as an example (full example [here](https://github.com/xwiki/xwiki-docker/blob/master/16/postgres-tomcat/docker-compose.yml)):
-
-```yaml
-version: '2'
-networks:
-  bridge:
-    driver: bridge
-services:
-  web:
-    image: "xwiki:stable-postgres-tomcat"
-    container_name: xwiki-postgres-tomcat-web
-    depends_on:
-      - db
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_USER=xwiki
-      - DB_PASSWORD=xwiki
-      - DB_HOST=xwiki-postgres-db
-    volumes:
-      - xwiki-data:/usr/local/xwiki
-    networks:
-      - bridge
-  db:
-    image: "postgres:17"
-    container_name: xwiki-postgres-db
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_ROOT_PASSWORD=xwiki
-      - POSTGRES_PASSWORD=xwiki
-      - POSTGRES_USER=xwiki
-      - POSTGRES_DB=xwiki
-      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=builtin --locale=C.UTF-8
-    networks:
-      - bridge
-volumes:
-  postgres-data: {}
-  xwiki-data: {}
-```
 
 ### Using Docker Swarm
 
