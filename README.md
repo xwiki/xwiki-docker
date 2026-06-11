@@ -14,7 +14,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
 - [How to use this image](#how-to-use-this-image)
     -	[Pulling an existing image](#pulling-an-existing-image)
         -	[Using `docker run`](#using-docker-run)
-        -	[Using `docker-compose`](#using-docker-compose)
+        -	[Using `docker compose`](#using-docker-compose)
         -	[Using Docker Swarm](#using-docker-swarm)
     -	[Building](#building)
 - [Upgrading XWiki](#upgrading-xwiki)
@@ -28,7 +28,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
 - [Using an external Solr service](#using-an-external-solr-service)
     -	[Preparing Solr container](#preparing-solr-container)
     -	[Example with `docker run`](#docker-run-example)
-    -	[Example with `docker-compose`](#docker-compose-example)
+    -	[Example with `docker compose`](#docker-compose-example)
 - [Troubleshooting](#troubleshooting)
 - [For Maintainers](#for-maintainers)
     -	[Update Docker Images](#update-docker-images)
@@ -174,7 +174,7 @@ At this point, XWiki should start in interactive blocking mode, allowing you to 
 docker run -d --net=xwiki-nw ...
 ```
 
-### Using `docker-compose`
+### Using `docker compose`
 
 Another solution is to use the Docker Compose files we provide.
 
@@ -186,7 +186,7 @@ Another solution is to use the Docker Compose files we provide.
 	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/docker-compose.yml -o docker-compose.yml`
 -	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
 	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mysql-tomcat/.env -o .env`
--	`docker-compose up`
+-	`docker compose up`
 
 #### For MariaDB on Tomcat
 
@@ -196,7 +196,7 @@ Another solution is to use the Docker Compose files we provide.
 	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/docker-compose.yml -o docker-compose.yml`
 -	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
 	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/mariadb-tomcat/.env -o .env`
--	`docker-compose up`
+-	`docker compose up`
 
 #### For PostgreSQL on Tomcat
 
@@ -204,7 +204,7 @@ Another solution is to use the Docker Compose files we provide.
 	-	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/docker-compose.yml -o docker-compose.yml`
 -	`wget https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/.env`: This contains default configuration values you should edit (version of XWiki to use, etc)
 	 -	If you don't have `wget` or prefer to use `curl`: `curl -fSL https://raw.githubusercontent.com/xwiki-contrib/docker-xwiki/master/17/postgres-tomcat/.env -o .env`
--	`docker-compose up`
+-	`docker compose up`
 
 ### Using Docker Swarm
 
@@ -347,12 +347,12 @@ This allows you to rebuild the XWiki docker image locally. Here are the steps:
 	-	The `13/postgres-tomcat` directory will get you the latest released XWiki version of the 13.x cycle running on Tomcat and for MySQL.
 	-	The `12/mysql-tomcat` directory will get you the latest released XWiki version of the 12.x cycle running on Tomcat and for MySQL.
 	-	etc.
--	Run `docker-compose up`
+-	Run `docker compose up`
 -	Start a browser and point it to `http://localhost:8080`
 
-Note that if you want to set a custom version of XWiki you can edit the `.env` file and set the values you need in there. It's also possible to override them on the command line with `docker-compose run -e "XWIKI_VERSION=12.10.10"`.
+Note that if you want to set a custom version of XWiki you can edit the `.env` file and set the values you need in there. It's also possible to override them on the command line with `docker compose run -e "XWIKI_VERSION=12.10.10"`.
 
-Note that `docker-compose up` will automatically build the XWiki image on the first run. If you need to rebuild it you can issue `docker-compose up --build`. You can also build the image with `docker build . -t xwiki-mysql-tomcat:latest` for example.
+Note that `docker compose up` will automatically build the XWiki image on the first run. If you need to rebuild it you can issue `docker compose up --build`. You can also build the image with `docker build . -t xwiki-mysql-tomcat:latest` for example.
 
 You can also just build the image by issuing `docker build -t xwiki .` and then use the instructions from above to start XWiki and the database using `docker run ...`.
 
@@ -442,7 +442,7 @@ If your config files are in a local `/my/xwiki/config/path` directory, you would
 docker run ... -v /my/xwiki/config/path/xwiki.cfg:/usr/local/tomcat/webapps/ROOT/WEB-INF/xwiki.cfg -v ... xwiki
 ```
 
-### Example for `docker-compose`
+### Example for `docker compose`
 
 ```yaml
 [...]
@@ -492,7 +492,7 @@ Here are some example steps you can follow:
 
 Volumes:
 
-If you don't map any volume when using `docker run` or if you use `docker-compose` then Docker will create some internal volumes attached to your containers as follows.
+If you don't map any volume when using `docker run` or if you use `docker compose` then Docker will create some internal volumes attached to your containers as follows.
 
 -	Two volumes are created:
 	-	A volume named `<prefix>_mysql-data` or `<prefix>_postgres-data` that contains the database data.
@@ -567,7 +567,7 @@ docker run \
   -d xwiki:stable-mysql-tomcat
 ```
 
-#### Example with `docker-compose`
+#### Example with `docker compose`
 
 The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
 
