@@ -24,6 +24,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
     -	[Remote Debugging](#remote-debugging)
     -	[Configuration Files](#configuration-files)
     -	[Configuring Tomcat](#configuring-tomcat)
+    -	[Configuring SSL/HTTPS](#configuring-sslhttps)
     -	[Miscellaneous](#miscellaneous)
 - [Using an external Solr service](#using-an-external-solr-service)
     -	[Preparing Solr container](#preparing-solr-container)
@@ -483,6 +484,15 @@ Here are some example steps you can follow:
     -   Example: `docker rm xwiki`.
 -   Run the container with the Tomcat mount and the other parameters.
     -   Example: `docker run --net=xwiki-nw --name xwiki -p 8080:8080 -v /tmp/xwiki:/usr/local/xwiki -v /tmp/tomcat:/usr/local/tomcat/conf -e DB_USER=xwiki -e DB_PASSWORD=xwiki -e DB_DATABASE=xwiki -e DB_HOST=mysql-xwiki xwiki:stable-mysql-tomcat`
+
+## Configuring SSL/HTTPS
+
+The XWiki image is a standard Tomcat container exposing plain HTTP on port `8080`, so HTTPS is set up the standard Tomcat way. Two options:
+
+-	Reverse proxy (recommended): Put a reverse proxy (nginx, Apache httpd, Traefik, Caddy...) in front of XWiki. It terminates TLS and forwards to XWiki's `8080` (keep `8080` internal, not published). This is the simplest option and the natural fit for automated certificates such as [Let's Encrypt](https://letsencrypt.org/) (certbot, Traefik or Caddy handle issuance and renewal at the proxy).
+-	Native Tomcat HTTPS connector: Add an SSL/TLS connector to Tomcat's `server.xml` and publish the HTTPS port (e.g. `-p 8443:8443` for `docker run`, or `ports: - "8443:8443"` for `docker compose`). Edit `server.xml` through the mount described in [Configuring Tomcat](#configuring-tomcat), following the [Apache Tomcat SSL/TLS HOW-TO](https://tomcat.apache.org/tomcat-10.1-doc/ssl-howto.html).
+
+With either option, configure XWiki so it generates `https://` URLs, as explained in the XWiki [HTTPS/SSL](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Configuration/#HHTTPS2FSSL) documentation (the relevant properties live in `xwiki.cfg`, mountable as shown in [Configuration Files](#configuration-files)).
 
 ## Miscellaneous
 
