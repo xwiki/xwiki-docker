@@ -153,7 +153,10 @@ function configure() {
   if [ $INDEX_HOST != 'localhost' ]; then
     echo '  Configuring remote Solr Index'
     xwiki_set_properties 'solr.type' 'remote'
-    xwiki_set_properties 'solr.remote.url' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
+    # Point to the Solr base URL (not a single core): XWiki manages several cores (search, events, ratings,
+    # extension index) and creates its clients under this base. The old single-core "solr.remote.url" property is
+    # deprecated and only configures the search core, which breaks the other cores.
+    xwiki_set_properties 'solr.remote.baseURL' "http://$INDEX_HOST:$INDEX_PORT/solr"
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory.

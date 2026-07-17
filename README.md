@@ -533,18 +533,38 @@ solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
 
 #### Preparing Solr container
 
-The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
+Since XWiki 12.2 a remote Solr instance needs **several cores** (`search`, `events`, `ratings` and
+`extension_index`), and XWiki does not create them itself because the Solr REST API is too limited. They must be
+created on the Solr server before starting XWiki. The `solr-init.sh` script (from the
+[docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)) does that for you.
 
--	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
--	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
+The Solr image is built from the [official Solr image](https://hub.docker.com/_/solr/) with two additions (see the
+`Dockerfile` next to `solr-init.sh`): the `unzip` tool (needed by `solr-init.sh`) and Solr's `analysis-extras` module
+(the XWiki search core relies on language analyzers, such as the Polish stemmer, shipped in that module).
+
+-	Download the two XWiki Solr configuration ZIPs synchronized with your version of XWiki and place them in a
+	directory alongside `solr-init.sh` and its `Dockerfile`:
+	-	the search core config: [xwiki-platform-search-solr-server-core-search](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-search/)
+	-	the minimal core config (used for the `events`, `ratings` and `extension_index` cores): [xwiki-platform-search-solr-server-core-minimal](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-core-minimal/)
 -	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
--	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
--	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
--	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
+-	Launch the Solr container built from that `Dockerfile` and mount this directory at `/docker-entrypoint-initdb.d`
+-	This will execute `solr-init.sh` on container startup and create the XWiki cores from the two ZIPs
+-	If you want to persist the Solr index outside of the container with a bind mount (mounted at `/var/solr`), make
+	sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
+
+> Note: the cores are named `<prefix>_<core>_<solrMajorVersion>` (e.g. `xwiki_search_9`). The prefix defaults to
+> `xwiki` (the `solr.remote.corePrefix` property); override it by passing `-e XWIKI_SOLR_CORE_PREFIX=...` to the Solr
+> container if you changed that property. The Solr major version must match the Solr image you use.
 
 #### Example with `docker run`
 
 Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
+
+First build the Solr image from the `Dockerfile` located next to `solr-init.sh`:
+
+```console
+docker build -t xwiki-solr /path/to/solr/init/directory
+```
 
 The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
 
@@ -553,8 +573,8 @@ docker run \
   --net=xwiki-nw \
   --name solr-xwiki \
   -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/path/solr:/var/solr/data/xwiki \
-  -d solr:9
+  -v /my/path/solr:/var/solr \
+  -d xwiki-solr
 ```
 
 Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
@@ -575,7 +595,7 @@ docker run \
 
 #### Example with `docker compose`
 
-The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
+The below compose file assumes that `./solr` contains `solr-init.sh`, its `Dockerfile` and the two configuration ZIP files.
 
 ```yaml
 version: '2'
@@ -619,7 +639,7 @@ services:
     networks:
       - bridge
   index:
-    image: "solr:9"
+    build: ./solr
     container_name: xwiki-index
     volumes:
       - ./solr:/docker-entrypoint-initdb.d
