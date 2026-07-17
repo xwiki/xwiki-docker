@@ -33,6 +33,16 @@ function other_starts() {
   restoreConfigurationFile 'xwiki.properties'
 }
 
+# We point java.io.tmpdir to a directory on the mapped permanent volume (see tomcat/setenv.sh) so that libraries
+# writing there (e.g. the embedded Solr suggester) don't fill a small or tmpfs-backed default temp location
+# (see XDOCKER-321). Since that directory lives on the volume and nothing in the container reaps temporary files, we
+# empty it on every start to prevent it from growing without bound. This runs before Tomcat starts, so nothing is
+# using it yet, and it mirrors what XWiki's own Environment does for its temporary directory.
+function clean_temporary_directory() {
+  rm -rf /usr/local/xwiki/data/tmp
+  mkdir -p /usr/local/xwiki/data/tmp
+}
+
 # $1 - the path to xwiki.[cfg|properties]
 # $2 - the setting/property to set
 # $3 - the new value
@@ -162,6 +172,7 @@ fi
 # Check for the expected command
 if [ "$1" = 'xwiki' ]; then
   file_env 'CONTEXT_PATH' 'ROOT'
+  clean_temporary_directory
   if [[ ! -f /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed ]]; then
     first_start
   else
