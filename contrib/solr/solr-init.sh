@@ -10,7 +10,7 @@
 # - At run time, before starting Solr, the container will execute scripts in the /docker-entrypoint-initdb.d/ directory.
 
 cd /docker-entrypoint-initdb.d/
-location='/opt/solr/server/solr/'
+location='/var/solr/data/'
 
 # Verify the existence of a singular XWiki Solr configuration jar
 jars=$(find . -type f -name *.jar | wc -l)

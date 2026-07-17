@@ -553,7 +553,7 @@ docker run \
   --net=xwiki-nw \
   --name solr-xwiki \
   -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/path/solr:/opt/solr/server/solr/xwiki \
+  -v /my/path/solr:/var/solr/data/xwiki \
   -d solr:9
 ```
 
@@ -623,7 +623,7 @@ services:
     container_name: xwiki-index
     volumes:
       - ./solr:/docker-entrypoint-initdb.d
-      - solr-data:/opt/solr/server/solr
+      - solr-data:/var/solr
     networks:
       - bridge
 volumes:
