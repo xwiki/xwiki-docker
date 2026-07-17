@@ -37,12 +37,22 @@ LABEL org.opencontainers.image.licenses='LGPL-2.1'
 
 # Install LibreOffice + other tools
 # Note that procps is required to get ps which is used by JODConverter to start LibreOffice
+# Note that libxtst6 and libxi6 are needed by the JDK's non-headless AWT backend (libawt_xawt.so), which the JVM loads
+# when java.awt.headless is false, e.g. to let Java parse images (Tika/ImageIO indexing attachments in Solr). That
+# library hard-links libXtst.so.6 and libXi.so.6, and with --no-install-recommends they are not pulled in transitively,
+# so loading it fails with "libXtst.so.6: cannot open shared object file" (UnsatisfiedLinkError), cascading into
+# "NoClassDefFoundError: Could not initialize class javax.imageio.ImageIO". In a container java.awt.headless defaults to
+# true (no DISPLAY is set), so by default the JVM uses the headless backend (libawt_headless.so, no X11 deps) and the
+# problem does not appear; installing these libraries keeps image parsing working when a user forces non-headless mode
+# via -Djava.awt.headless=false or by setting a DISPLAY variable.
 RUN apt-get update && \
   apt-get --no-install-recommends -y install \
     curl \
     libreoffice \
     unzip \
-    procps && \
+    procps \
+    libxtst6 \
+    libxi6 && \
   rm -rf /var/lib/apt/lists/*
 
 # Install XWiki as the ROOT webapp context in Tomcat
