@@ -173,6 +173,9 @@ fi
 if [ "$1" = 'xwiki' ]; then
   file_env 'CONTEXT_PATH' 'ROOT'
   clean_temporary_directory
+  # Ensure the logs directory exists on the (possibly freshly-mapped) permanent volume so that the logback file appender
+  # configured in WEB-INF/classes/logback.xml can write to it right away.
+  mkdir -p /usr/local/xwiki/data/logs
   if [[ ! -f /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed ]]; then
     first_start
   else

@@ -23,6 +23,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
     -	[Passing JVM options](#passing-jvm-options)
     -	[Remote Debugging](#remote-debugging)
     -	[Configuration Files](#configuration-files)
+    -	[Logs](#logs)
     -	[Configuring Tomcat](#configuring-tomcat)
     -	[Configuring SSL/HTTPS](#configuring-sslhttps)
     -	[Miscellaneous](#miscellaneous)
@@ -466,6 +467,22 @@ volumes:
   xwiki-logback: {}
   xwiki-webxml: {}
 ```
+
+## Logs
+
+XWiki logs are written to two places at once:
+
+* The console, so that you can follow them with `docker logs <container id>` (or directly in the terminal when you
+  start the container in interactive mode). This is the standard Docker way of consuming logs.
+* A rotating file in the permanent directory, at `/usr/local/xwiki/data/logs/xwiki.log`. Since the permanent
+  directory is mapped to a volume, these logs persist across container recreations.
+
+  The file rotates daily (on UTC day boundaries) and whenever it reaches 100MB. Archived files are compressed and
+  named `xwiki-<date>.<index>.log.gz` (e.g. `xwiki-2026-07-18.0.log.gz`). At most 90 days of archives are kept, capped at
+  a total of 3GB.
+
+If you want to change this behavior (log levels, rotation policy, destinations, etc.), override the `logback.xml`
+configuration file as described in the [Configuration Files](#configuration-files) section above.
 
 ## Configuring Tomcat
 

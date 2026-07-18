@@ -1,0 +1,21 @@
+  <!--
+    Rolling file appender injected at image build time on top of the XWiki WAR's own logback configuration (see the
+    Dockerfile). It writes the logs to a file in the permanent directory (which is mapped to a volume) so that they
+    persist across container recreations and can be read from within XWiki, in addition to the console (see the "stdout"
+    appender) so that "docker logs" keeps working. The rotation policy is daily rotation, UTC dates, 90 days of history.
+  -->
+  <appender name="filelog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/usr/local/xwiki/data/logs/xwiki.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>/usr/local/xwiki/data/logs/xwiki-%d{yyyy-MM-dd, UTC}.%i.log.gz</fileNamePattern>
+      <!-- Roll over the current file once it reaches this size (a new archive index %i is then started). -->
+      <maxFileSize>100MB</maxFileSize>
+      <!-- Keep at most 90 days worth of archived logs. -->
+      <maxHistory>90</maxHistory>
+      <!-- Never let all archives together exceed this size (oldest archives are removed first). -->
+      <totalSizeCap>3GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d [%t] %-5p %-30.30c{2} - %m %n</pattern>
+    </encoder>
+  </appender>

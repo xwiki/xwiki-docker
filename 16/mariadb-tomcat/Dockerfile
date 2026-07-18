@@ -86,6 +86,19 @@ COPY tomcat/setenv.sh /usr/local/tomcat/bin/
 # Setup the XWiki Hibernate configuration
 COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cfg.xml
 
+# Augment the XWiki WAR's own logback configuration with a rolling file appender so that logs are written both to the
+# console (for "docker logs") and to a rotating file in the permanent directory, where they persist across container
+# recreations. We patch the WAR's own file (rather than shipping a full copy of it) so that we don't drift from the
+# version-specific logger levels it defines: the appender definition is inserted right after the opening
+# <configuration> tag and its reference right after the existing "stdout" one.
+COPY xwiki/logback-filelog-appender.xml xwiki/logback-filelog-ref.xml /tmp/
+RUN LOGBACK=/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/logback.xml && \
+  sed -e '/<configuration/r /tmp/logback-filelog-appender.xml' \
+      -e '/ref="stdout"/r /tmp/logback-filelog-ref.xml' \
+      "$LOGBACK" > "$LOGBACK.new" && \
+  mv "$LOGBACK.new" "$LOGBACK" && \
+  rm -f /tmp/logback-filelog-appender.xml /tmp/logback-filelog-ref.xml
+
 # Set a specific distribution id in XWiki for this docker packaging.
 RUN sed -i 's/<id>org.xwiki.platform:xwiki-platform-distribution-war</<id>org.xwiki.platform:xwiki-platform-distribution-docker</' \
   /usr/local/tomcat/webapps/ROOT/META-INF/extension.xed
