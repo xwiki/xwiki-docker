@@ -35,8 +35,13 @@ LABEL org.opencontainers.image.licenses='LGPL-2.1'
 
 # Note: when using docker-compose, the ENV values below are overridden from the .env file.
 
-# Install LibreOffice + other tools
-# Note that procps is required to get ps which is used by JODConverter to start LibreOffice
+# Install the command-line tools and the native libraries required at runtime. LibreOffice itself is not installed here
+# (see the dedicated step below) but the libraries it dynamically links to (and which its deb packages don't declare)
+# are installed here so that they come from the base image's Debian release.
+# Note that procps is required to get ps which is used by JODConverter to start LibreOffice.
+# Note that libxinerama1, libdbus-glib-1-2, libcairo2, libcups2, libsm6, libx11-xcb1, libnss3, libxml2 and libxslt1.1
+# are runtime dependencies of LibreOffice that are not pulled in transitively by its deb packages (this is the same set
+# used by the XWiki Docker-based test framework that installs LibreOffice the same way).
 # Note that libxtst6 and libxi6 are needed by the JDK's non-headless AWT backend (libawt_xawt.so), which the JVM loads
 # when java.awt.headless is false, e.g. to let Java parse images (Tika/ImageIO indexing attachments in Solr). That
 # library hard-links libXtst.so.6 and libXi.so.6, and with --no-install-recommends they are not pulled in transitively,
@@ -48,12 +53,46 @@ LABEL org.opencontainers.image.licenses='LGPL-2.1'
 RUN apt-get update && \\
   apt-get --no-install-recommends -y install \\
     curl \\
-    libreoffice \\
     unzip \\
     procps \\
     libxtst6 \\
-    libxi6 && \\
+    libxi6 \\
+    libxinerama1 \\
+    libdbus-glib-1-2 \\
+    libcairo2 \\
+    libcups2 \\
+    libsm6 \\
+    libx11-xcb1 \\
+    libnss3 \\
+    libxml2 \\
+    libxslt1.1 && \\
   rm -rf /var/lib/apt/lists/*
+
+# Install a controlled version of LibreOffice (the one XWiki supports and tests against, i.e. the LTS version) instead
+# of the version shipped by the base image's Debian release, so that it doesn't drift from the tested version. We take
+# it from the Document Foundation download site (the same source and version used by the XWiki Docker-based test
+# framework) and verify its sha256. Since the official image is built for both amd64 and arm64, we select the download
+# matching the target architecture (provided automatically by Docker's TARGETARCH build argument) and its sha256. We
+# install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki (through JODConverter) probes to
+# locate the LibreOffice installation automatically, so no extra configuration is needed.
+ARG TARGETARCH
+ENV LIBREOFFICE_VERSION="$libreofficeVersion"
+ENV LIBREOFFICE_SHA256_AMD64="$libreofficeSha256Amd64"
+ENV LIBREOFFICE_SHA256_ARM64="$libreofficeSha256Arm64"
+ENV LIBREOFFICE_URL_PREFIX="https://download.documentfoundation.org/libreoffice/stable/\${LIBREOFFICE_VERSION}/deb"
+RUN case "\$TARGETARCH" in \\
+    amd64) LO_ARCH_DIR=x86_64; LO_ARCH_FILE=x86-64; LO_SHA256=\$LIBREOFFICE_SHA256_AMD64 ;; \\
+    arm64) LO_ARCH_DIR=aarch64; LO_ARCH_FILE=aarch64; LO_SHA256=\$LIBREOFFICE_SHA256_ARM64 ;; \\
+    *) echo "Unsupported target architecture [\$TARGETARCH] for the LibreOffice installation" >&2; exit 1 ;; \\
+  esac && \\
+  LO_ARCHIVE="LibreOffice_\${LIBREOFFICE_VERSION}_Linux_\${LO_ARCH_FILE}_deb.tar.gz" && \\
+  curl -fSL "\${LIBREOFFICE_URL_PREFIX}/\${LO_ARCH_DIR}/\${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz && \\
+  echo "\$LO_SHA256 /tmp/libreoffice.tar.gz" | sha256sum -c - && \\
+  mkdir -p /tmp/libreoffice && \\
+  tar -C /tmp/libreoffice -xf /tmp/libreoffice.tar.gz && \\
+  dpkg -i /tmp/libreoffice/LibreOffice_\${LIBREOFFICE_VERSION}*_Linux_*_deb/DEBS/*.deb && \\
+  ln -fs \$(ls -d /opt/libreoffice*) /opt/libreoffice && \\
+  rm -rf /tmp/libreoffice /tmp/libreoffice.tar.gz
 
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory

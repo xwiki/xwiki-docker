@@ -41,6 +41,14 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L110 (link for master)
 //   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L113 (link for master)
 //   - postgresql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L119 (link for master)
+// - LibreOffice: XWiki officially supports a single version, the LTS one (aka "Previous Release"), see
+//   https://dev.xwiki.org/xwiki/bin/view/Community/SupportStrategy/LibreOfficeSupportStrategy/. It is the version XWiki
+//   tests against (the 'libreoffice.version' POM property, resolved to the latest patch of the previous stable branch,
+//   see https://download.documentfoundation.org/libreoffice/stable/). We pin it here so the image is not at the mercy
+//   of whatever the base image's Debian release ships. Rather than computing the version and the two sha256 (one per
+//   CPU architecture, since the official image is built for both amd64 and arm64) by hand, run
+//   './gradlew updateLibreOffice': it resolves the current LTS version the same way XWiki does and rewrites the pinned
+//   values in this file (the .sha256 are read from the files the Document Foundation publishes next to the archives).
 
 // Versions of mysql, mariadb and postgres currently in use in the docker images.
 def mysql = [
@@ -63,6 +71,15 @@ def postgres = [
         JDBCSha256: '1981b31d3993c58702783c1cddf10a34e48c1f413d70ff1cb6def0a143484647'
     ]
 ]
+
+// LibreOffice version currently in use in the docker images. Contrary to XWiki and the JDBC drivers, this is not keyed
+// per XWiki cycle: XWiki officially supports a single LibreOffice version (the LTS one) whatever the XWiki version, so
+// the same version is used for all the generated images (it is injected into every cycle's tokens in the generate task
+// below). One sha256 is needed per CPU architecture since the official image is built for both amd64 and arm64.
+// These three values are updated automatically by the 'updateLibreOffice' task ('./gradlew updateLibreOffice'), below.
+def libreofficeVersion = '25.8.7'
+def libreofficeSha256Amd64 = '7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f'
+def libreofficeSha256Arm64 = '67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa'
 
 def tokens = [
     '18': [
@@ -131,6 +148,10 @@ task generate() {
                 // Extract the db type and add it as a token
                 def (db, servlet) = variant.tokenize('-')
                 tokens[version].'db' = db
+                // Add the LibreOffice tokens (shared by all cycles, see above)
+                tokens[version].'libreofficeVersion' = libreofficeVersion
+                tokens[version].'libreofficeSha256Amd64' = libreofficeSha256Amd64
+                tokens[version].'libreofficeSha256Arm64' = libreofficeSha256Arm64
                 // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
@@ -160,5 +181,89 @@ task generate() {
                 }
             }
         }
+    }
+}
+
+// Fetch a URL as text, following redirects manually. The Document Foundation download URLs answer with a 302 to a
+// mirror (sometimes switching from https to http), which the default HttpURLConnection redirect handling refuses to
+// follow, so we follow them ourselves.
+def httpGetText
+httpGetText = { String location ->
+    def current = location
+    for (int hop = 0; hop < 5; hop++) {
+        def connection = (HttpURLConnection) new URL(current).openConnection()
+        connection.instanceFollowRedirects = false
+        connection.connectTimeout = 30000
+        connection.readTimeout = 30000
+        def status = connection.responseCode
+        if (status in [301, 302, 303, 307, 308]) {
+            current = connection.getHeaderField('Location')
+            connection.disconnect()
+        } else if (status == 200) {
+            return connection.inputStream.getText('UTF-8')
+        } else {
+            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+        }
+    }
+    throw new GradleException("Too many redirects while fetching [$location]")
+}
+
+// Resolve the LibreOffice version to pin (the LTS one, i.e. the latest patch of the previous stable branch) and its
+// per-architecture sha256 from the Document Foundation, then rewrite the pinned 'libreoffice*' values at the top of
+// this file. This mirrors how XWiki resolves 'libreoffice.version=lts' at test time (see LibreOfficeResolver in
+// xwiki-platform-test-docker) but bakes a concrete, sha256-verified value into build.gradle so that image generation
+// stays reproducible and offline. Run it during the Docker release (step "Update Docker" of
+// https://dev.xwiki.org/xwiki/bin/view/ReleasePlans/ReleasePlanHelp), then run './gradlew' to regenerate the images.
+task updateLibreOffice() {
+    doLast {
+        def stableUrl = 'https://download.documentfoundation.org/libreoffice/stable/'
+        def listing = httpGetText(stableUrl)
+
+        // Parse the version directories (e.g. "25.8.7/") into major/minor/patch.
+        def versions = []
+        (listing =~ /href="(\d+)\.(\d+)\.(\d+)\/"/).each { full, major, minor, patch ->
+            versions << [major: major as int, minor: minor as int, patch: patch as int]
+        }
+        if (versions.isEmpty()) {
+            throw new GradleException("Failed to find any LibreOffice version at [$stableUrl]")
+        }
+
+        // Group into distinct branches (major.minor) sorted ascending; the LTS is the previous branch (second to last).
+        def branches = versions.collect { [it.major, it.minor] }.unique(false).sort { a, b ->
+            (a[0] <=> b[0]) ?: (a[1] <=> b[1])
+        }
+        if (branches.size() < 2) {
+            throw new GradleException("Expected at least 2 LibreOffice branches at [$stableUrl] to determine the LTS")
+        }
+        def ltsBranch = branches[branches.size() - 2]
+
+        // Keep the latest patch of the LTS branch.
+        def lts = versions.findAll { it.major == ltsBranch[0] && it.minor == ltsBranch[1] }.max { it.patch }
+        def newVersion = "${lts.major}.${lts.minor}.${lts.patch}"
+
+        // Read the sha256 the Document Foundation publishes next to each archive (format: "<sha256>  <filename>").
+        def resolveSha256 = { String archDir, String archFile ->
+            def url = "${stableUrl}${newVersion}/deb/${archDir}/" +
+                "LibreOffice_${newVersion}_Linux_${archFile}_deb.tar.gz.sha256"
+            return httpGetText(url).trim().split(/\s+/)[0]
+        }
+        def newSha256Amd64 = resolveSha256('x86_64', 'x86-64')
+        def newSha256Arm64 = resolveSha256('aarch64', 'aarch64')
+
+        // Rewrite the pinned values in this build.gradle.
+        def buildFile = file('build.gradle')
+        def content = buildFile.text
+        content = content
+            .replaceFirst(/def libreofficeVersion = '[^']*'/, "def libreofficeVersion = '${newVersion}'")
+            .replaceFirst(/def libreofficeSha256Amd64 = '[^']*'/, "def libreofficeSha256Amd64 = '${newSha256Amd64}'")
+            .replaceFirst(/def libreofficeSha256Arm64 = '[^']*'/, "def libreofficeSha256Arm64 = '${newSha256Arm64}'")
+        buildFile.text = content
+
+        if (newVersion == libreofficeVersion) {
+            logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
+        } else {
+            logger.lifecycle("Updated LibreOffice from ${libreofficeVersion} to ${newVersion}.")
+        }
+        logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
     }
 }
