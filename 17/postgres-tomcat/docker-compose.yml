@@ -25,6 +25,10 @@ services:
   web:
     image: "xwiki:${XWIKI_VERSION}-postgres-tomcat"
     container_name: xwiki-postgres-tomcat-web
+    # Run an init process (tini) as PID 1 instead of the JVM, so that processes reparented to PID 1 get reaped. The JVM
+    # (our PID 1 without this) never reaps children, so any process orphaned in the container (e.g. LibreOffice children
+    # left behind when soffice.bin restarts) would otherwise linger as <defunct> zombies forever (see XDOCKER-53).
+    init: true
     depends_on:
       - db
     ports:
