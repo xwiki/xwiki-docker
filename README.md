@@ -26,6 +26,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
     -	[Logs](#logs)
     -	[Configuring Tomcat](#configuring-tomcat)
     -	[Configuring SSL/HTTPS](#configuring-sslhttps)
+    -	[Running behind a reverse proxy](#running-behind-a-reverse-proxy)
     -	[Miscellaneous](#miscellaneous)
 - [Using an external Solr service](#using-an-external-solr-service)
     -	[Preparing Solr container](#preparing-solr-container)
@@ -510,6 +511,62 @@ The XWiki image is a standard Tomcat container exposing plain HTTP on port `8080
 -	Native Tomcat HTTPS connector: Add an SSL/TLS connector to Tomcat's `server.xml` and publish the HTTPS port (e.g. `-p 8443:8443` for `docker run`, or `ports: - "8443:8443"` for `docker compose`). Edit `server.xml` through the mount described in [Configuring Tomcat](#configuring-tomcat), following the [Apache Tomcat SSL/TLS HOW-TO](https://tomcat.apache.org/tomcat-10.1-doc/ssl-howto.html).
 
 With either option, configure XWiki so it generates `https://` URLs, as explained in the XWiki [HTTPS/SSL](https://www.xwiki.org/xwiki/bin/view/Documentation/AdminGuide/Configuration/#HHTTPS2FSSL) documentation (the relevant properties live in `xwiki.cfg`, mountable as shown in [Configuration Files](#configuration-files)).
+
+## Running behind a reverse proxy
+
+See the XWiki [HTTP Reverse Proxy](https://www.xwiki.org/xwiki/bin/view/documentation/xs/admin/installation/http-reverse-proxy/)
+documentation for the general reasons and setup. This section covers the Docker-specific part: making
+the Tomcat bundled in this image honor the proxy's forwarded headers.
+
+When a reverse proxy terminates TLS and forwards requests to XWiki over plain HTTP (the recommended
+setup described in [Configuring SSL/HTTPS](#configuring-sslhttps)), Tomcat ignores the `X-Forwarded-*`
+headers sent by the proxy by default. The standard Servlet API (`request.getScheme()`,
+`request.isSecure()`, `request.getRequestURL()`, `request.getServerPort()`...) then reports the
+internal `http` scheme and port rather than the public HTTPS address. This causes wrong URLs to be
+generated — for example redirects dropping back to `http://`, or URLs such as `https://my.host:80/` —
+which notably breaks flows like OpenID Connect authentication.
+
+To fix this, make Tomcat trust the forwarded headers by declaring a
+[`RemoteIpValve`](https://tomcat.apache.org/tomcat-10.1-doc/config/valve.html#Remote_IP_Valve). It
+rewrites the request's scheme, secure flag, server port and client IP from the `X-Forwarded-Proto`
+and `X-Forwarded-For` headers, but only for requests coming from a trusted proxy (by default the
+private IP ranges, which cover the usual Docker/Compose/Kubernetes networks), so it stays inert when
+no proxy is in front.
+
+You don't need to replace the whole `server.xml`: the valve can be declared at the context level in a
+small `context.xml`, which is stable across Tomcat versions. Create a `context.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>WEB-INF/tomcat-web.xml</WatchedResource>
+    <WatchedResource>${catalina.base}/conf/web.xml</WatchedResource>
+
+    <Valve className="org.apache.catalina.valves.RemoteIpValve"
+           remoteIpHeader="x-forwarded-for"
+           protocolHeader="x-forwarded-proto"/>
+</Context>
+```
+
+and mount it over the one in the image (see [Configuring Tomcat](#configuring-tomcat) for the mount
+mechanism):
+
+-	With `docker run`, add `-v /path/to/context.xml:/usr/local/tomcat/conf/context.xml`.
+-	With `docker compose`, add a volume to the `web` service:
+
+```yaml
+    volumes:
+      - ./context.xml:/usr/local/tomcat/conf/context.xml
+```
+
+Finally, make sure the reverse proxy actually sends the forwarded headers. For example with nginx:
+
+```
+proxy_set_header Host              $host;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
 
 ## Miscellaneous
 
