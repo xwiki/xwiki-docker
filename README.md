@@ -374,7 +374,7 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_PASSWORD`: The user password used by XWiki to read/write to the DB.
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
--	`SOLR_BASE_URL`: The base URL of an externally configured Solr instance (for example `https://solr.example.com/solr`). When left empty (the default), XWiki uses its embedded Solr instance. The value is the Solr base URL, not a single core: it can carry the scheme (`http`/`https`), a custom path and the port.
+-	`SOLR_BASE_URL`: The base URL of an externally configured Solr instance (for example `https://solr.example.com/solr`). When left empty (the default), XWiki uses its embedded Solr instance.
 -   `CONTEXT_PATH`: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll be deployed as ROOT.
     -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
 -	`JDBC_PARAMS`: Custom JDB parameters to pass to the JBC connection. Setting this value overwrites the default parameters used (which depend on the DB used). The value must start with a question mark and the content be XML-encoded. For example: `?useSSL=false&amp;connectionTimeZone=LOCAL&amp;allowPublicKeyRetrieval=true`.
@@ -531,7 +531,7 @@ solr.remote.baseURL=$SOLR_BASE_URL
 
 #### Preparing Solr container
 
-Since XWiki 12.2 a remote Solr instance needs **several cores** (`search`, `events`, `ratings` and
+A remote Solr instance needs **several cores** (`search`, `events`, `ratings` and
 `extension_index`), and XWiki does not create them itself because the Solr REST API is too limited. They must exist
 on the Solr server before starting XWiki.
 

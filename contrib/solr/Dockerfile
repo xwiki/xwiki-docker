@@ -19,8 +19,7 @@
 # ---------------------------------------------------------------------------
 
 # Adjust the Solr major version to match your XWiki version (XWiki supports the current and previous Solr major
-# versions). It must stay consistent with the "_<solrMajorVersion>" suffix baked into the core packages downloaded
-# below (the packages targeting Solr 9 lay their cores under ".../xwiki_<core>_9").
+# versions), keeping it consistent with the core packages downloaded below.
 FROM solr:9
 
 # The XWiki version whose Solr cores to install. It must match the version of XWiki you run. Override at build time
@@ -29,10 +28,8 @@ ARG XWIKI_VERSION=18.5.0
 
 USER root
 
-# Download the pre-built XWiki Solr core packages so that "solr-init.sh" can lay them into the Solr home on startup.
-# XWiki publishes one Debian package per core (search, events, ratings, extension_index); each unpacks to
-# "/var/solr/data/xwiki_<core>_9" with its "core.properties", full "conf/" and the required "lib/" jars, which is
-# exactly what Solr's core discovery expects. Reusing these packages avoids reproducing the core layout by hand.
+# Download the pre-built XWiki Solr core packages (one Debian package per core: search, events, ratings,
+# extension_index) so that "solr-init.sh" can lay them into the Solr home on startup.
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends ca-certificates curl && \
     mkdir -p /opt/xwiki-solr && \

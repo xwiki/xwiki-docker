@@ -19,12 +19,9 @@
 # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 # ---------------------------------------------------------------------------
 
-# Initializes the Solr cores required by XWiki when using a remote (standalone) Solr instance.
-#
-# Since XWiki 12.2 a remote Solr instance needs several cores (XWiki does not create them itself because the Solr
-# REST API is too limited). This script lays them into the Solr home from the pre-built XWiki Solr core packages
-# baked into the image under /opt/xwiki-solr (see the Dockerfile). Each package unpacks to
-# "/var/solr/data/xwiki_<core>_9" with its "core.properties", "conf/" and "lib/", so Solr discovers the cores.
+# Initializes the Solr cores required by XWiki when using a remote (standalone) Solr instance. It reuses the
+# standard XWiki Solr core packages (baked into the image under /opt/xwiki-solr, see the Dockerfile), which are
+# designed to work with a standard Solr install.
 #
 # Usage:
 # - Build the Solr image from the Dockerfile next to this script (it downloads the core packages and copies this
