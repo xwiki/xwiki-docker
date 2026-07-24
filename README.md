@@ -36,6 +36,7 @@ See the documentation of [XWiki.org](https://xwiki.org/) or [Wikipedia's article
 - [License](#license)
 - [Support](#support)
 - [Contribute](#contribute)
+- [Releasing new versions](#releasing-new-versions)
 - [Credits](#credits)
 
 # Introduction
@@ -750,6 +751,27 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 -	If you wish to help out on the code, please send Pull Requests on [XWiki Docker GitHub project](https://github.com/xwiki-contrib/docker-xwiki)
 -	Note that changes need to be merged to all other branches where they make sense and if they make sense for existing tags, those tags must be deleted and recreated.
 -	In addition, whenever a branch or tag is modified, a Pull Request on the [DockerHub XWiki official image](https://github.com/docker-library/official-images/blob/master/library/xwiki) must be made 
+
+# Releasing new versions
+
+This section is for maintainers performing the "Update Docker Images" step of an XWiki release (see
+[ReleasePlanHelp](https://dev.xwiki.org/xwiki/bin/view/ReleasePlans/ReleasePlanHelp#HUpdateDocker) for the
+full context). The version bumps and the DockerHub official-images Pull Request are automated as Gradle
+tasks; the maintainer only reviews, commits and pushes the `docker-xwiki` change in between.
+
+-	`./gradlew release` (pre-push): refreshes every cycle to the latest XWiki release, the JDBC drivers
+	(read per cycle from that cycle's own `xwiki-platform` POM) and the LibreOffice version, regenerates
+	all the version/variant directories, then smoke-tests the cycles that changed (boots the
+	`postgres-tomcat` variant and waits for an HTTP 200).
+-	Review the resulting diff, then commit and push `build.gradle` together with the regenerated
+	directories.
+-	`./gradlew submitOfficialImage` (post-push): regenerates the `library/xwiki` file and opens the Pull
+	Request against [docker-library/official-images](https://github.com/docker-library/official-images)
+	from your GitHub fork. Pass `-PdryRun` to only generate the file and show the diff without opening a
+	PR. Requires an authenticated `gh` CLI.
+
+Each step is also runnable on its own: `updateXWiki`, `updateJDBC`, `updateLibreOffice`, `generate`,
+`smokeTest` and `submitOfficialImage`. See the comments in `build.gradle` for details.
 
 # Credits
 
