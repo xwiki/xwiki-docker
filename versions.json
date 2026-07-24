@@ -1,0 +1,70 @@
+{
+    "libreoffice": {
+        "version": "25.8.7",
+        "sha256Amd64": "7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f",
+        "sha256Arm64": "67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa"
+    },
+    "cycles": {
+        "18": {
+            "role": "stable",
+            "xwikiVersion": "18.5.0",
+            "xwikiSha256": "649a5c53bc7ca02d80b3a3dcd1c03a7534ff868b6fe4f6eafa198602bc31c6df",
+            "mysqlJDBCVersion": "9.7.0",
+            "mysqlJDBCSha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+            "mariadbJDBCVersion": "3.5.9",
+            "mariadbJDBCSha256": "11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d",
+            "postgresJDBCVersion": "42.7.13",
+            "postgresJDBCSha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93",
+            "tomcatImageTag": {
+                "tomcatVersion": "10",
+                "javaVersion": "21"
+            }
+        },
+        "18.4": {
+            "role": "intermediate-lts",
+            "xwikiVersion": "18.4.2",
+            "xwikiSha256": "79c8149d26271f6271379bfc449a42bf51d745ca74984c4a1ee89cc4f9d1f399",
+            "mysqlJDBCVersion": "9.7.0",
+            "mysqlJDBCSha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+            "mariadbJDBCVersion": "3.5.9",
+            "mariadbJDBCSha256": "11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d",
+            "postgresJDBCVersion": "42.7.13",
+            "postgresJDBCSha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93",
+            "tomcatImageTag": {
+                "tomcatVersion": "10",
+                "javaVersion": "21"
+            }
+        },
+        "17": {
+            "role": "lts",
+            "xwikiVersion": "17.10.10",
+            "xwikiSha256": "f6e20373d9a3454d8dd54d9e9a0fbd6ed6006d44e97a56c2133dc7e8b724a8ee",
+            "mysqlJDBCVersion": "9.7.0",
+            "mysqlJDBCSha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+            "mariadbJDBCVersion": "3.5.9",
+            "mariadbJDBCSha256": "11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d",
+            "postgresJDBCVersion": "42.7.13",
+            "postgresJDBCSha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93",
+            "tomcatImageTag": {
+                "tomcatVersion": "10",
+                "javaVersion": "21"
+            }
+        },
+        "16": {
+            "role": "old-lts",
+            "libraryComment": "# Previous LTS - Added back temporarily",
+            "xwikiVersion": "16.10.18",
+            "xwikiSha256": "53de2ca1583d8d4b17d858b2b81b615dd29b08dbac73eecd2d61deae7afee5bf",
+            "mysqlJDBCVersion": "9.7.0",
+            "mysqlJDBCSha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+            "mariadbJDBCVersion": "3.5.9",
+            "mariadbJDBCSha256": "11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d",
+            "postgresJDBCVersion": "42.7.13",
+            "postgresJDBCSha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93",
+            "tomcatImageTag": {
+                "tomcatVersion": "9",
+                "javaVersion": "21"
+            }
+        }
+    }
+}

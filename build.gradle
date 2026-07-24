@@ -31,9 +31,9 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
 // Notes:
 // - The XWiki version + sha256, the per-cycle JDBC driver versions + sha256, and the LibreOffice
-//   version + sha256 are all resolved and rewritten automatically by the 'updateXWiki', 'updateJDBC'
-//   and 'updateLibreOffice' tasks below (chained by the 'release' umbrella). You normally never edit
-//   these values by hand.
+//   version + sha256 all live in the 'versions.json' data file and are resolved and rewritten there
+//   automatically by the 'updateXWiki', 'updateJDBC' and 'updateLibreOffice' tasks below (chained by
+//   the 'release' umbrella). You normally never edit these values by hand.
 // - For reference, the artifacts the sha256 are computed from: the XWiki WAR from nexus.xwiki.org
 //   (org/xwiki/platform/xwiki-platform-distribution-war) and the JDBC driver JARs from Maven Central
 //   (com.mysql:mysql-connector-j, org.mariadb.jdbc:mariadb-java-client, org.postgresql:postgresql). To
@@ -48,92 +48,32 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   of whatever the base image's Debian release ships. Rather than computing the version and the two sha256 (one per
 //   CPU architecture, since the official image is built for both amd64 and arm64) by hand, run
 //   './gradlew updateLibreOffice': it resolves the current LTS version the same way XWiki does and rewrites the pinned
-//   values in this file (the .sha256 are read from the files the Document Foundation publishes next to the archives).
+//   values in versions.json (the .sha256 are read from the files the Document Foundation publishes by the archives).
 
-// The JDBC driver versions and their sha256 are no longer shared across cycles: each XWiki cycle uses
-// the exact JDBC driver versions declared in that cycle's own xwiki-platform pom (the versions XWiki
-// was tested against), so they are stored per cycle in the 'tokens' map below and updated
-// automatically by the 'updateJDBC' task ('./gradlew updateJDBC').
-
-// LibreOffice version currently in use in the docker images. Contrary to XWiki and the JDBC drivers, this is not keyed
-// per XWiki cycle: XWiki officially supports a single LibreOffice version (the LTS one) whatever the XWiki version, so
-// the same version is used for all the generated images (it is injected into every cycle's tokens in the generate task
-// below). One sha256 is needed per CPU architecture since the official image is built for both amd64 and arm64.
-// These three values are updated automatically by the 'updateLibreOffice' task ('./gradlew updateLibreOffice'), below.
-def libreofficeVersion = '25.8.7'
-def libreofficeSha256Amd64 = '7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f'
-def libreofficeSha256Arm64 = '67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa'
-
-// Each cycle carries:
+// The version data model (per-cycle XWiki + JDBC driver versions/sha256, and the shared LibreOffice
+// version/sha256) is stored in the 'versions.json' data file next to this script, keeping the
+// configuration separate from the build logic and easy to update programmatically. 'tokens' is the
+// per-cycle map consumed by 'generate' (and the official-library tasks); each cycle carries:
 // - 'role': drives the tag aliases generated for the official Docker library file (see the
-//   'submitOfficialImage' task). One of 'stable', 'lts', 'intermediate-lts', 'previous'.
+//   'submitOfficialImage' task). One of 'stable', 'lts', 'intermediate-lts', 'old-lts'.
 // - 'xwikiVersion' / 'xwikiSha256': updated automatically by './gradlew updateXWiki'.
 // - the per-DB JDBC driver version + sha256: updated automatically by './gradlew updateJDBC' from the
-//   cycle's own xwiki-platform pom.
+//   cycle's own xwiki-platform pom (the versions XWiki was tested against, stored per cycle since each
+//   cycle may test against a different driver version).
+// - 'tomcatImageTag': the Tomcat and Java base image tags for that cycle.
 // - 'libraryComment' (optional): overrides the section comment emitted in the official library file.
-def tokens = [
-    '18': [
-        role: 'stable',
-        xwikiVersion: '18.5.0',
-        xwikiSha256: '649a5c53bc7ca02d80b3a3dcd1c03a7534ff868b6fe4f6eafa198602bc31c6df',
-        mysqlJDBCVersion: '9.7.0',
-        mysqlJDBCSha256: '0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44',
-        mariadbJDBCVersion: '3.5.9',
-        mariadbJDBCSha256: '11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d',
-        postgresJDBCVersion: '42.7.13',
-        postgresJDBCSha256: '6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93',
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '18.4': [
-        role: 'intermediate-lts',
-        xwikiVersion: '18.4.2',
-        xwikiSha256: '79c8149d26271f6271379bfc449a42bf51d745ca74984c4a1ee89cc4f9d1f399',
-        mysqlJDBCVersion: '9.7.0',
-        mysqlJDBCSha256: '0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44',
-        mariadbJDBCVersion: '3.5.9',
-        mariadbJDBCSha256: '11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d',
-        postgresJDBCVersion: '42.7.13',
-        postgresJDBCSha256: '6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93',
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '17': [
-        role: 'lts',
-        xwikiVersion: '17.10.10',
-        xwikiSha256: 'f6e20373d9a3454d8dd54d9e9a0fbd6ed6006d44e97a56c2133dc7e8b724a8ee',
-        mysqlJDBCVersion: '9.7.0',
-        mysqlJDBCSha256: '0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44',
-        mariadbJDBCVersion: '3.5.9',
-        mariadbJDBCSha256: '11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d',
-        postgresJDBCVersion: '42.7.13',
-        postgresJDBCSha256: '6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93',
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '16': [
-        role: 'previous',
-        libraryComment: '# Previous LTS - Added back temporarily',
-        xwikiVersion: '16.10.18',
-        xwikiSha256: '53de2ca1583d8d4b17d858b2b81b615dd29b08dbac73eecd2d61deae7afee5bf',
-        mysqlJDBCVersion: '9.7.0',
-        mysqlJDBCSha256: '0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44',
-        mariadbJDBCVersion: '3.5.9',
-        mariadbJDBCSha256: '11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d',
-        postgresJDBCVersion: '42.7.13',
-        postgresJDBCSha256: '6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93',
-        tomcatImageTag: [
-            tomcatVersion: '9',
-            javaVersion: '21'
-        ]
-    ]
-]
+// The shared LibreOffice values live under the top-level 'libreoffice' key (version + one sha256 per CPU
+// architecture, since the official image is built for both amd64 and arm64) and are updated automatically
+// by './gradlew updateLibreOffice'.
+def versionsFile = file('versions.json')
+def config = new groovy.json.JsonSlurper().parse(versionsFile)
+def tokens = config.cycles
+
+// Persist the (possibly mutated) version data model back to 'versions.json'. Used by the update tasks
+// below instead of rewriting this script, so that the configuration and the build logic stay separate.
+def writeConfig = {
+    versionsFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config)) + '\n'
+}
 
 // The set of DB variants and their short names used in the official Docker library file. The first
 // entry is the default variant (the one that also gets the version-only and role-global tags).
@@ -152,9 +92,9 @@ task generate() {
                 def (db, servlet) = variant.tokenize('-')
                 tokens[version].'db' = db
                 // Add the LibreOffice tokens (shared by all cycles, see above)
-                tokens[version].'libreofficeVersion' = libreofficeVersion
-                tokens[version].'libreofficeSha256Amd64' = libreofficeSha256Amd64
-                tokens[version].'libreofficeSha256Arm64' = libreofficeSha256Arm64
+                tokens[version].'libreofficeVersion' = config.libreoffice.version
+                tokens[version].'libreofficeSha256Amd64' = config.libreoffice.sha256Amd64
+                tokens[version].'libreofficeSha256Arm64' = config.libreoffice.sha256Arm64
                 // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
@@ -253,25 +193,20 @@ task updateLibreOffice() {
         def newSha256Amd64 = resolveSha256('x86_64', 'x86-64')
         def newSha256Arm64 = resolveSha256('aarch64', 'aarch64')
 
-        // Rewrite the pinned values in this build.gradle.
-        def buildFile = file('build.gradle')
-        def content = buildFile.text
-        content = content
-            .replaceFirst(/def libreofficeVersion = '[^']*'/, "def libreofficeVersion = '${newVersion}'")
-            .replaceFirst(/def libreofficeSha256Amd64 = '[^']*'/, "def libreofficeSha256Amd64 = '${newSha256Amd64}'")
-            .replaceFirst(/def libreofficeSha256Arm64 = '[^']*'/, "def libreofficeSha256Arm64 = '${newSha256Arm64}'")
-        buildFile.text = content
+        // Persist the pinned values to the versions.json data file. Mutating the in-memory 'config' also
+        // means a 'generate' chained in the same invocation (e.g. via the 'release' umbrella) picks up the
+        // new LibreOffice version.
+        def oldVersion = config.libreoffice.version
+        config.libreoffice.version = newVersion
+        config.libreoffice.sha256Amd64 = newSha256Amd64
+        config.libreoffice.sha256Arm64 = newSha256Arm64
+        writeConfig()
 
-        if (newVersion == libreofficeVersion) {
+        if (newVersion == oldVersion) {
             logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
         } else {
-            logger.lifecycle("Updated LibreOffice from ${libreofficeVersion} to ${newVersion}.")
+            logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
         }
-        // Also update the in-memory values so that a 'generate' chained in the same invocation (e.g.
-        // via the 'release' umbrella) picks up the new LibreOffice version.
-        libreofficeVersion = newVersion
-        libreofficeSha256Amd64 = newSha256Amd64
-        libreofficeSha256Arm64 = newSha256Arm64
         logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
     }
 }
@@ -323,38 +258,6 @@ sha256OfUrl = { String location ->
     throw new GradleException("Too many redirects while fetching [$location]")
 }
 
-// Rewrite one or more "field: 'value'" entries inside a single cycle's block of the 'tokens' map in
-// build.gradle, without touching the same field name in other cycles. Works line by line so nested
-// maps (tomcatImageTag) and unrelated fields (role, libraryComment) are left untouched.
-def rewriteCycleFields
-rewriteCycleFields = { String content, String cycle, Map fieldValues ->
-    def currentCycle = null
-    def out = content.readLines().collect { line ->
-        if (line ==~ /^\S.*/) {
-            // A non-indented line means we left the 'tokens' map region.
-            currentCycle = null
-        }
-        def cycleMatcher = (line =~ /^\s{4}'([^']+)':\s*\[\s*$/)
-        if (cycleMatcher.matches()) {
-            currentCycle = cycleMatcher.group(1)
-            return line
-        }
-        if (currentCycle == cycle) {
-            def fieldMatcher = (line =~ /^(\s*)(\w+):\s*'[^']*'(,?)\s*$/)
-            if (fieldMatcher.matches()) {
-                def indent = fieldMatcher.group(1)
-                def name = fieldMatcher.group(2)
-                def comma = fieldMatcher.group(3)
-                if (fieldValues.containsKey(name)) {
-                    return "${indent}${name}: '${fieldValues[name]}'${comma}"
-                }
-            }
-        }
-        return line
-    }
-    return out.join('\n') + '\n'
-}
-
 // Run an external command (optionally in workingDir), capturing its stdout; throw on a non-zero exit
 // unless allowFailure is set. Returns the trimmed stdout. Used by 'smokeTest' (docker compose) and
 // 'submitOfficialImage' (git/gh plumbing). Uses Groovy's Process API rather than Gradle's exec (removed
@@ -396,8 +299,6 @@ task updateXWiki() {
         if (finals.isEmpty()) {
             throw new GradleException("No final XWiki versions found at [$metadataUrl]")
         }
-        def buildFile = file('build.gradle')
-        def content = buildFile.text
         def changed = []
         tokens.each { cycle, data ->
             def parts = cycle.tokenize('.')
@@ -420,13 +321,12 @@ task updateXWiki() {
             logger.lifecycle("Updating XWiki cycle ${cycle} from ${data.xwikiVersion} to ${latest} " +
                 '(downloading the WAR to compute its sha256, this may take a while)...')
             def sha = sha256OfUrl(warUrl)
-            content = rewriteCycleFields(content, cycle, [xwikiVersion: latest, xwikiSha256: sha])
             data.xwikiVersion = latest
             data.xwikiSha256 = sha
             changed << cycle
         }
         if (!changed.isEmpty()) {
-            buildFile.text = content
+            writeConfig()
             logger.lifecycle("Updated XWiki version for cycle(s): ${changed.join(', ')}.")
         }
         // Record changed cycles so a chained 'smokeTest' (in the 'release' umbrella) knows what to test.
@@ -452,8 +352,7 @@ task updateJDBC() {
              jar: { v -> "postgresql-${v}.jar" },
              tokenV: 'postgresJDBCVersion', tokenS: 'postgresJDBCSha256']
         ]
-        def buildFile = file('build.gradle')
-        def content = buildFile.text
+        def changed = false
         tokens.each { cycle, data ->
             def version = data.xwikiVersion
             // Read the JDBC driver versions from the cycle's own xwiki-platform pom on nexus.xwiki.org.
@@ -462,7 +361,6 @@ task updateJDBC() {
             def pomUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
                 "org/xwiki/platform/xwiki-platform/${version}/xwiki-platform-${version}.pom"
             def pom = httpGetText(pomUrl)
-            def fieldValues = [:]
             drivers.each { d ->
                 def matcher = (pom =~ /<${d.prop}>([^<]+)<\/${d.prop}>/)
                 if (!matcher.find()) {
@@ -477,16 +375,14 @@ task updateJDBC() {
                 logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC ${data[d.tokenV]} -> ${newVersion} " +
                     '(hashing jar)...')
                 def sha = sha256OfUrl(jarUrl)
-                fieldValues[d.tokenV] = newVersion
-                fieldValues[d.tokenS] = sha
                 data[d.tokenV] = newVersion
                 data[d.tokenS] = sha
-            }
-            if (!fieldValues.isEmpty()) {
-                content = rewriteCycleFields(content, cycle, fieldValues)
+                changed = true
             }
         }
-        buildFile.text = content
+        if (changed) {
+            writeConfig()
+        }
         logger.lifecycle("Run './gradlew' to regenerate the images.")
     }
 }
@@ -563,7 +459,7 @@ def librarySectionComments = [
     'stable': '# Latest stable',
     'intermediate-lts': '# Intermediate LTS',
     'lts': '# LTS',
-    'previous': '# Previous LTS'
+    'old-lts': '# Previous LTS'
 ]
 
 // The version tags a cycle contributes, from most to least generic. A major-only cycle key (e.g. '18',
@@ -723,7 +619,7 @@ task submitOfficialImage() {
 
         // Open the PR against upstream.
         def roleLabels = ['stable': 'stable', 'intermediate-lts': 'intermediate LTS', 'lts': 'LTS',
-            'previous': 'previous LTS']
+            'old-lts': 'previous LTS']
         def prBody = 'Update the XWiki official images to the latest releases:\n\n' +
             tokens.collect { cycle, data -> "- `${cycle}` (${roleLabels[data.role]}): ${data.xwikiVersion}" }
                 .join('\n') + '\n'
