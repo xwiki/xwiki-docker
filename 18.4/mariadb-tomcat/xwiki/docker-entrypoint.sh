@@ -22,8 +22,11 @@
 set -e
 
 function first_start() {
+  # Ensure permanent directory exists on first start/configure
+  mkdir -p /usr/local/xwiki/data
   configure
-  touch /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed
+  # Don't fail if file can't be created. There is cases where this folder can't be changed.
+  touch /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed 2>/dev/null || true
 }
 
 function other_starts() {
@@ -49,9 +52,11 @@ function clean_temporary_directory() {
 function xwiki_replace() {
   # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
   # which makes it fail if you map the initial file as a Docker volume mount.
-  sed s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1" > "$1.old"
-  cp "$1.old" "$1"
-  rm "$1.old"
+  # Copying file on permanent directory to prevent error on environments that prevents file modification on image files.
+  local file="/usr/local/xwiki/data/$(basename "$1").old"
+  cp "$1" "${file}"
+  sed s~"\#\? \?$2 \?=.*"~"$2=$3"~g "${file}" > "$1"
+  rm "${file}"
 }
 
 # $1 - the setting/property to set
@@ -95,9 +100,11 @@ file_env() {
 function safesed {
   # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
   # which makes it fail if you map the initial file as a Docker volume mount.
-  sed "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" "$3" > "$3.old"
-  cp "$3.old" "$3"
-  rm "$3.old"
+  # Copying file on permanent directory to prevent error on environments that prevents file modification on image files.
+  local file="/usr/local/xwiki/data/$(basename "$3").old"
+  cp  "$3" "${file}"
+  sed "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" "${file}" > "$3"
+  rm "${file}"
 }
 
 # $1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")

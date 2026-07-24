@@ -430,6 +430,7 @@ where:
 Notes: 
 * In the past, the first 3 configuration files listed above (`xwiki.cfg`, `xwiki.properties` and `hibernate.cfg.xml`) had a special handling, and they were copied automatically on the first XWiki container start, from the XWiki image into the local permanent directory. This was removed starting with XWiki 16.6.0/15.10.12. However, in order to preserve backward compatibility, if these files are found in the permanent directory, they are copied on container start to their location inside the container.
 * It's recommended to only map volumes for configuration files that you need to customize. This is because when you upgrade you'll need to perform a merge between XWiki's default configuration files and the ones you modified. If you haven't modified them, then there's no merge to do. 
+* In environments with read only default file permission, `$CONTEXT_PATH` variable can't be changed. Potential alternatives: Mount custom tomcat context file configuration file; Add a custom RewriteValve; Handle logic on reverse proxy level. 
 
 ### Example for `docker run`
 
