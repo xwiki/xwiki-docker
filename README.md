@@ -376,8 +376,7 @@ The first time you create a container out of the xwiki image, a shell script (`/
 -	`DB_PASSWORD`: The user password used by XWiki to read/write to the DB.
 -	`DB_DATABASE`: The name of the XWiki database to use/create.
 -	`DB_HOST`: The name of the host (or docker container) containing the database. Default is "db".
--	`INDEX_HOST`: The hostname of an externally configured Solr instance. Defaults to "localhost", and configures an embedded Solr instance.
--	`INDEX_PORT`: The port used by an externally configured Solr instance. Defaults to 8983.
+-	`SOLR_BASE_URL`: The base URL of an externally configured Solr instance (for example `https://solr.example.com/solr`). When left empty (the default), XWiki uses its embedded Solr instance.
 -   `CONTEXT_PATH`: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll be deployed as ROOT.
     -   If you had set this environment property and later on, recreate the XWiki container without passing it (i.e you wish to deploy XWiki as ROOT again), the you'll need to edit the `xwiki.cfg` file in your mapped local permanent directory and set `xwiki.webapppath=`.
 -	`JDBC_PARAMS`: Custom JDB parameters to pass to the JBC connection. Setting this value overwrites the default parameters used (which depend on the DB used). The value must start with a question mark and the content be XML-encoded. For example: `?useSSL=false&amp;connectionTimeZone=LOCAL&amp;allowPublicKeyRetrieval=true`.
@@ -388,8 +387,7 @@ In order to support [Docker secrets](https://docs.docker.com/engine/swarm/secret
 -	`DB_PASSWORD_FILE`: The location, inside the container, of a file containing the value for `DB_PASSWORD`
 -	`DB_DATABASE_FILE`: The location, inside the container, of a file containing the value for `DB_DATABASE`
 -	`DB_HOST_FILE`: The location, inside the container, of a file containing the value for `DB_HOST`
--	`INDEX_HOST_FILE`: The location, inside the container, of a file containing the value for `INDEX_HOST`
--	`INDEX_PORT_FILE`: The location, inside the container, of a file containing the value for `INDEX_PORT`
+-	`SOLR_BASE_URL_FILE`: The location, inside the container, of a file containing the value for `SOLR_BASE_URL`
 -	`JDBC_PARAMS_FILE`: The location, inside the container, of a file containing the value for `JDBC_PARAMS`
 
 *Note:* For each configuration value, the normal environment variable and \_FILE environment variable are mutually exclusive. Providing values for both variables will result in an error.
@@ -598,40 +596,57 @@ From the [XWiki Solr Search API documentation](https://extensions.xwiki.org/xwik
 >
 > You can also find more Solr-specific performance details on https://wiki.apache.org/solr/SolrPerformanceProblems. Standalone Solr also comes with a very nice UI, along with monitoring and test tools.
 
-This image provides the configuration parameters `INDEX_HOST` and `INDEX_PORT` which are used to configure `xwiki.properties` with:
+This image provides the `SOLR_BASE_URL` configuration parameter which is used to configure `xwiki.properties` with:
 
 ```data
 solr.type=remote
-solr.remote.baseURL=http://$INDEX_HOST:$INDEX_PORT/solr
+solr.remote.baseURL=$SOLR_BASE_URL
 ```
 
 #### Preparing Solr container
 
-The simplest way to create an external Solr service is using the [official Solr image](https://hub.docker.com/_/solr/).
+A remote Solr instance needs **several cores** (`search`, `events`, `ratings` and
+`extension_index`), and XWiki does not create them itself because the Solr REST API is too limited. They must exist
+on the Solr server before starting XWiki.
 
--	Select the appropriate XWiki Solr configuration JAR from [here](https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/) (Note: it's usually better to synchronize it with your version of XWiki)
--	Place this JAR in a directory along side `solr-init.sh` that you can fetch from the [docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)
--	Ensure that this directory is owned by the Solr user and group `chown -R 8983:8983 /path/to/solr/init/directory`
--	Launch the Solr container and mount this directory at `/docker-entrypoint-initdb.d`
--	This will execute `solr-init.sh` on container startup and prepare the XWiki core with the contents from the given JAR
--	If you want to persist the Solr index outside of the container with a bind mount, make sure that that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
+The Solr image is built (see the `Dockerfile` next to `solr-init.sh`, both in the
+[docker-xwiki repository](https://github.com/xwiki-contrib/docker-xwiki/tree/master/contrib/solr)) from the
+[official Solr image](https://hub.docker.com/_/solr/). At build time it downloads XWiki's pre-built Solr core
+packages (one per core, matching your XWiki version) and, on container startup, `solr-init.sh` lays them into the
+Solr home. It also enables Solr's `analysis-extras` module, which the XWiki search core needs (its schema relies on
+language analyzers, such as the Polish stemmer, shipped in that module).
+
+-	Build the image, passing your XWiki version so the matching cores are downloaded (see the examples below). There
+	is no extra file to download and no init directory to mount.
+-	If you want to persist the Solr index outside of the container with a bind mount (mounted at `/var/solr`), make
+	sure that directory is owned by the Solr user and group `chown 8983:8983 /my/path/solr`
+
+> Note: the cores are named `xwiki_<core>_<solrMajorVersion>` (e.g. `xwiki_search_9`). The `xwiki` prefix matches the
+> default `solr.remote.corePrefix` property; if you changed that property, adjust the core directory names
+> accordingly. The Solr major version must match the Solr image you use (the provided `Dockerfile` uses `solr:9`).
 
 #### Example with `docker run`
 
 Start your chosen database container normally using the docker run command above, this example happens to assume MySQL was chosen.
 
-The command below will configure the Solr container to initialize based on the contents of `/path/to/solr/init/directory/` and save its data on the host in a `/my/path/solr` directory:
+First build the Solr image from the `contrib/solr` directory (which contains the `Dockerfile` and `solr-init.sh`),
+passing the XWiki version you run so the matching cores are downloaded:
+
+```console
+docker build -t xwiki-solr --build-arg XWIKI_VERSION=18.5.0 /path/to/contrib/solr
+```
+
+The command below runs the Solr container and persists its data on the host in a `/my/path/solr` directory (the cores are created automatically on the first start):
 
 ```console
 docker run \
   --net=xwiki-nw \
   --name solr-xwiki \
-  -v /path/to/solr/init/directory:/docker-entrypoint-initdb.d \
-  -v /my/path/solr:/var/solr/data/xwiki \
-  -d solr:9
+  -v /my/path/solr:/var/solr \
+  -d xwiki-solr
 ```
 
-Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e INDEX_HOST=` environment variable which specifies the hostname of the Solr container.
+Then start the XWiki container, the below command is nearly identical to that specified in the Starting XWiki section above, except that it includes the `-e SOLR_BASE_URL=` environment variable which specifies the base URL of the Solr container.
 
 ```console
 docker run \
@@ -643,13 +658,15 @@ docker run \
   -e DB_PASSWORD=xwiki \
   -e DB_DATABASE=xwiki \
   -e DB_HOST=mysql-xwiki \
-  -e INDEX_HOST=solr-xwiki \
+  -e SOLR_BASE_URL=http://solr-xwiki:8983/solr \
   -d xwiki:stable-mysql-tomcat
 ```
 
 #### Example with `docker compose`
 
-The below compose file assumes that `./solr` contains `solr-init.sh` and the configuration JAR file.
+The below compose file assumes that `./solr` contains the `Dockerfile` and `solr-init.sh` (the `contrib/solr`
+directory of this repository). The `XWIKI_VERSION` build argument selects the Solr cores to download, so keep it in
+sync with the XWiki version used by the `web` service.
 
 ```yaml
 version: '2'
@@ -671,7 +688,7 @@ services:
       - DB_PASSWORD=xwiki
       - DB_DATABASE=xwiki
       - DB_HOST=xwiki-db
-      - INDEX_HOST=xwiki-index
+      - SOLR_BASE_URL=http://xwiki-index:8983/solr
     volumes:
       - xwiki-data:/usr/local/xwiki
     networks:
@@ -693,10 +710,12 @@ services:
     networks:
       - bridge
   index:
-    image: "solr:9"
+    build:
+      context: ./solr
+      args:
+        XWIKI_VERSION: 18.5.0
     container_name: xwiki-index
     volumes:
-      - ./solr:/docker-entrypoint-initdb.d
       - solr-data:/var/solr
     networks:
       - bridge

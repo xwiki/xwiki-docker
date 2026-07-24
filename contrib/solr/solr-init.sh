@@ -1,39 +1,55 @@
 #!/bin/bash
+# ---------------------------------------------------------------------------
+# See the NOTICE file distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+# ---------------------------------------------------------------------------
 
+# Initializes the Solr cores required by XWiki when using a remote (standalone) Solr instance. It reuses the
+# standard XWiki Solr core packages (baked into the image under /opt/xwiki-solr, see the Dockerfile), which are
+# designed to work with a standard Solr install.
+#
 # Usage:
-# - Place the XWiki Solr configuration jar into the same directory as this script
-#	- ex. wget https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-search-solr-server-data/10.1/xwiki-platform-search-solr-server-data-10.1.jar
-# - ensure that this directory, and it's contents, are owned by the solr user and group, 8983:8983
-#	- ex. chown -R 8983:8983 $PARENT_DIRECTORY
-# - mount the partent directory of this script to /docker-entrypoint-initdb.d/ when you run the Solr container
-#	- ex. add the following to docker run command ... -v $PWD/$PARENT_DIRECTORY:/docker-entrypoint-initdb.d ...
-# - At run time, before starting Solr, the container will execute scripts in the /docker-entrypoint-initdb.d/ directory.
+# - Build the Solr image from the Dockerfile next to this script (it downloads the core packages and copies this
+#   script into /docker-entrypoint-initdb.d). Pass "--build-arg XWIKI_VERSION=<version>" to match your XWiki version.
+# - Run that image: on startup, before Solr starts, the container executes scripts in /docker-entrypoint-initdb.d/,
+#   so this script runs and creates any missing core in the (possibly mounted) Solr home.
 
-cd /docker-entrypoint-initdb.d/
-location='/var/solr/data/'
+set -e
 
-# Verify the existence of a singular XWiki Solr configuration jar
-jars=$(find . -type f -name *.jar | wc -l)
-if [ $jars -lt 1 ]; then
-	echo 'No XWiki Solr configuration jar found'
-	exit 1
-elif [ $jars -gt 1 ]; then
-	echo 'Too many XWiki Solr configuration jars found, please include only one jar'
-	exit 1
-fi
-# Get the name of the XWiki Solr configuration jar
-jar=$(find . -type f -name *.jar)
-# Ensure that the Solr directory exists
-mkdir -p $location
+debdir='/opt/xwiki-solr'
+datadir='/var/solr/data'
 
-# Add the XWiki Solr plugin
-plugin=$(unzip -Z1 $jar | grep lib.*jar)
-unzip -o $jar \
-	$plugin \
-	-d $location
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
 
-# Add the XWiki core
-core='xwiki/*'
-unzip -o $jar \
-	$core \
-	-d $location
+for deb in "$debdir"/*.deb; do
+	# "dpkg -x" unpacks the package payload without registering it (there is no dpkg database in the Solr image).
+	# We stage it, then copy only the missing cores so re-runs (the init scripts run on every start) don't clobber
+	# an already-populated core in a persisted volume.
+	dpkg -x "$deb" "$tmp"
+	for core in "$tmp"/var/solr/data/*/; do
+		name="$(basename "$core")"
+		if [ -d "$datadir/$name" ]; then
+			echo "Solr core [$name] already exists, skipping"
+		else
+			echo "Creating Solr core [$name]"
+			cp -a "$core" "$datadir/$name"
+		fi
+	done
+	rm -rf "$tmp/var"
+done

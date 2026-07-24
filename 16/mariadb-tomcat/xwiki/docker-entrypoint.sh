@@ -124,8 +124,7 @@ function configure() {
   file_env 'DB_PASSWORD' 'xwiki'
   file_env 'DB_HOST' 'db'
   file_env 'DB_DATABASE' 'xwiki'
-  file_env 'INDEX_HOST' 'localhost'
-  file_env 'INDEX_PORT' '8983'
+  file_env 'SOLR_BASE_URL' ''
   file_env 'JDBC_PARAMS' '?useSSL=false'
 
   echo "  Deploying XWiki in the '$CONTEXT_PATH' context"
@@ -153,10 +152,16 @@ function configure() {
   echo '  Configure libreoffice...'
   xwiki_set_properties 'openoffice.autoStart' 'true'
 
-  if [ $INDEX_HOST != 'localhost' ]; then
+  # Configure a remote Solr instance when SOLR_BASE_URL is set (empty by default, meaning the embedded Solr is
+  # used). SOLR_BASE_URL holds the full Solr base URL, so it can carry the scheme (e.g. https), a custom path and
+  # the port.
+  if [ -n "$SOLR_BASE_URL" ]; then
     echo '  Configuring remote Solr Index'
     xwiki_set_properties 'solr.type' 'remote'
-    xwiki_set_properties 'solr.remote.url' "http://$INDEX_HOST:$INDEX_PORT/solr/xwiki"
+    # Point to the Solr base URL (not a single core): XWiki manages several cores (search, events, ratings,
+    # extension index) and creates its clients under this base. The old single-core "solr.remote.url" property is
+    # deprecated and only configures the search core, which breaks the other cores.
+    xwiki_set_properties 'solr.remote.baseURL' "$SOLR_BASE_URL"
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory.
