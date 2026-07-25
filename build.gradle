@@ -387,10 +387,42 @@ task updateJDBC() {
     }
 }
 
+// Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying
+// the expected XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a
+// stronger check: the root REST resource returns the running XWiki product version in its
+// <xwiki version="..."> element (it is served to guests, no auth needed), so a match proves XWiki
+// actually finished initializing - not merely that Tomcat is up. Returns true on success, false on
+// timeout. XWiki is deployed as the ROOT webapp in these images, so there is no /xwiki context prefix.
+def waitForXWiki
+waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
+    def deadline = System.currentTimeMillis() + timeoutMillis
+    while (System.currentTimeMillis() < deadline) {
+        try {
+            def conn = (HttpURLConnection) new URL("http://localhost:${port}/rest").openConnection()
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            if (conn.responseCode == 200) {
+                def body = conn.inputStream.getText('UTF-8')
+                conn.disconnect()
+                if (body.contains(expectedVersion)) {
+                    return true
+                }
+            } else {
+                conn.disconnect()
+            }
+        } catch (ignored) {
+            // XWiki not serving yet; keep polling.
+        }
+        Thread.sleep(5000)
+    }
+    return false
+}
+
 // Boot-check the postgres-tomcat variant of the given cycles: start it with docker compose, wait until
-// XWiki serves HTTP 200 on http://localhost:8080, then tear it down. By default it tests the cycles
-// whose XWiki version changed in this invocation (set by 'updateXWiki', used by the 'release'
-// umbrella); pass '-Pcycles=18,17' to test specific cycles, or run it standalone to test them all.
+// XWiki's REST API reports the expected version on http://localhost:8080/rest, then tear it down. By
+// default it tests the cycles whose XWiki version changed in this invocation (set by 'updateXWiki', used
+// by the 'release' umbrella); pass '-Pcycles=18,17' to test specific cycles, or run it standalone to
+// test them all.
 task smokeTest() {
     doLast {
         def variant = 'postgres-tomcat'
@@ -411,36 +443,121 @@ task smokeTest() {
             if (!dir.exists()) {
                 throw new GradleException("smokeTest: directory [${dir}] does not exist.")
             }
+            def expectedVersion = tokens[cycle].xwikiVersion
             logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant})...")
             try {
                 capture(['docker', 'compose', 'up', '-d'], false, dir)
-                def deadline = System.currentTimeMillis() + 600000
-                def ready = false
-                while (System.currentTimeMillis() < deadline) {
-                    def code = -1
-                    try {
-                        def conn = (HttpURLConnection) new URL('http://localhost:8080/').openConnection()
-                        conn.connectTimeout = 5000
-                        conn.readTimeout = 5000
-                        code = conn.responseCode
-                        conn.disconnect()
-                    } catch (ignored) {
-                        // XWiki not serving yet; keep polling.
-                    }
-                    if (code == 200) {
-                        ready = true
-                        break
-                    }
-                    Thread.sleep(5000)
+                if (!waitForXWiki(8080, expectedVersion, 600000)) {
+                    throw new GradleException("smokeTest: XWiki ${cycle} (${variant}) did not report " +
+                        "version ${expectedVersion} on http://localhost:8080/rest within the timeout.")
                 }
-                if (!ready) {
-                    throw new GradleException("smokeTest: XWiki ${cycle} (${variant}) did not serve " +
-                        'HTTP 200 on http://localhost:8080 within the timeout.')
-                }
-                logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) is up (HTTP 200).")
+                logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) is up " +
+                    "(REST reports version ${expectedVersion}).")
             } finally {
                 capture(['docker', 'compose', 'down', '-v'], true, dir)
             }
+        }
+    }
+}
+
+// Compute the ordered list of cycle/variant instances that 'runAll'/'stopAll' operate on, assigning each
+// a distinct host port starting at 8080 and its own isolated docker compose project name. Honors the
+// '-Pcycles' and '-Pvariants' comma-separated filters, defaulting to every cycle and every variant. The
+// assignment is deterministic, so 'stopAll' derives the same project names as 'runAll' for a given
+// selection (project names must be lowercase with no dots, hence the '.' -> '-' rewrite).
+def runAllSelection
+runAllSelection = {
+    def selectedCycles = project.hasProperty('cycles') ?
+        project.property('cycles').tokenize(',')*.trim().findAll { it } : (tokens.keySet() as List)
+    def selectedVariants = project.hasProperty('variants') ?
+        project.property('variants').tokenize(',')*.trim().findAll { it } : variants
+    def instances = []
+    def port = 8080
+    selectedCycles.each { cycle ->
+        selectedVariants.each { variant ->
+            instances << [cycle: cycle, variant: variant, port: port,
+                project: "${cycle}-${variant}".toString().replace('.', '-')]
+            port++
+        }
+    }
+    return instances
+}
+
+// Render a port/name-isolated compose file for one 'runAll' instance and invoke 'docker compose' on it.
+// The generated version/variant docker-compose.yml hardcodes the host port (8080) and the container
+// names (per DB, not per cycle), which would collide when several instances run at once. So we take that
+// file and rewrite: the published port -> the instance's port, and the container names (web + db, the db
+// name also being referenced as DB_HOST) -> project-scoped names. Each instance runs as its own compose
+// project (-p) so its network and volumes are isolated too. '--project-directory' keeps '.env' and the
+// relative './init.sql' bind mount resolving against the original variant directory.
+def runAllCompose
+runAllCompose = { Map inst, List<String> composeArgs, boolean allowFailure ->
+    def variantDir = file("${inst.cycle}/${inst.variant}")
+    if (!variantDir.exists()) {
+        throw new GradleException("runAll: directory [${variantDir}] does not exist. Run './gradlew' first.")
+    }
+    def db = inst.variant.tokenize('-')[0]
+    def composeText = file("${variantDir}/docker-compose.yml").text
+        .replace('"8080:8080"', "\"${inst.port}:8080\"".toString())
+        .replace("xwiki-${db}-tomcat-web".toString(), "xwiki-${inst.project}-web".toString())
+        .replace("xwiki-${db}-db".toString(), "xwiki-${inst.project}-db".toString())
+    def composeFile = file("build/runAll/${inst.project}.yml")
+    composeFile.parentFile.mkdirs()
+    composeFile.text = composeText
+    capture(['docker', 'compose', '--project-directory', variantDir.absolutePath,
+        '-f', composeFile.absolutePath, '-p', inst.project] + composeArgs, allowFailure, variantDir)
+}
+
+// Start XWiki instances for manual inspection and leave them running (unlike 'smokeTest', which tears
+// down with 'down -v'). Brings up each selected cycle/variant on its own host port (8080, 8081, ...),
+// each as an isolated docker compose project, then waits until each serves its REST API with the
+// expected version and prints the browse URLs. By default it runs every cycle x every variant; pass
+// '-Pcycles=18,17' and/or '-Pvariants=postgres-tomcat' to narrow it down (running all at once is
+// resource-heavy: one XWiki JVM + one database per instance). Stop them again with the matching
+// './gradlew stopAll' invocation.
+task runAll() {
+    doLast {
+        def selection = runAllSelection()
+        if (selection.isEmpty()) {
+            logger.lifecycle('runAll: nothing to run.')
+            return
+        }
+        logger.lifecycle("runAll: starting ${selection.size()} instance(s); this is resource-heavy " +
+            '(one XWiki JVM + one database each).')
+        selection.each { inst ->
+            logger.lifecycle("runAll: starting XWiki ${inst.cycle} (${inst.variant}) on port ${inst.port}...")
+            runAllCompose(inst, ['up', '-d'], false)
+        }
+        // Wait for each to come up (in the background they boot in parallel) and report the browse URL.
+        selection.each { inst ->
+            def expectedVersion = tokens[inst.cycle].xwikiVersion
+            if (waitForXWiki(inst.port, expectedVersion, 600000)) {
+                logger.lifecycle("runAll: XWiki ${inst.cycle} (${inst.variant}) is up at " +
+                    "http://localhost:${inst.port}/ (version ${expectedVersion}).")
+            } else {
+                logger.lifecycle("runAll: WARNING - XWiki ${inst.cycle} (${inst.variant}) on port " +
+                    "${inst.port} did not report version ${expectedVersion} within the timeout; " +
+                    'left running for inspection anyway.')
+            }
+        }
+        logger.lifecycle("runAll: all instances left running. Stop them with the matching " +
+            "'./gradlew stopAll' invocation (repeat the same -Pcycles/-Pvariants).")
+    }
+}
+
+// Tear down (and remove the volumes of) the instances started by 'runAll'. Accepts the same '-Pcycles' /
+// '-Pvariants' selection as 'runAll' and reconstructs the same project names, so pass the same filters
+// you used to start them.
+task stopAll() {
+    doLast {
+        def selection = runAllSelection()
+        if (selection.isEmpty()) {
+            logger.lifecycle('stopAll: nothing to stop.')
+            return
+        }
+        selection.each { inst ->
+            logger.lifecycle("stopAll: stopping XWiki ${inst.cycle} (${inst.variant})...")
+            runAllCompose(inst, ['down', '-v'], true)
         }
     }
 }
