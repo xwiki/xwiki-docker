@@ -30,17 +30,17 @@ defaultTasks 'generate'
 def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
 // Notes:
-// - To compute the XWiki sha256, download the XWiki WAR from
-//   http://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war, and issue:
-//   - Unix: sha256sum <binary name>
-//   - Mac: shasum --algorithm 256 <binary name>
-// - To compute the Mysql JDBC sha256, get the JAR at https://search.maven.org/artifact/com.mysql/mysql-connector-j and do the same as for the XWiki sha256.
-// - To compute the MariaDB JDBC sha256, get the JAR at https://search.maven.org/artifact/org.mariadb.jdbc/mariadb-java-client and  do the same as for the XWiki sha256.
-// - To compute the Postgres JDBC sha256, get the JAR at https://search.maven.org/artifact/org.postgresql/postgresql and do the same as for the XWiki sha256.
-// - Use the JDBC driver versions found in the XWiki POM for the specified versions:
-//   - mysql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L110 (link for master)
-//   - mariadb: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L113 (link for master)
-//   - postgresql: https://github.com/xwiki/xwiki-platform/blob/master/pom.xml#L119 (link for master)
+// - The XWiki version + sha256, the per-cycle JDBC driver versions + sha256, and the LibreOffice
+//   version + sha256 all live in the 'versions.json' data file and are resolved and rewritten there
+//   automatically by the 'updateXWiki', 'updateJDBC' and 'updateLibreOffice' tasks below (chained by
+//   the 'release' umbrella). You normally never edit these values by hand.
+// - For reference, the artifacts the sha256 are computed from: the XWiki WAR from nexus.xwiki.org
+//   (org/xwiki/platform/xwiki-platform-distribution-war) and the JDBC driver JARs from Maven Central
+//   (com.mysql:mysql-connector-j, org.mariadb.jdbc:mariadb-java-client, org.postgresql:postgresql). To
+//   compute a sha256 by hand: download the artifact then 'sha256sum <file>' (Unix) /
+//   'shasum --algorithm 256 <file>' (Mac).
+// - The JDBC driver versions are the ones declared in each cycle's own xwiki-platform POM properties
+//   (mysql.version, mariadb.version, pgsql.version), i.e. the versions XWiki was tested against.
 // - LibreOffice: XWiki officially supports a single version, the LTS one (aka "Previous Release"), see
 //   https://dev.xwiki.org/xwiki/bin/view/Community/SupportStrategy/LibreOfficeSupportStrategy/. It is the version XWiki
 //   tests against (the 'libreoffice.version' POM property, resolved to the latest patch of the previous stable branch,
@@ -48,96 +48,39 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 //   of whatever the base image's Debian release ships. Rather than computing the version and the two sha256 (one per
 //   CPU architecture, since the official image is built for both amd64 and arm64) by hand, run
 //   './gradlew updateLibreOffice': it resolves the current LTS version the same way XWiki does and rewrites the pinned
-//   values in this file (the .sha256 are read from the files the Document Foundation publishes next to the archives).
+//   values in versions.json (the .sha256 are read from the files the Document Foundation publishes by the archives).
 
-// Versions of mysql, mariadb and postgres currently in use in the docker images.
-def mysql = [
-    '9': [
-        JDBCVersion: '9.7.0',
-        JDBCSha256: '0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44'
-    ]
-]
+// The version data model (per-cycle XWiki + JDBC driver versions/sha256, and the shared LibreOffice
+// version/sha256) is stored in the 'versions.json' data file next to this script, keeping the
+// configuration separate from the build logic and easy to update programmatically. 'tokens' is the
+// per-cycle map consumed by 'generate' (and the official-library tasks); each cycle carries:
+// - 'role': drives the tag aliases generated for the official Docker library file (see the
+//   'submitOfficialImage' task). One of 'stable', 'lts', 'intermediate-lts', 'old-lts'.
+// - 'xwikiVersion' / 'xwikiSha256': updated automatically by './gradlew updateXWiki'.
+// - the per-DB JDBC driver version + sha256: updated automatically by './gradlew updateJDBC' from the
+//   cycle's own xwiki-platform pom (the versions XWiki was tested against, stored per cycle since each
+//   cycle may test against a different driver version).
+// - 'tomcatImageTag': the Tomcat and Java base image tags for that cycle.
+// - 'libraryComment' (optional): overrides the section comment emitted in the official library file.
+// The shared LibreOffice values live under the top-level 'libreoffice' key (version + one sha256 per CPU
+// architecture, since the official image is built for both amd64 and arm64) and are updated automatically
+// by './gradlew updateLibreOffice'.
+def versionsFile = file('versions.json')
+def config = new groovy.json.JsonSlurper().parse(versionsFile)
+def tokens = config.cycles
 
-def mariadb = [
-    '3.5': [
-        JDBCVersion: '3.5.9',
-        JDBCSha256: '11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d'
-    ]
-]
+// Persist the (possibly mutated) version data model back to 'versions.json'. Used by the update tasks
+// below instead of rewriting this script, so that the configuration and the build logic stay separate.
+def writeConfig = {
+    versionsFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config)) + '\n'
+}
 
-def postgres = [
-    '42': [
-        JDBCVersion: '42.7.13',
-        JDBCSha256: '6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93'
-    ]
-]
-
-// LibreOffice version currently in use in the docker images. Contrary to XWiki and the JDBC drivers, this is not keyed
-// per XWiki cycle: XWiki officially supports a single LibreOffice version (the LTS one) whatever the XWiki version, so
-// the same version is used for all the generated images (it is injected into every cycle's tokens in the generate task
-// below). One sha256 is needed per CPU architecture since the official image is built for both amd64 and arm64.
-// These three values are updated automatically by the 'updateLibreOffice' task ('./gradlew updateLibreOffice'), below.
-def libreofficeVersion = '25.8.7'
-def libreofficeSha256Amd64 = '7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f'
-def libreofficeSha256Arm64 = '67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa'
-
-def tokens = [
-    '18': [
-        xwikiVersion: '18.5.0',
-        xwikiSha256: '649a5c53bc7ca02d80b3a3dcd1c03a7534ff868b6fe4f6eafa198602bc31c6df',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '18.4': [
-        xwikiVersion: '18.4.2',
-        xwikiSha256: '79c8149d26271f6271379bfc449a42bf51d745ca74984c4a1ee89cc4f9d1f399',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '17': [
-        xwikiVersion: '17.10.10',
-        xwikiSha256: 'f6e20373d9a3454d8dd54d9e9a0fbd6ed6006d44e97a56c2133dc7e8b724a8ee',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '10',
-            javaVersion: '21'
-        ]
-    ],
-    '16': [
-        xwikiVersion: '16.10.18',
-        xwikiSha256: '53de2ca1583d8d4b17d858b2b81b615dd29b08dbac73eecd2d61deae7afee5bf',
-        mysqlJDBCVersion: mysql['9'].JDBCVersion,
-        mysqlJDBCSha256: mysql['9'].JDBCSha256,
-        mariadbJDBCVersion: mariadb['3.5'].JDBCVersion,
-        mariadbJDBCSha256: mariadb['3.5'].JDBCSha256,
-        postgresJDBCVersion: postgres['42'].JDBCVersion,
-        postgresJDBCSha256: postgres['42'].JDBCSha256,
-        tomcatImageTag: [
-            tomcatVersion: '9',
-            javaVersion: '21'
-        ]
-    ]
+// The set of DB variants and their short names used in the official Docker library file. The first
+// entry is the default variant (the one that also gets the version-only and role-global tags).
+def dbVariants = [
+    'mysql-tomcat': 'mysql',
+    'postgres-tomcat': 'postgres',
+    'mariadb-tomcat': 'mariadb'
 ]
 
 task generate() {
@@ -149,9 +92,9 @@ task generate() {
                 def (db, servlet) = variant.tokenize('-')
                 tokens[version].'db' = db
                 // Add the LibreOffice tokens (shared by all cycles, see above)
-                tokens[version].'libreofficeVersion' = libreofficeVersion
-                tokens[version].'libreofficeSha256Amd64' = libreofficeSha256Amd64
-                tokens[version].'libreofficeSha256Arm64' = libreofficeSha256Arm64
+                tokens[version].'libreofficeVersion' = config.libreoffice.version
+                tokens[version].'libreofficeSha256Amd64' = config.libreoffice.sha256Amd64
+                tokens[version].'libreofficeSha256Arm64' = config.libreoffice.sha256Arm64
                 // Copy common template files, evaluating groovy in them
                 copy {
                     from 'template'
@@ -250,20 +193,574 @@ task updateLibreOffice() {
         def newSha256Amd64 = resolveSha256('x86_64', 'x86-64')
         def newSha256Arm64 = resolveSha256('aarch64', 'aarch64')
 
-        // Rewrite the pinned values in this build.gradle.
-        def buildFile = file('build.gradle')
-        def content = buildFile.text
-        content = content
-            .replaceFirst(/def libreofficeVersion = '[^']*'/, "def libreofficeVersion = '${newVersion}'")
-            .replaceFirst(/def libreofficeSha256Amd64 = '[^']*'/, "def libreofficeSha256Amd64 = '${newSha256Amd64}'")
-            .replaceFirst(/def libreofficeSha256Arm64 = '[^']*'/, "def libreofficeSha256Arm64 = '${newSha256Arm64}'")
-        buildFile.text = content
+        // Persist the pinned values to the versions.json data file. Mutating the in-memory 'config' also
+        // means a 'generate' chained in the same invocation (e.g. via the 'release' umbrella) picks up the
+        // new LibreOffice version.
+        def oldVersion = config.libreoffice.version
+        config.libreoffice.version = newVersion
+        config.libreoffice.sha256Amd64 = newSha256Amd64
+        config.libreoffice.sha256Arm64 = newSha256Arm64
+        writeConfig()
 
-        if (newVersion == libreofficeVersion) {
+        if (newVersion == oldVersion) {
             logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
         } else {
-            logger.lifecycle("Updated LibreOffice from ${libreofficeVersion} to ${newVersion}.")
+            logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
         }
         logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
     }
 }
+
+// Compare two dot-separated numeric versions (e.g. '18.10.2' <=> '18.9.5'), component by component.
+def compareVersions = { String a, String b ->
+    def pa = a.tokenize('.').collect { it as int }
+    def pb = b.tokenize('.').collect { it as int }
+    def n = Math.max(pa.size(), pb.size())
+    for (int i = 0; i < n; i++) {
+        def x = i < pa.size() ? pa[i] : 0
+        def y = i < pb.size() ? pb[i] : 0
+        if (x != y) {
+            return x <=> y
+        }
+    }
+    return 0
+}
+
+// Stream a URL (following redirects like httpGetText) through a SHA-256 digest without buffering the
+// whole payload in memory, and return the lowercase hex digest. Used to hash the (large) XWiki WAR and
+// the JDBC driver JARs.
+def sha256OfUrl
+sha256OfUrl = { String location ->
+    def current = location
+    for (int hop = 0; hop < 5; hop++) {
+        def connection = (HttpURLConnection) new URL(current).openConnection()
+        connection.instanceFollowRedirects = false
+        connection.connectTimeout = 30000
+        connection.readTimeout = 60000
+        def status = connection.responseCode
+        if (status in [301, 302, 303, 307, 308]) {
+            current = connection.getHeaderField('Location')
+            connection.disconnect()
+        } else if (status == 200) {
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            connection.inputStream.withStream { input ->
+                byte[] buffer = new byte[65536]
+                int read
+                while ((read = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read)
+                }
+            }
+            return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
+        } else {
+            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+        }
+    }
+    throw new GradleException("Too many redirects while fetching [$location]")
+}
+
+// Run an external command (optionally in workingDir), capturing its stdout; throw on a non-zero exit
+// unless allowFailure is set. Returns the trimmed stdout. Used by 'smokeTest' (docker compose) and
+// 'submitOfficialImage' (git/gh plumbing). Uses Groovy's Process API rather than Gradle's exec (removed
+// from the Project API in Gradle 9) so it works regardless of the Gradle version.
+def capture
+capture = { List<String> command, boolean allowFailure = false, File workingDir = null ->
+    def stdout = new StringWriter()
+    def stderr = new StringWriter()
+    def process = workingDir ? command.execute(null, workingDir) : command.execute()
+    process.consumeProcessOutput(stdout, stderr)
+    process.waitFor()
+    if (!allowFailure && process.exitValue() != 0) {
+        throw new GradleException("Command [${command.join(' ')}] failed (exit ${process.exitValue()}):\n" +
+            "${stdout.toString().trim()}\n${stderr.toString().trim()}")
+    }
+    return stdout.toString().trim()
+}
+
+// Resolve, for each existing cycle, the latest final XWiki version on that cycle's line (18 -> latest
+// 18.x, 18.4 -> latest 18.4.x, ...) from XWiki's Maven metadata, and for any cycle whose version
+// changed, download the WAR, compute its sha256, and rewrite the pinned values in this build.gradle.
+// Does NOT create new cycles. Run './gradlew' afterwards to regenerate the images (or use the
+// 'release' umbrella which chains both).
+task updateXWiki() {
+    doLast {
+        // Resolve versions from nexus.xwiki.org. The generated Dockerfile downloads the WAR from
+        // maven.xwiki.org, which is just a view on nexus.xwiki.org (same artifacts), so the sha256 we
+        // compute here is that of the exact bytes the image will fetch. The metadata lists RCs, hence
+        // the finals-only filter below.
+        def metadataUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+            'org/xwiki/platform/xwiki-platform-distribution-war/maven-metadata.xml'
+        def metadata = httpGetText(metadataUrl)
+        def finals = []
+        (metadata =~ /<version>([^<]+)<\/version>/).each { full, v ->
+            if (v ==~ /\d+\.\d+\.\d+/) {
+                finals << v
+            }
+        }
+        if (finals.isEmpty()) {
+            throw new GradleException("No final XWiki versions found at [$metadataUrl]")
+        }
+        def changed = []
+        tokens.each { cycle, data ->
+            def parts = cycle.tokenize('.')
+            def matching = finals.findAll { fv ->
+                def fparts = fv.tokenize('.')
+                parts.size() <= fparts.size() && (0..<parts.size()).every { fparts[it] == parts[it] }
+            }
+            if (matching.isEmpty()) {
+                logger.lifecycle("No final XWiki version found for cycle ${cycle}; skipping.")
+                return
+            }
+            def latest = matching.max { a, b -> compareVersions(a, b) }
+            if (latest == data.xwikiVersion) {
+                logger.lifecycle("XWiki cycle ${cycle} is already up to date (${data.xwikiVersion}).")
+                return
+            }
+            def warUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+                "org/xwiki/platform/xwiki-platform-distribution-war/${latest}/" +
+                "xwiki-platform-distribution-war-${latest}.war"
+            logger.lifecycle("Updating XWiki cycle ${cycle} from ${data.xwikiVersion} to ${latest} " +
+                '(downloading the WAR to compute its sha256, this may take a while)...')
+            def sha = sha256OfUrl(warUrl)
+            data.xwikiVersion = latest
+            data.xwikiSha256 = sha
+            changed << cycle
+        }
+        if (!changed.isEmpty()) {
+            writeConfig()
+            logger.lifecycle("Updated XWiki version for cycle(s): ${changed.join(', ')}.")
+        }
+        // Record changed cycles so a chained 'smokeTest' (in the 'release' umbrella) knows what to test.
+        project.ext.changedXWikiCycles = changed
+        logger.lifecycle("Run './gradlew' to regenerate the images.")
+    }
+}
+
+// For each existing cycle, read the JDBC driver versions declared in that cycle's own xwiki-platform
+// pom (the versions XWiki was tested against) and, for any that changed, download the driver JAR from
+// Maven Central, compute its sha256, and rewrite the per-cycle values in this build.gradle. Run
+// './gradlew' afterwards to regenerate the images.
+task updateJDBC() {
+    doLast {
+        def drivers = [
+            [name: 'mysql', prop: 'mysql.version', path: 'com/mysql/mysql-connector-j',
+             jar: { v -> "mysql-connector-j-${v}.jar" },
+             tokenV: 'mysqlJDBCVersion', tokenS: 'mysqlJDBCSha256'],
+            [name: 'mariadb', prop: 'mariadb.version', path: 'org/mariadb/jdbc/mariadb-java-client',
+             jar: { v -> "mariadb-java-client-${v}.jar" },
+             tokenV: 'mariadbJDBCVersion', tokenS: 'mariadbJDBCSha256'],
+            [name: 'postgres', prop: 'pgsql.version', path: 'org/postgresql/postgresql',
+             jar: { v -> "postgresql-${v}.jar" },
+             tokenV: 'postgresJDBCVersion', tokenS: 'postgresJDBCSha256']
+        ]
+        def changed = false
+        tokens.each { cycle, data ->
+            def version = data.xwikiVersion
+            // Read the JDBC driver versions from the cycle's own xwiki-platform pom on nexus.xwiki.org.
+            // The driver JARs themselves are hashed from Maven Central below, because that is where the
+            // generated Dockerfile downloads them from (see template/Dockerfile).
+            def pomUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+                "org/xwiki/platform/xwiki-platform/${version}/xwiki-platform-${version}.pom"
+            def pom = httpGetText(pomUrl)
+            drivers.each { d ->
+                def matcher = (pom =~ /<${d.prop}>([^<]+)<\/${d.prop}>/)
+                if (!matcher.find()) {
+                    throw new GradleException("Could not find <${d.prop}> in [$pomUrl]")
+                }
+                def newVersion = matcher.group(1)
+                if (newVersion == data[d.tokenV]) {
+                    logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC already up to date (${newVersion}).")
+                    return
+                }
+                def jarUrl = "https://repo1.maven.org/maven2/${d.path}/${newVersion}/${d.jar(newVersion)}"
+                logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC ${data[d.tokenV]} -> ${newVersion} " +
+                    '(hashing jar)...')
+                def sha = sha256OfUrl(jarUrl)
+                data[d.tokenV] = newVersion
+                data[d.tokenS] = sha
+                changed = true
+            }
+        }
+        if (changed) {
+            writeConfig()
+        }
+        logger.lifecycle("Run './gradlew' to regenerate the images.")
+    }
+}
+
+// Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying
+// the expected XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a
+// stronger check: the root REST resource returns the running XWiki product version in its
+// <xwiki version="..."> element (it is served to guests, no auth needed), so a match proves XWiki
+// actually finished initializing - not merely that Tomcat is up. Returns true on success, false on
+// timeout. XWiki is deployed as the ROOT webapp in these images, so there is no /xwiki context prefix.
+def waitForXWiki
+waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
+    def deadline = System.currentTimeMillis() + timeoutMillis
+    while (System.currentTimeMillis() < deadline) {
+        try {
+            def conn = (HttpURLConnection) new URL("http://localhost:${port}/rest").openConnection()
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            if (conn.responseCode == 200) {
+                def body = conn.inputStream.getText('UTF-8')
+                conn.disconnect()
+                if (body.contains(expectedVersion)) {
+                    return true
+                }
+            } else {
+                conn.disconnect()
+            }
+        } catch (ignored) {
+            // XWiki not serving yet; keep polling.
+        }
+        Thread.sleep(5000)
+    }
+    return false
+}
+
+// Boot-check the postgres-tomcat variant of the given cycles: start it with docker compose, wait until
+// XWiki's REST API reports the expected version on http://localhost:8080/rest, then tear it down. By
+// default it tests the cycles whose XWiki version changed in this invocation (set by 'updateXWiki', used
+// by the 'release' umbrella); pass '-Pcycles=18,17' to test specific cycles, or run it standalone to
+// test them all.
+task smokeTest() {
+    doLast {
+        def variant = 'postgres-tomcat'
+        def cycles
+        if (project.hasProperty('cycles')) {
+            cycles = project.property('cycles').tokenize(',')*.trim().findAll { it }
+        } else if (project.ext.has('changedXWikiCycles')) {
+            cycles = project.ext.changedXWikiCycles
+        } else {
+            cycles = tokens.keySet() as List
+        }
+        if (cycles.isEmpty()) {
+            logger.lifecycle('smokeTest: no cycles to test.')
+            return
+        }
+        cycles.each { cycle ->
+            def dir = file("${cycle}/${variant}")
+            if (!dir.exists()) {
+                throw new GradleException("smokeTest: directory [${dir}] does not exist.")
+            }
+            def expectedVersion = tokens[cycle].xwikiVersion
+            logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant})...")
+            try {
+                capture(['docker', 'compose', 'up', '-d'], false, dir)
+                if (!waitForXWiki(8080, expectedVersion, 600000)) {
+                    throw new GradleException("smokeTest: XWiki ${cycle} (${variant}) did not report " +
+                        "version ${expectedVersion} on http://localhost:8080/rest within the timeout.")
+                }
+                logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) is up " +
+                    "(REST reports version ${expectedVersion}).")
+            } finally {
+                capture(['docker', 'compose', 'down', '-v'], true, dir)
+            }
+        }
+    }
+}
+
+// Compute the ordered list of cycle/variant instances that 'runAll'/'stopAll' operate on, assigning each
+// a distinct host port starting at 8080 and its own isolated docker compose project name. Honors the
+// '-Pcycles' and '-Pvariants' comma-separated filters, defaulting to every cycle and every variant. The
+// assignment is deterministic, so 'stopAll' derives the same project names as 'runAll' for a given
+// selection (project names must be lowercase with no dots, hence the '.' -> '-' rewrite).
+def runAllSelection
+runAllSelection = {
+    def selectedCycles = project.hasProperty('cycles') ?
+        project.property('cycles').tokenize(',')*.trim().findAll { it } : (tokens.keySet() as List)
+    def selectedVariants = project.hasProperty('variants') ?
+        project.property('variants').tokenize(',')*.trim().findAll { it } : variants
+    def instances = []
+    def port = 8080
+    selectedCycles.each { cycle ->
+        selectedVariants.each { variant ->
+            instances << [cycle: cycle, variant: variant, port: port,
+                project: "${cycle}-${variant}".toString().replace('.', '-')]
+            port++
+        }
+    }
+    return instances
+}
+
+// Render a port/name-isolated compose file for one 'runAll' instance and invoke 'docker compose' on it.
+// The generated version/variant docker-compose.yml hardcodes the host port (8080) and the container
+// names (per DB, not per cycle), which would collide when several instances run at once. So we take that
+// file and rewrite: the published port -> the instance's port, and the container names (web + db, the db
+// name also being referenced as DB_HOST) -> project-scoped names. Each instance runs as its own compose
+// project (-p) so its network and volumes are isolated too. '--project-directory' keeps '.env' and the
+// relative './init.sql' bind mount resolving against the original variant directory.
+def runAllCompose
+runAllCompose = { Map inst, List<String> composeArgs, boolean allowFailure ->
+    def variantDir = file("${inst.cycle}/${inst.variant}")
+    if (!variantDir.exists()) {
+        throw new GradleException("runAll: directory [${variantDir}] does not exist. Run './gradlew' first.")
+    }
+    def db = inst.variant.tokenize('-')[0]
+    def composeText = file("${variantDir}/docker-compose.yml").text
+        .replace('"8080:8080"', "\"${inst.port}:8080\"".toString())
+        .replace("xwiki-${db}-tomcat-web".toString(), "xwiki-${inst.project}-web".toString())
+        .replace("xwiki-${db}-db".toString(), "xwiki-${inst.project}-db".toString())
+    def composeFile = file("build/runAll/${inst.project}.yml")
+    composeFile.parentFile.mkdirs()
+    composeFile.text = composeText
+    capture(['docker', 'compose', '--project-directory', variantDir.absolutePath,
+        '-f', composeFile.absolutePath, '-p', inst.project] + composeArgs, allowFailure, variantDir)
+}
+
+// Start XWiki instances for manual inspection and leave them running (unlike 'smokeTest', which tears
+// down with 'down -v'). Brings up each selected cycle/variant on its own host port (8080, 8081, ...),
+// each as an isolated docker compose project, then waits until each serves its REST API with the
+// expected version and prints the browse URLs. By default it runs every cycle x every variant; pass
+// '-Pcycles=18,17' and/or '-Pvariants=postgres-tomcat' to narrow it down (running all at once is
+// resource-heavy: one XWiki JVM + one database per instance). Stop them again with the matching
+// './gradlew stopAll' invocation.
+task runAll() {
+    doLast {
+        def selection = runAllSelection()
+        if (selection.isEmpty()) {
+            logger.lifecycle('runAll: nothing to run.')
+            return
+        }
+        logger.lifecycle("runAll: starting ${selection.size()} instance(s); this is resource-heavy " +
+            '(one XWiki JVM + one database each).')
+        selection.each { inst ->
+            logger.lifecycle("runAll: starting XWiki ${inst.cycle} (${inst.variant}) on port ${inst.port}...")
+            runAllCompose(inst, ['up', '-d'], false)
+        }
+        // Wait for each to come up (in the background they boot in parallel) and report the browse URL.
+        selection.each { inst ->
+            def expectedVersion = tokens[inst.cycle].xwikiVersion
+            if (waitForXWiki(inst.port, expectedVersion, 600000)) {
+                logger.lifecycle("runAll: XWiki ${inst.cycle} (${inst.variant}) is up at " +
+                    "http://localhost:${inst.port}/ (version ${expectedVersion}).")
+            } else {
+                logger.lifecycle("runAll: WARNING - XWiki ${inst.cycle} (${inst.variant}) on port " +
+                    "${inst.port} did not report version ${expectedVersion} within the timeout; " +
+                    'left running for inspection anyway.')
+            }
+        }
+        logger.lifecycle("runAll: all instances left running. Stop them with the matching " +
+            "'./gradlew stopAll' invocation (repeat the same -Pcycles/-Pvariants).")
+    }
+}
+
+// Tear down (and remove the volumes of) the instances started by 'runAll'. Accepts the same '-Pcycles' /
+// '-Pvariants' selection as 'runAll' and reconstructs the same project names, so pass the same filters
+// you used to start them.
+task stopAll() {
+    doLast {
+        def selection = runAllSelection()
+        if (selection.isEmpty()) {
+            logger.lifecycle('stopAll: nothing to stop.')
+            return
+        }
+        selection.each { inst ->
+            logger.lifecycle("stopAll: stopping XWiki ${inst.cycle} (${inst.variant})...")
+            runAllCompose(inst, ['down', '-v'], true)
+        }
+    }
+}
+
+// Constants of the official Docker library file (https://github.com/docker-library/official-images).
+// These match the header currently published for xwiki and rarely change.
+def libraryMaintainers = 'XWiki Core Dev Team <committers@xwiki.org> (@xwiki)'
+def libraryGitRepo = 'https://github.com/xwiki-contrib/docker-xwiki.git'
+def libraryArchitectures = 'amd64, arm64v8'
+def officialImagesRepo = 'docker-library/official-images'
+def libraryPath = 'library/xwiki'
+
+// Default section comment emitted before each cycle's first block, keyed by role. A cycle may override
+// it with its own 'libraryComment' (e.g. cycle 16's "- Added back temporarily" annotation).
+def librarySectionComments = [
+    'stable': '# Latest stable',
+    'intermediate-lts': '# Intermediate LTS',
+    'lts': '# LTS',
+    'old-lts': '# Previous LTS'
+]
+
+// The version tags a cycle contributes, from most to least generic. A major-only cycle key (e.g. '18',
+// version 18.5.0) yields [18, 18.5, 18.5.0]; a major.minor key (e.g. '18.4', version 18.4.2) yields
+// [18.4, 18.4.2] (no bare-major tag, since another cycle owns the major line).
+def libraryVersionPrefixes = { String cycle, String version ->
+    def v = version.tokenize('.')
+    if (cycle.tokenize('.').size() == 1) {
+        return [v[0], "${v[0]}.${v[1]}", version]
+    }
+    return ["${v[0]}.${v[1]}", version]
+}
+
+// The full ordered tag list for one cycle/variant, reproducing the upstream conventions: bare version
+// tags only on the default variant; per-variant version tags on every variant; and role-driven aliases
+// (bare variant + stable-/lts- + the global stable/latest/lts tags) added only for the stable and LTS
+// cycles.
+def libraryTags = { String variant, String db, boolean isDefault, String role, List prefixes ->
+    def tags = []
+    if (isDefault) {
+        tags += prefixes
+    }
+    tags += prefixes.collect { "${it}-${variant}".toString() }
+    if (role == 'stable') {
+        tags += variant
+        tags += ["stable-${variant}".toString(), "stable-${db}".toString()]
+        if (isDefault) {
+            tags += ['stable', 'latest']
+        }
+    } else if (role == 'lts') {
+        tags += ["lts-${variant}".toString(), "lts-${db}".toString()]
+        if (isDefault) {
+            tags += 'lts'
+        }
+    }
+    return tags
+}
+
+// The 'GitCommit' of a cycle = the last commit that touched that cycle's directory. docker-library
+// fetches this exact commit from GitRepo to (re)build the images, so it only rebuilds cycles whose
+// GitCommit changed.
+def libraryGitCommit
+libraryGitCommit = { String cycle ->
+    return capture(['git', 'log', '-1', '--format=%H', '--', "${cycle}/".toString()])
+}
+
+// Generate the complete content of the official Docker library file from the 'tokens' model, using the
+// algorithm above. Verified to reproduce the current upstream file byte for byte.
+def defaultVariant = dbVariants.keySet().first()
+def generateLibraryContent
+generateLibraryContent = {
+    def sb = new StringBuilder()
+    sb << "Maintainers: ${libraryMaintainers}\n"
+    sb << "GitRepo: ${libraryGitRepo}\n"
+    tokens.each { cycle, data ->
+        def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
+        def commit = libraryGitCommit(cycle)
+        def comment = data.libraryComment ?: librarySectionComments[data.role]
+        sb << "\n${comment}\n"
+        def first = true
+        dbVariants.each { variant, db ->
+            if (!first) {
+                sb << '\n'
+            }
+            first = false
+            def tags = libraryTags(variant, db, variant == defaultVariant, data.role, prefixes)
+            sb << "Tags: ${tags.join(', ')}\n"
+            sb << "Architectures: ${libraryArchitectures}\n"
+            sb << "Directory: ${cycle}/${variant}\n"
+            sb << "GitCommit: ${commit}\n"
+        }
+    }
+    return sb.toString()
+}
+
+// Generate the official Docker library file for xwiki and open a pull request against
+// docker-library/official-images, updating the single 'library/xwiki' file on a branch of your GitHub
+// fork (no local clone). Run it AFTER './gradlew release' and after you have committed and pushed the
+// docker-xwiki change, so that the emitted GitCommit(s) are reachable upstream. Pass '-PdryRun' to only
+// generate the file and show the diff, without touching your fork or opening a PR. Uses
+// 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs.
+task submitOfficialImage() {
+    doLast {
+        // gh must be authenticated (needed for the upstream fetch below and the PR flow).
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])
+
+        // Generate the library file and write it out for review.
+        def content = generateLibraryContent()
+        def outFile = file('build/library-xwiki')
+        outFile.parentFile.mkdirs()
+        outFile.text = content
+
+        // Fetch the current upstream file and show a real diff against the generated one.
+        def upstreamB64 = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${officialImagesRepo}/contents/${libraryPath}", '--jq', '.content'])
+        def upstreamContent = new String(upstreamB64.replaceAll('\\s', '').decodeBase64(), 'UTF-8')
+        if (content == upstreamContent) {
+            logger.lifecycle('The generated library file is identical to the upstream one; nothing to submit.')
+            return
+        }
+        def upstreamFile = file('build/library-xwiki.upstream')
+        upstreamFile.text = upstreamContent
+        def diff = capture(['git', '--no-pager', 'diff', '--no-index', '--',
+            upstreamFile.path, outFile.path], true)
+        logger.lifecycle("Generated ${libraryPath} (diff upstream -> generated):\n${diff}")
+
+        if (project.hasProperty('dryRun')) {
+            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the guards, fork and PR steps.")
+            return
+        }
+
+        // The working tree must be clean and HEAD must be pushed: the GitCommit values we emit are the
+        // last commits that touched each cycle directory, and docker-library fetches those exact commits
+        // from GitRepo, so anything uncommitted or unpushed would not be reachable upstream.
+        if (!capture(['git', 'status', '--porcelain']).isEmpty()) {
+            throw new GradleException('The working tree is dirty. Commit and push the docker-xwiki ' +
+                'change before running submitOfficialImage.')
+        }
+        def head = capture(['git', 'rev-parse', 'HEAD'])
+        if (capture(['git', 'branch', '-r', '--contains', head]).isEmpty()) {
+            throw new GradleException("HEAD (${head}) is not pushed to any remote. Push the docker-xwiki " +
+                'change before running submitOfficialImage.')
+        }
+
+        // Resolve the GitHub user and the upstream default branch.
+        def login = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', 'user', '--jq', '.login'])
+        def fork = "${login}/official-images"
+        def defaultBranch = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${officialImagesRepo}", '--jq', '.default_branch'])
+
+        // Ensure the fork exists (idempotent) and sync its default branch to upstream.
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'fork', officialImagesRepo, '--clone=false'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', officialImagesRepo,
+            '--branch', defaultBranch])
+
+        // Create a working branch on the fork off the freshly synced default branch (recreating it if a
+        // previous run left one behind).
+        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
+        def branch = "update-xwiki-${stableVersion}"
+        def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/git/ref/heads/${defaultBranch}", '--jq', '.object.sha'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'DELETE',
+            "repos/${fork}/git/refs/heads/${branch}"], true)
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'POST', "repos/${fork}/git/refs",
+            '-f', "ref=refs/heads/${branch}", '-f', "sha=${baseSha}"])
+
+        // Update the single file on that branch via the contents API (needs the current blob sha).
+        def fileSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/contents/${libraryPath}?ref=${branch}", '--jq', '.sha'])
+        def commitMessage = "Update XWiki to ${stableVersion}"
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'PUT',
+            "repos/${fork}/contents/${libraryPath}",
+            '-f', "message=${commitMessage}",
+            '-f', "content=${content.bytes.encodeBase64().toString()}",
+            '-f', "sha=${fileSha}",
+            '-f', "branch=${branch}"])
+
+        // Open the PR against upstream.
+        def roleLabels = ['stable': 'stable', 'intermediate-lts': 'intermediate LTS', 'lts': 'LTS',
+            'old-lts': 'previous LTS']
+        def prBody = 'Update the XWiki official images to the latest releases:\n\n' +
+            tokens.collect { cycle, data -> "- `${cycle}` (${roleLabels[data.role]}): ${data.xwikiVersion}" }
+                .join('\n') + '\n'
+        def prUrl = capture(['env', '-u', 'GH_TOKEN', 'gh', 'pr', 'create', '--repo', officialImagesRepo,
+            '--base', defaultBranch, '--head', "${login}:${branch}",
+            '--title', commitMessage, '--body', prBody])
+        logger.lifecycle("Opened official-images PR: ${prUrl}")
+    }
+}
+
+// Pre-push release umbrella: refresh XWiki + JDBC + LibreOffice versions, regenerate all images, then
+// smoke-test the cycles that changed. After this, review/commit/push docker-xwiki, then run
+// './gradlew submitOfficialImage' to open the official Docker library PR.
+task release() {
+    dependsOn 'updateXWiki', 'updateJDBC', 'updateLibreOffice', 'generate', 'smokeTest'
+}
+
+// Ordering so that a single 'release' invocation composes correctly: version updates first (JDBC after
+// XWiki, since it reads each cycle's - possibly just-bumped - version), then generation, then smoke
+// tests. The update tasks mutate the in-memory token model too, so the chained 'generate' sees the
+// fresh values.
+tasks.named('updateJDBC').configure { mustRunAfter('updateXWiki') }
+tasks.named('updateLibreOffice').configure { mustRunAfter('updateXWiki', 'updateJDBC') }
+tasks.named('generate').configure {
+    mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice')
+}
+tasks.named('smokeTest').configure { mustRunAfter('generate') }
