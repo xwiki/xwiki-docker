@@ -37,7 +37,7 @@ LABEL org.opencontainers.image.licenses='LGPL-2.1'
 
 # Install the command-line tools and the native libraries required at runtime. LibreOffice itself is not installed here
 # (see the dedicated step below) but the libraries it dynamically links to (and which its deb packages don't declare)
-# are installed here so that they come from the base image's Debian release.
+# are installed here so that they come from the base image's own distribution release.
 # Note that procps is required to get ps which is used by JODConverter to start LibreOffice.
 # Note that libxinerama1, libdbus-glib-1-2, libcairo2, libcups2, libsm6, libx11-xcb1, libnss3, libxml2 and libxslt1.1
 # are runtime dependencies of LibreOffice that are not pulled in transitively by its deb packages (this is the same set
@@ -69,12 +69,12 @@ RUN apt-get update && \\
   rm -rf /var/lib/apt/lists/*
 
 # Install a controlled version of LibreOffice (the one XWiki supports and tests against, i.e. the LTS version) instead
-# of the version shipped by the base image's Debian release, so that it doesn't drift from the tested version. We take
-# it from the Document Foundation download site (the same source and version used by the XWiki Docker-based test
-# framework) and verify its sha256. Since the official image is built for both amd64 and arm64, we select the download
-# matching the target architecture (provided automatically by Docker's TARGETARCH build argument) and its sha256. We
-# install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki (through JODConverter) probes to
-# locate the LibreOffice installation automatically, so no extra configuration is needed.
+# of the version shipped by the base image's own distribution release, so that it doesn't drift from the tested
+# version. We take it from the Document Foundation download site (the same source and version used by the XWiki
+# Docker-based test framework) and verify its sha256. Since the official image is built for both amd64 and arm64, we
+# select the download matching the target architecture (provided automatically by Docker's TARGETARCH build argument)
+# and its sha256. We install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki (through
+# JODConverter) probes to locate the LibreOffice installation automatically, so no extra configuration is needed.
 ARG TARGETARCH
 ENV LIBREOFFICE_VERSION="$libreofficeVersion"
 ENV LIBREOFFICE_SHA256_AMD64="$libreofficeSha256Amd64"
