@@ -102,7 +102,6 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
     environment:
-      - POSTGRES_ROOT_PASSWORD=\${POSTGRES_ROOT_PASSWORD}
       - POSTGRES_PASSWORD=\${DB_PASSWORD}
       - POSTGRES_USER=\${DB_USER}
       - POSTGRES_DB=\${DB_DATABASE}
