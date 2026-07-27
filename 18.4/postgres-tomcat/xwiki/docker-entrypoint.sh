@@ -123,6 +123,7 @@ function configure() {
   file_env 'DB_USER' 'xwiki'
   file_env 'DB_PASSWORD' 'xwiki'
   file_env 'DB_HOST' 'db'
+  file_env 'DB_PORT' ''
   file_env 'DB_DATABASE' 'xwiki'
   file_env 'SOLR_BASE_URL' ''
   file_env 'JDBC_PARAMS' '?'
@@ -135,10 +136,17 @@ function configure() {
     cp -a --update=none /usr/local/tomcat/webapps/ROOT/.  /usr/local/tomcat/webapps/$CONTEXT_PATH/
   fi
 
+  # When DB_PORT is set, it's added to the host in the JDBC URL of hibernate.cfg.xml, so that a DB listening on a
+  # port other than the driver's default (5432) can be used.
+  DB_HOST_AND_PORT="$DB_HOST"
+  if [ -n "$DB_PORT" ]; then
+    DB_HOST_AND_PORT="$DB_HOST:$DB_PORT"
+  fi
+
   echo 'Replacing environment variables in files'
   safesed "replaceuser" $DB_USER /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacepassword" $DB_PASSWORD /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
-  safesed "replacecontainer" $DB_HOST /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
+  safesed "replacecontainer" $DB_HOST_AND_PORT /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacedatabase" $DB_DATABASE /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
   safesed "replacejdbcparams" $JDBC_PARAMS /usr/local/tomcat/webapps/$CONTEXT_PATH/WEB-INF/hibernate.cfg.xml
 

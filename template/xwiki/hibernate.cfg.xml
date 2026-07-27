@@ -132,8 +132,10 @@
              doesn't support database creation (see https://jira.xwiki.org/browse/XWIKI-8753)
            - if you want the main wiki database to be different than "xwiki" (or "public" in schema mode)
              you will also have to set the property xwiki.db in xwiki.cfg file
+           - the URL carries no port: the driver then connects to 5432, and a custom port is added to the host by
+             the DB_PORT environment variable (see docker-entrypoint.sh)
     -->
-    <property name="connection.url">jdbc:postgresql://replacecontainer:5432/replacedatabasereplacejdbcparams</property>
+    <property name="connection.url">jdbc:postgresql://replacecontainer/replacedatabasereplacejdbcparams</property>
     <property name="connection.username">replaceuser</property>
     <property name="connection.password">replacepassword</property>
     <property name="connection.driver_class">org.postgresql.Driver</property>

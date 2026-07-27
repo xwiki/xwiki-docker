@@ -163,6 +163,8 @@ VOLUME /usr/local/xwiki
 #                hibernate.cfg.xml file.
 # - DB_HOST: The name of the host (or docker container) containing the database. Default is "db". This is used to
 #            configure xwiki's hibernate.cfg.xml file.
+# - DB_PORT: The port on which the database listens. When not set, the JDBC driver's default port is used
+#            (3306). This is used to configure xwiki's hibernate.cfg.xml file.
 # - CONTEXT_PATH: The name of the context path under which XWiki will be deployed in Tomcat. If not specified then it'll
 #                 be deployed as ROOT.
 # - JDBC_PARAMS: Replaces the default JDBC parameters with the passed ones.
