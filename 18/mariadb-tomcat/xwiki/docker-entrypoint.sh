@@ -33,7 +33,6 @@ function first_start() {
 }
 
 function other_starts() {
-  mkdir -p /usr/local/xwiki/data
   restoreConfigurationFile 'hibernate.cfg.xml'
   restoreConfigurationFile 'xwiki.cfg'
   restoreConfigurationFile 'xwiki.properties'
@@ -204,7 +203,6 @@ function configure() {
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory.
-  mkdir -p /usr/local/xwiki/data
   saveConfigurationFile 'hibernate.cfg.xml'
   saveConfigurationFile 'xwiki.cfg'
   saveConfigurationFile 'xwiki.properties'
