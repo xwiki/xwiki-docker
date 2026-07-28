@@ -49,7 +49,7 @@ services:
       - bridge
   # The container that runs the database (mysql)
   db:
-    image: "mysql:9"
+    image: "mysql:26"
     container_name: xwiki-mysql-db
     # - Provide a name instead of an auto-generated id for the mysql data, to make it simpler to identify in
     # 'docker volume ls'
