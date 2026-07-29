@@ -50,7 +50,8 @@ LABEL org.opencontainers.image.licenses='LGPL-2.1'
 # true (no DISPLAY is set), so by default the JVM uses the headless backend (libawt_headless.so, no X11 deps) and the
 # problem does not appear; installing these libraries keeps image parsing working when a user forces non-headless mode
 # via -Djava.awt.headless=false or by setting a DISPLAY variable.
-RUN apt-get update && \
+RUN set -eux; \
+  apt-get update; \
   apt-get --no-install-recommends -y install \
     curl \
     unzip \
@@ -65,7 +66,7 @@ RUN apt-get update && \
     libx11-xcb1 \
     libnss3 \
     libxml2 \
-    libxslt1.1 && \
+    libxslt1.1; \
   rm -rf /var/lib/apt/lists/*
 
 # Options for the downloads below. They fetch large archives (the XWiki WAR and the LibreOffice one weigh a few hundred
@@ -85,24 +86,31 @@ ENV CURL_OPTIONS="-fSL --retry 5 --retry-all-errors --retry-delay 5 --connect-ti
 # automatically by BuildKit and the Docker Official Images infrastructure builds with the classic builder, where it
 # would expand to the empty string. We install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki
 # (through JODConverter) probes to locate the LibreOffice installation automatically, so no extra configuration is
-# needed.
+# needed. The deb packages install into /opt/libreoffice<major>.<minor>, so the symlink target is derived from
+# LIBREOFFICE_VERSION by stripping its patch component rather than by globbing /opt. The -n flag of ln is what makes it
+# replace /opt/libreoffice itself: without it, ln dereferences an already-existing symlink to a directory and creates
+# the new link inside that directory instead. We then check that the symlink resolves to an actual soffice binary:
+# since it is the only thing making JODConverter find LibreOffice, an installation landing elsewhere must fail the
+# build rather than produce an image where office import/export silently doesn't work.
 ENV LIBREOFFICE_VERSION="25.8.7"
 ENV LIBREOFFICE_SHA256_AMD64="7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f"
 ENV LIBREOFFICE_SHA256_ARM64="67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa"
 ENV LIBREOFFICE_URL_PREFIX="https://download.documentfoundation.org/libreoffice/stable/${LIBREOFFICE_VERSION}/deb"
-RUN LO_ARCH="$(dpkg --print-architecture)" && \
+RUN set -eux; \
+  LO_ARCH="$(dpkg --print-architecture)"; \
   case "$LO_ARCH" in \
     amd64) LO_ARCH_DIR=x86_64; LO_ARCH_FILE=x86-64; LO_SHA256=$LIBREOFFICE_SHA256_AMD64 ;; \
     arm64) LO_ARCH_DIR=aarch64; LO_ARCH_FILE=aarch64; LO_SHA256=$LIBREOFFICE_SHA256_ARM64 ;; \
     *) echo "Unsupported architecture [$LO_ARCH] for the LibreOffice installation" >&2; exit 1 ;; \
-  esac && \
-  LO_ARCHIVE="LibreOffice_${LIBREOFFICE_VERSION}_Linux_${LO_ARCH_FILE}_deb.tar.gz" && \
-  curl $CURL_OPTIONS "${LIBREOFFICE_URL_PREFIX}/${LO_ARCH_DIR}/${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz && \
-  echo "$LO_SHA256 /tmp/libreoffice.tar.gz" | sha256sum -c - && \
-  mkdir -p /tmp/libreoffice && \
-  tar -C /tmp/libreoffice -xf /tmp/libreoffice.tar.gz && \
-  dpkg -i /tmp/libreoffice/LibreOffice_${LIBREOFFICE_VERSION}*_Linux_*_deb/DEBS/*.deb && \
-  ln -fs $(ls -d /opt/libreoffice*) /opt/libreoffice && \
+  esac; \
+  LO_ARCHIVE="LibreOffice_${LIBREOFFICE_VERSION}_Linux_${LO_ARCH_FILE}_deb.tar.gz"; \
+  curl $CURL_OPTIONS "${LIBREOFFICE_URL_PREFIX}/${LO_ARCH_DIR}/${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz; \
+  echo "$LO_SHA256 */tmp/libreoffice.tar.gz" | sha256sum --strict -c -; \
+  mkdir -p /tmp/libreoffice; \
+  tar -C /tmp/libreoffice -xf /tmp/libreoffice.tar.gz; \
+  dpkg -i /tmp/libreoffice/LibreOffice_${LIBREOFFICE_VERSION}*_Linux_*_deb/DEBS/*.deb; \
+  ln -fns "/opt/libreoffice${LIBREOFFICE_VERSION%.*}" /opt/libreoffice; \
+  test -x /opt/libreoffice/program/soffice; \
   rm -rf /tmp/libreoffice /tmp/libreoffice.tar.gz
 
 # Install XWiki as the ROOT webapp context in Tomcat
@@ -111,12 +119,13 @@ RUN LO_ARCH="$(dpkg --print-architecture)" && \
 ENV XWIKI_VERSION="18.4.3"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
 ENV XWIKI_DOWNLOAD_SHA256 d9dfdb0996e813a9e8f73298f06afdbc52431ddfff4dbdf03d0c4fa359d0b55b
-RUN rm -rf /usr/local/tomcat/webapps/* && \
-  mkdir -p /usr/local/tomcat/temp && \
-  mkdir -p /usr/local/xwiki/data && \
-  curl $CURL_OPTIONS "${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-${XWIKI_VERSION}.war" -o xwiki.war && \
-  echo "$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \
-  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \
+RUN set -eux; \
+  rm -rf /usr/local/tomcat/webapps/*; \
+  mkdir -p /usr/local/tomcat/temp; \
+  mkdir -p /usr/local/xwiki/data; \
+  curl $CURL_OPTIONS "${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-${XWIKI_VERSION}.war" -o xwiki.war; \
+  echo "$XWIKI_DOWNLOAD_SHA256 *xwiki.war" | sha256sum --strict -c -; \
+  unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war; \
   rm -f xwiki.war
 
 # Copy the JDBC driver in the XWiki webapp
@@ -127,8 +136,9 @@ ENV MYSQL_JDBC_SHA256="0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cb
 ENV MYSQL_JDBC_PREFIX="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_JDBC_VERSION}"
 ENV MYSQL_JDBC_ARTIFACT="mysql-connector-j-${MYSQL_JDBC_VERSION}.jar"
 ENV MYSQL_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${MYSQL_JDBC_ARTIFACT}"
-RUN curl $CURL_OPTIONS "${MYSQL_JDBC_PREFIX}/${MYSQL_JDBC_ARTIFACT}" -o $MYSQL_JDBC_TARGET && \
-  echo "$MYSQL_JDBC_SHA256 $MYSQL_JDBC_TARGET" | sha256sum -c -
+RUN set -eux; \
+  curl $CURL_OPTIONS "${MYSQL_JDBC_PREFIX}/${MYSQL_JDBC_ARTIFACT}" -o $MYSQL_JDBC_TARGET; \
+  echo "$MYSQL_JDBC_SHA256 *$MYSQL_JDBC_TARGET" | sha256sum --strict -c -
 
 # Configure Tomcat. For example set the memory for the Tomcat JVM since the default value is too small for XWiki
 COPY tomcat/setenv.sh /usr/local/tomcat/bin/
@@ -142,11 +152,12 @@ COPY xwiki/hibernate.cfg.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/hibernate.cf
 # version-specific logger levels it defines: the appender definition is inserted right after the opening
 # <configuration> tag and its reference right after the existing "stdout" one.
 COPY xwiki/logback-filelog-appender.xml xwiki/logback-filelog-ref.xml /tmp/
-RUN LOGBACK=/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/logback.xml && \
+RUN set -eux; \
+  LOGBACK=/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/logback.xml; \
   sed -e '/<configuration/r /tmp/logback-filelog-appender.xml' \
       -e '/ref="stdout"/r /tmp/logback-filelog-ref.xml' \
-      "$LOGBACK" > "$LOGBACK.new" && \
-  mv "$LOGBACK.new" "$LOGBACK" && \
+      "$LOGBACK" > "$LOGBACK.new"; \
+  mv "$LOGBACK.new" "$LOGBACK"; \
   rm -f /tmp/logback-filelog-appender.xml /tmp/logback-filelog-ref.xml
 
 # Set a specific distribution id in XWiki for this docker packaging.
