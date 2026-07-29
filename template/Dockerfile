@@ -68,6 +68,14 @@ RUN apt-get update && \\
     libxslt1.1 && \\
   rm -rf /var/lib/apt/lists/*
 
+# Options for the downloads below. They fetch large archives (the XWiki WAR and the LibreOffice one weigh a few hundred
+# megabytes each) from servers that occasionally reset the connection or slow down to a crawl, and without retries the
+# first such hiccup aborts the whole build. Retrying does not weaken anything: every download is followed by a sha256
+# verification, which is what guarantees we got the expected bytes. --retry-all-errors is needed on top of --retry
+# because the failures seen in practice are mid-transfer ones (a reset connection, an HTTP/2 stream cancelled by the
+# server), which --retry alone does not consider retryable.
+ENV CURL_OPTIONS="-fSL --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 30"
+
 # Install a controlled version of LibreOffice (the one XWiki supports and tests against, i.e. the LTS version) instead
 # of the version shipped by the base image's own distribution release, so that it doesn't drift from the tested
 # version. We take it from the Document Foundation download site (the same source and version used by the XWiki
@@ -89,7 +97,7 @@ RUN LO_ARCH="\$(dpkg --print-architecture)" && \\
     *) echo "Unsupported architecture [\$LO_ARCH] for the LibreOffice installation" >&2; exit 1 ;; \\
   esac && \\
   LO_ARCHIVE="LibreOffice_\${LIBREOFFICE_VERSION}_Linux_\${LO_ARCH_FILE}_deb.tar.gz" && \\
-  curl -fSL "\${LIBREOFFICE_URL_PREFIX}/\${LO_ARCH_DIR}/\${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz && \\
+  curl \$CURL_OPTIONS "\${LIBREOFFICE_URL_PREFIX}/\${LO_ARCH_DIR}/\${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz && \\
   echo "\$LO_SHA256 /tmp/libreoffice.tar.gz" | sha256sum -c - && \\
   mkdir -p /tmp/libreoffice && \\
   tar -C /tmp/libreoffice -xf /tmp/libreoffice.tar.gz && \\
@@ -106,7 +114,7 @@ ENV XWIKI_DOWNLOAD_SHA256 $xwikiSha256
 RUN rm -rf /usr/local/tomcat/webapps/* && \\
   mkdir -p /usr/local/tomcat/temp && \\
   mkdir -p /usr/local/xwiki/data && \\
-  curl -fSL "\${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-\${XWIKI_VERSION}.war" -o xwiki.war && \\
+  curl \$CURL_OPTIONS "\${XWIKI_URL_PREFIX}/xwiki-platform-distribution-war-\${XWIKI_VERSION}.war" -o xwiki.war && \\
   echo "\$XWIKI_DOWNLOAD_SHA256 xwiki.war" | sha256sum -c - && \\
   unzip -d /usr/local/tomcat/webapps/ROOT xwiki.war && \\
   rm -f xwiki.war
@@ -121,7 +129,7 @@ if (db == 'mysql') {
   println "ENV MYSQL_JDBC_PREFIX=\"https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/\${MYSQL_JDBC_VERSION}\""
   println "ENV MYSQL_JDBC_ARTIFACT=\"mysql-connector-j-\${MYSQL_JDBC_VERSION}.jar\""
   println "ENV MYSQL_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MYSQL_JDBC_ARTIFACT}\""
-  println "RUN curl -fSL \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET && \\"
+  println "RUN curl \$CURL_OPTIONS \"\${MYSQL_JDBC_PREFIX}/\${MYSQL_JDBC_ARTIFACT}\" -o \$MYSQL_JDBC_TARGET && \\"
   print "  echo \"\$MYSQL_JDBC_SHA256 \$MYSQL_JDBC_TARGET\" | sha256sum -c -"
 } else if (db == 'mariadb') {
   println "ENV MARIADB_JDBC_VERSION=\"$mariadbJDBCVersion\""
@@ -129,7 +137,7 @@ if (db == 'mysql') {
   println "ENV MARIADB_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/\${MARIADB_JDBC_VERSION}\""
   println "ENV MARIADB_JDBC_ARTIFACT=\"mariadb-java-client-\${MARIADB_JDBC_VERSION}.jar\""
   println "ENV MARIADB_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${MARIADB_JDBC_ARTIFACT}\""
-  println "RUN curl -fSL \"\${MARIADB_JDBC_PREFIX}/\${MARIADB_JDBC_ARTIFACT}\" -o \$MARIADB_JDBC_TARGET && \\"
+  println "RUN curl \$CURL_OPTIONS \"\${MARIADB_JDBC_PREFIX}/\${MARIADB_JDBC_ARTIFACT}\" -o \$MARIADB_JDBC_TARGET && \\"
   print "  echo \"\$MARIADB_JDBC_SHA256 \$MARIADB_JDBC_TARGET\" | sha256sum -c -"
 } else if (db == 'postgres') {
   println "ENV POSTGRES_JDBC_VERSION=\"$postgresJDBCVersion\""
@@ -137,7 +145,8 @@ if (db == 'mysql') {
   println "ENV POSTGRES_JDBC_PREFIX=\"https://repo1.maven.org/maven2/org/postgresql/postgresql/\${POSTGRES_JDBC_VERSION}\""
   println "ENV POSTGRES_JDBC_ARTIFACT=\"postgresql-\${POSTGRES_JDBC_VERSION}.jar\""
   println "ENV POSTGRES_JDBC_TARGET=\"/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/\${POSTGRES_JDBC_ARTIFACT}\""
-  println "RUN curl -fSL \"\${POSTGRES_JDBC_PREFIX}/\${POSTGRES_JDBC_ARTIFACT}\" -o \$POSTGRES_JDBC_TARGET && \\"
+  println "RUN curl \$CURL_OPTIONS \"\${POSTGRES_JDBC_PREFIX}/\${POSTGRES_JDBC_ARTIFACT}\" " +
+    "-o \$POSTGRES_JDBC_TARGET && \\"
   print "  echo \"\$POSTGRES_JDBC_SHA256 \$POSTGRES_JDBC_TARGET\" | sha256sum -c -"
 } %>
 
