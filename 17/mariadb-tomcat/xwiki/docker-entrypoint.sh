@@ -23,11 +23,16 @@ set -e
 
 function first_start() {
   configure
-  touch /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed
+  # The marker lives in the webapp directory, which is not writable when the container runs with a read-only root
+  # filesystem. Don't make the start fail in that case: configure() is idempotent, so the only consequence is that it
+  # runs again on every start. Warn about it so that this isn't silent.
+  if ! touch /usr/local/tomcat/webapps/$CONTEXT_PATH/.first_start_completed; then
+    echo >&2 "  WARNING: Could not create the .first_start_completed marker in" \
+      "/usr/local/tomcat/webapps/$CONTEXT_PATH. XWiki will be reconfigured on every container start."
+  fi
 }
 
 function other_starts() {
-  mkdir -p /usr/local/xwiki/data
   restoreConfigurationFile 'hibernate.cfg.xml'
   restoreConfigurationFile 'xwiki.cfg'
   restoreConfigurationFile 'xwiki.properties'
@@ -47,11 +52,26 @@ function clean_temporary_directory() {
 # $2 - the setting/property to set
 # $3 - the new value
 function xwiki_replace() {
-  # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
-  # which makes it fail if you map the initial file as a Docker volume mount.
-  sed s~"\#\? \?$2 \?=.*"~"$2=$3"~g "$1" > "$1.old"
-  cp "$1.old" "$1"
-  rm "$1.old"
+  # Read from a temporary copy and write the result back with a truncating redirect, instead of using "sed -i". Two
+  # constraints are at play:
+  # * "sed -i" creates a temporary file and performs a rename, thus changing the inode of the initial file, which makes
+  #   it fail if you map the initial file as a Docker volume mount. The redirect truncates in place and preserves the
+  #   inode.
+  # * The temporary copy must not be created next to the target file, because the directory holding it is not writable
+  #   when the container runs with a read-only root filesystem. It goes to the temporary directory on the permanent
+  #   volume, which is writable and emptied on every start (see clean_temporary_directory).
+  local file rc=0
+  file="$(mktemp /usr/local/xwiki/data/tmp/"$(basename "$1")".XXXXXX)"
+  cp "$1" "${file}"
+  sed s~"\#\? \?$2 \?=.*"~"$2=$3"~g "${file}" > "$1" || rc=$?
+  # When the redirect succeeded but sed failed, the target has been truncated and must be restored from the untouched
+  # copy: for a bind-mounted configuration file, that target is the user's own file on the host. The "-w" test tells
+  # that case apart from a redirect that never opened the target, where there is nothing to restore.
+  if [ "$rc" -ne 0 ] && [ -w "$1" ]; then
+    cp "${file}" "$1"
+  fi
+  rm -f "${file}"
+  return "$rc"
 }
 
 # $1 - the setting/property to set
@@ -93,11 +113,21 @@ file_env() {
 # $2 - the replacement text
 # $3 - the file in which to do the search/replace
 function safesed {
-  # Don't use "sed -i" as it creates a temporary file and perform a rename (thus changing the inode of the initial file)
-  # which makes it fail if you map the initial file as a Docker volume mount.
-  sed "s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g" "$3" > "$3.old"
-  cp "$3.old" "$3"
-  rm "$3.old"
+  # Same scheme as xwiki_replace: read from a temporary copy located on the permanent volume (the directory holding the
+  # target file is not writable with a read-only root filesystem) and write the result back with a truncating redirect
+  # so that the target file keeps its inode and file-level Docker volume mounts keep working.
+  local file expression rc=0
+  expression="s/$(echo $1 | sed -e 's/\([[\/.*]\|\]\)/\\&/g')/$(echo $2 | sed -e 's/[\/&]/\\&/g')/g"
+  file="$(mktemp /usr/local/xwiki/data/tmp/"$(basename "$3")".XXXXXX)"
+  cp "$3" "${file}"
+  sed "${expression}" "${file}" > "$3" || rc=$?
+  # Restore the truncated target from the untouched copy, for the same reason and with the same "-w" test as in
+  # xwiki_replace.
+  if [ "$rc" -ne 0 ] && [ -w "$3" ]; then
+    cp "${file}" "$3"
+  fi
+  rm -f "${file}"
+  return "$rc"
 }
 
 # $1 - the config file name found in WEB-INF (e.g. "xwiki.cfg")
@@ -173,7 +203,6 @@ function configure() {
   fi
 
   # If the files already exist then copy them to the XWiki's WEB-INF directory.
-  mkdir -p /usr/local/xwiki/data
   saveConfigurationFile 'hibernate.cfg.xml'
   saveConfigurationFile 'xwiki.cfg'
   saveConfigurationFile 'xwiki.properties'
