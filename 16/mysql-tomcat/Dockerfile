@@ -72,18 +72,21 @@ RUN apt-get update && \
 # of the version shipped by the base image's own distribution release, so that it doesn't drift from the tested
 # version. We take it from the Document Foundation download site (the same source and version used by the XWiki
 # Docker-based test framework) and verify its sha256. Since the official image is built for both amd64 and arm64, we
-# select the download matching the target architecture (provided automatically by Docker's TARGETARCH build argument)
-# and its sha256. We install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki (through
-# JODConverter) probes to locate the LibreOffice installation automatically, so no extra configuration is needed.
-ARG TARGETARCH
+# select the download matching the architecture and its sha256. The architecture is read from the image itself with
+# dpkg --print-architecture rather than from Docker's TARGETARCH build argument, because TARGETARCH is only set
+# automatically by BuildKit and the Docker Official Images infrastructure builds with the classic builder, where it
+# would expand to the empty string. We install into /opt and symlink /opt/libreoffice, which is one of the paths XWiki
+# (through JODConverter) probes to locate the LibreOffice installation automatically, so no extra configuration is
+# needed.
 ENV LIBREOFFICE_VERSION="25.8.7"
 ENV LIBREOFFICE_SHA256_AMD64="7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f"
 ENV LIBREOFFICE_SHA256_ARM64="67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa"
 ENV LIBREOFFICE_URL_PREFIX="https://download.documentfoundation.org/libreoffice/stable/${LIBREOFFICE_VERSION}/deb"
-RUN case "$TARGETARCH" in \
+RUN LO_ARCH="$(dpkg --print-architecture)" && \
+  case "$LO_ARCH" in \
     amd64) LO_ARCH_DIR=x86_64; LO_ARCH_FILE=x86-64; LO_SHA256=$LIBREOFFICE_SHA256_AMD64 ;; \
     arm64) LO_ARCH_DIR=aarch64; LO_ARCH_FILE=aarch64; LO_SHA256=$LIBREOFFICE_SHA256_ARM64 ;; \
-    *) echo "Unsupported target architecture [$TARGETARCH] for the LibreOffice installation" >&2; exit 1 ;; \
+    *) echo "Unsupported architecture [$LO_ARCH] for the LibreOffice installation" >&2; exit 1 ;; \
   esac && \
   LO_ARCHIVE="LibreOffice_${LIBREOFFICE_VERSION}_Linux_${LO_ARCH_FILE}_deb.tar.gz" && \
   curl -fSL "${LIBREOFFICE_URL_PREFIX}/${LO_ARCH_DIR}/${LO_ARCHIVE}" -o /tmp/libreoffice.tar.gz && \
