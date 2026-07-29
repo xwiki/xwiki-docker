@@ -1,0 +1,94 @@
+## See the NOTICE file distributed with this work for additional
+## information regarding copyright ownership.
+##
+## This is free software; you can redistribute it and/or modify it
+## under the terms of the GNU Lesser General Public License as
+## published by the Free Software Foundation; either version 2.1 of
+## the License, or (at your option) any later version.
+##
+## This software is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+## Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public
+## License along with this software; if not, write to the Free
+## Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+## 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+##
+## This file is generated from template-github/docker-build.yml by the 'generateWorkflows' Gradle task. Don't edit it,
+## edit the template instead and run './gradlew'.
+##
+## The goal of this action is to verify that the generated Dockerfiles actually produce a working image. The Gradlew
+## Check action only verifies that the generated directories match the template, not that what they contain builds, so
+## without this action a broken Dockerfile reaches us only when the Docker Official Images pull request is opened, i.e.
+## after the release has been announced.
+##
+## The build deliberately runs with BuildKit disabled, because the Docker Official Images infrastructure builds with the
+## classic builder and the two builders do not accept the same Dockerfiles. In particular the classic builder does not
+## populate the automatic platform arguments (TARGETARCH and friends), so a Dockerfile relying on them builds locally
+## and fails there. Note that the classic builder is deprecated and will eventually be removed, at which point this
+## needs revisiting.
+name: Docker Build
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - '*/*/Dockerfile'
+      - 'template/**'
+      - 'template-github/**'
+      - 'build.gradle'
+      - '.github/workflows/docker-build.yml'
+  pull_request:
+    paths:
+      - '*/*/Dockerfile'
+      - 'template/**'
+      - 'template-github/**'
+      - 'build.gradle'
+      - '.github/workflows/docker-build.yml'
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      ## Build every variant even when one of them fails, so that a single failure doesn't hide the others.
+      fail-fast: false
+      ## Each build downloads the XWiki WAR and the LibreOffice archive, so limit how many do it at the same time to
+      ## avoid hammering the servers they come from (a slow answer aborts the download and fails the build).
+      max-parallel: 4
+      matrix:
+        version: [ '18', '18.4', '17', '16' ]
+        variant: [ 'mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat' ]
+
+    name: ${{ matrix.version }}-${{ matrix.variant }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        working-directory: ${{ matrix.version }}/${{ matrix.variant }}
+        ## See the note above: the Docker Official Images infrastructure uses the classic builder, so we must too.
+        env:
+          DOCKER_BUILDKIT: 0
+        run: docker build -t "xwiki-ci:${{ matrix.version }}-${{ matrix.variant }}" .
+
+      - name: Verify the image content
+        ## Building successfully is not enough: check that the pieces the Dockerfile is responsible for really ended up
+        ## in the image, since a wrong download URL or extraction path can leave it empty without failing the build.
+        ## The JDBC driver to look for is read from the <DB>_JDBC_ARTIFACT variable the Dockerfile itself sets, so that
+        ## this check needs no knowledge of which driver each variant uses.
+        run: |
+          docker run --rm --entrypoint sh "xwiki-ci:${{ matrix.version }}-${{ matrix.variant }}" -c '
+            set -e
+            LIB=/usr/local/tomcat/webapps/ROOT/WEB-INF/lib
+            test -f /usr/local/tomcat/webapps/ROOT/WEB-INF/web.xml
+            echo "XWiki is deployed as the ROOT webapp"
+            ARTIFACT=$(printenv | sed -n "s/^[A-Z]*_JDBC_ARTIFACT=//p")
+            test -n "$ARTIFACT"
+            ls "$LIB/$ARTIFACT" > /dev/null
+            echo "The JDBC driver the Dockerfile declares [$ARTIFACT] is deployed in the XWiki webapp"
+            /opt/libreoffice/program/soffice --version
+          '
