@@ -35,18 +35,10 @@ on:
   push:
     branches: [ master ]
     paths:
-      - '*/*/Dockerfile'
-      - 'template/**'
-      - 'template-github/**'
-      - 'build.gradle'
-      - '.github/workflows/docker-build.yml'
+$pathFilters
   pull_request:
     paths:
-      - '*/*/Dockerfile'
-      - 'template/**'
-      - 'template-github/**'
-      - 'build.gradle'
-      - '.github/workflows/docker-build.yml'
+$pathFilters
 
 jobs:
   docker-build:
@@ -59,21 +51,21 @@ jobs:
       ## avoid hammering the servers they come from (a slow answer aborts the download and fails the build).
       max-parallel: 4
       matrix:
-        version: [ '18', '18.4', '17', '16' ]
-        variant: [ 'mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat' ]
+        version: [ $versionMatrix ]
+        variant: [ $variantMatrix ]
 
-    name: ${{ matrix.version }}-${{ matrix.variant }}
+    name: \${{ matrix.version }}-\${{ matrix.variant }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build the image
-        working-directory: ${{ matrix.version }}/${{ matrix.variant }}
+        working-directory: \${{ matrix.version }}/\${{ matrix.variant }}
         ## See the note above: the Docker Official Images infrastructure uses the classic builder, so we must too.
         env:
           DOCKER_BUILDKIT: 0
-        run: docker build -t "xwiki-ci:${{ matrix.version }}-${{ matrix.variant }}" .
+        run: docker build -t "xwiki-ci:\${{ matrix.version }}-\${{ matrix.variant }}" .
 
       - name: Verify the image content
         ## Building successfully is not enough: check that the pieces the Dockerfile is responsible for really ended up
@@ -81,14 +73,14 @@ jobs:
         ## The JDBC driver to look for is read from the <DB>_JDBC_ARTIFACT variable the Dockerfile itself sets, so that
         ## this check needs no knowledge of which driver each variant uses.
         run: |
-          docker run --rm --entrypoint sh "xwiki-ci:${{ matrix.version }}-${{ matrix.variant }}" -c '
+          docker run --rm --entrypoint sh "xwiki-ci:\${{ matrix.version }}-\${{ matrix.variant }}" -c '
             set -e
             LIB=/usr/local/tomcat/webapps/ROOT/WEB-INF/lib
             test -f /usr/local/tomcat/webapps/ROOT/WEB-INF/web.xml
             echo "XWiki is deployed as the ROOT webapp"
-            ARTIFACT=$(printenv | sed -n "s/^[A-Z]*_JDBC_ARTIFACT=//p")
-            test -n "$ARTIFACT"
-            ls "$LIB/$ARTIFACT" > /dev/null
-            echo "The JDBC driver the Dockerfile declares [$ARTIFACT] is deployed in the XWiki webapp"
+            ARTIFACT=\$(printenv | sed -n "s/^[A-Z]*_JDBC_ARTIFACT=//p")
+            test -n "\$ARTIFACT"
+            ls "\$LIB/\$ARTIFACT" > /dev/null
+            echo "The JDBC driver the Dockerfile declares [\$ARTIFACT] is deployed in the XWiki webapp"
             /opt/libreoffice/program/soffice --version
           '

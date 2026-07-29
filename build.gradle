@@ -25,7 +25,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 //
 // Note: As a consequence only update the template files and never the generated files!
 
-defaultTasks 'generate'
+defaultTasks 'generate', 'generateWorkflows'
 
 def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 
@@ -140,6 +140,18 @@ def tokens = [
     ]
 ]
 
+// The files of 'sourceDirectory' matching 'includes' are copied into 'targetDirectory', evaluating the groovy they
+// contain with 'values' as the template bindings.
+def expandTemplates = { String sourceDirectory, String targetDirectory, List includes, Map values ->
+    copy {
+        from sourceDirectory
+        into targetDirectory
+        includes.each { pattern -> include pattern }
+        expand(values)
+        filteringCharset = 'UTF-8'
+    }
+}
+
 task generate() {
     doLast {
         // Copy the template for all versions and variants
@@ -152,35 +164,30 @@ task generate() {
                 tokens[version].'libreofficeVersion' = libreofficeVersion
                 tokens[version].'libreofficeSha256Amd64' = libreofficeSha256Amd64
                 tokens[version].'libreofficeSha256Arm64' = libreofficeSha256Arm64
-                // Copy common template files, evaluating groovy in them
-                copy {
-                    from 'template'
-                    into "${version}/${variant}"
-                    include '.env'
-                    include 'Dockerfile'
-                    include 'docker-compose.yml'
-                    include 'xwiki/*'
-                    expand(tokens[version])
-                    filteringCharset = 'UTF-8'
-                }
-                // Copy DB-specific template files, evaluating groovy in them
-                copy {
-                    from 'template'
-                    into "${version}/${variant}"
-                    include "${db}/*"
-                    expand(tokens[version])
-                    filteringCharset = 'UTF-8'
-                }
-                // Copy Servlet-specific template files, evaluating groovy in them
-                copy {
-                    from 'template'
-                    into "${version}/${variant}"
-                    include "${servlet}/*"
-                    expand(tokens[version])
-                    filteringCharset = 'UTF-8'
-                }
+                // Copy the common template files plus the ones specific to this variant's db and servlet container
+                expandTemplates('template', "${version}/${variant}",
+                    ['.env', 'Dockerfile', 'docker-compose.yml', 'xwiki/*', "${db}/*", "${servlet}/*"],
+                    tokens[version])
             }
         }
+    }
+}
+
+// The paths that must trigger the Docker Build workflow: the generated Dockerfiles, everything they are generated from,
+// and the workflow itself.
+def workflowPathFilters = ['*/*/Dockerfile', 'template/**', 'template-github/**', 'build.gradle',
+    '.github/workflows/docker-build.yml']
+
+// Generate the GitHub Actions workflow that builds the images. Its build matrix lists all the versions and variants, so
+// generating it from the same definitions as the images keeps it in sync instead of having to be updated by hand
+// whenever a cycle is added or removed.
+task generateWorkflows() {
+    doLast {
+        expandTemplates('template-github', '.github/workflows', ['docker-build.yml'], [
+            versionMatrix: tokens.keySet().collect { "'$it'" }.join(', '),
+            variantMatrix: variants.collect { "'$it'" }.join(', '),
+            pathFilters: workflowPathFilters.collect { "      - '$it'" }.join('\n')
+        ])
     }
 }
 
