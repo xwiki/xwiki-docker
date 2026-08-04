@@ -167,8 +167,15 @@ function configure() {
   if [ "$CONTEXT_PATH" == "ROOT" ]; then
     xwiki_set_cfg 'xwiki.webapppath' ''
   else
+    # Copy instead of moving, so that files bind-mounted into the target context directory (e.g. a custom
+    # WEB-INF/classes/logback.xml) survive: Docker creates that directory before this script runs, and "mv" cannot
+    # merge into an existing directory. "--update=none" keeps the mounted files rather than overwriting them.
     mkdir -p -v /usr/local/tomcat/webapps/$CONTEXT_PATH
     cp -a --update=none /usr/local/tomcat/webapps/ROOT/.  /usr/local/tomcat/webapps/$CONTEXT_PATH/
+    # Tomcat auto-deploys every directory under webapps/, so ROOT must not be left behind: XWiki would then be
+    # deployed twice in the same JVM and the second context would fail to start (e.g. on the "org.xwiki.infinispan"
+    # JMX domain already being registered).
+    rm -rf /usr/local/tomcat/webapps/ROOT
   fi
 
   # When DB_PORT is set, it's added to the host in the JDBC URL of hibernate.cfg.xml, so that a DB listening on a
