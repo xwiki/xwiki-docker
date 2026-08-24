@@ -1,0 +1,36 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// Pre-push release umbrella: refresh the XWiki, JDBC and LibreOffice versions, regenerate all the images and the
+// workflow, then smoke-test the cycles that changed. After this, review/commit/push docker-xwiki, then run
+// './gradlew submitOfficialImage' to open the official Docker library Pull Request. This automates the "Update Docker
+// Images" step of https://dev.xwiki.org/xwiki/bin/view/ReleasePlans/ReleasePlanHelp.
+task release() {
+    dependsOn 'updateXWiki', 'updateJDBC', 'updateLibreOffice', 'generate', 'generateWorkflows', 'smokeTest'
+}
+
+// Ordering so that a single 'release' invocation composes correctly: version updates first (JDBC after XWiki, since it
+// reads each cycle's - possibly just-bumped - version), then generation, then the smoke tests. The update tasks mutate
+// the in-memory version data model too, so the chained 'generate' sees the fresh values.
+tasks.named('updateJDBC').configure { mustRunAfter('updateXWiki') }
+tasks.named('updateLibreOffice').configure { mustRunAfter('updateXWiki', 'updateJDBC') }
+tasks.named('generate').configure { mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice') }
+tasks.named('generateWorkflows').configure { mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice') }
+tasks.named('smokeTest').configure { mustRunAfter('generate') }

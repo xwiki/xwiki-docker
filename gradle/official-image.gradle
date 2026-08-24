@@ -1,0 +1,218 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// Generation of the DockerHub official images definition for xwiki (the 'library/xwiki' file of
+// https://github.com/docker-library/official-images) from the version data model, and the task that submits it as a
+// Pull Request against that repository.
+
+// The version data model (see build.gradle), the 'capture' helper (see gradle/helpers.gradle) and the '-PdryRun' flag,
+// bound at configuration time so that the task action below never reaches for the project while it runs.
+def tokens = project.tokens
+def capture = project.capture
+def dryRun = project.hasProperty('dryRun')
+
+// The DB variants and their short names as used in the official Docker library file. The first entry is the default
+// variant (the one that also gets the version-only and role-global tags).
+def dbVariants = [
+    'mysql-tomcat': 'mysql',
+    'postgres-tomcat': 'postgres',
+    'mariadb-tomcat': 'mariadb'
+]
+
+// Constants of the official Docker library file. These match the header currently published for xwiki and rarely
+// change.
+def libraryMaintainers = 'XWiki Core Dev Team <committers@xwiki.org> (@xwiki)'
+def libraryGitRepo = 'https://github.com/xwiki-contrib/docker-xwiki.git'
+def libraryArchitectures = 'amd64, arm64v8'
+def officialImagesRepo = 'docker-library/official-images'
+def libraryPath = 'library/xwiki'
+
+// Default section comment emitted before each cycle's first block, keyed by role. A cycle may override it with its own
+// 'libraryComment' (e.g. cycle 16's "- Added back temporarily" annotation).
+def librarySectionComments = [
+    'stable': '# Latest stable',
+    'intermediate-lts': '# Intermediate LTS',
+    'lts': '# LTS',
+    'old-lts': '# Previous LTS'
+]
+
+// The version tags a cycle contributes, from most to least generic. A major-only cycle key (e.g. '18', version 18.5.0)
+// yields [18, 18.5, 18.5.0]; a major.minor key (e.g. '18.4', version 18.4.2) yields [18.4, 18.4.2] (no bare-major tag,
+// since another cycle owns the major line).
+def libraryVersionPrefixes = { String cycle, String version ->
+    def v = version.tokenize('.')
+    if (cycle.tokenize('.').size() == 1) {
+        return [v[0], "${v[0]}.${v[1]}", version]
+    }
+    return ["${v[0]}.${v[1]}", version]
+}
+
+// The full ordered tag list for one cycle/variant, reproducing the upstream conventions: bare version tags only on the
+// default variant; per-variant version tags on every variant; and role-driven aliases (bare variant + stable-/lts- +
+// the global stable/latest/lts tags) added only for the stable and LTS cycles.
+def libraryTags = { String variant, String db, boolean isDefault, String role, List prefixes ->
+    def tags = []
+    if (isDefault) {
+        tags += prefixes
+    }
+    tags += prefixes.collect { "${it}-${variant}".toString() }
+    if (role == 'stable') {
+        tags += variant
+        tags += ["stable-${variant}".toString(), "stable-${db}".toString()]
+        if (isDefault) {
+            tags += ['stable', 'latest']
+        }
+    } else if (role == 'lts') {
+        tags += ["lts-${variant}".toString(), "lts-${db}".toString()]
+        if (isDefault) {
+            tags += 'lts'
+        }
+    }
+    return tags
+}
+
+// The 'GitCommit' of a cycle = the last commit that touched that cycle's directory. docker-library fetches this exact
+// commit from GitRepo to (re)build the images, so it only rebuilds cycles whose GitCommit changed.
+def libraryGitCommit = { String cycle ->
+    return capture(['git', 'log', '-1', '--format=%H', '--', "${cycle}/".toString()])
+}
+
+// Generate the complete content of the official Docker library file from the version data model, using the algorithm
+// above. Verified to reproduce the current upstream file byte for byte.
+def defaultVariant = dbVariants.keySet().first()
+def generateLibraryContent
+generateLibraryContent = {
+    def sb = new StringBuilder()
+    sb << "Maintainers: ${libraryMaintainers}\n"
+    sb << "GitRepo: ${libraryGitRepo}\n"
+    tokens.each { cycle, data ->
+        def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
+        def commit = libraryGitCommit(cycle)
+        def comment = data.libraryComment ?: librarySectionComments[data.role]
+        sb << "\n${comment}\n"
+        def first = true
+        dbVariants.each { variant, db ->
+            if (!first) {
+                sb << '\n'
+            }
+            first = false
+            def tags = libraryTags(variant, db, variant == defaultVariant, data.role, prefixes)
+            sb << "Tags: ${tags.join(', ')}\n"
+            sb << "Architectures: ${libraryArchitectures}\n"
+            sb << "Directory: ${cycle}/${variant}\n"
+            sb << "GitCommit: ${commit}\n"
+        }
+    }
+    return sb.toString()
+}
+
+// Generate the official Docker library file for xwiki and open a pull request against docker-library/official-images,
+// updating the single 'library/xwiki' file on a branch of your GitHub fork (no local clone). Run it AFTER
+// './gradlew release' and after you have committed and pushed the docker-xwiki change, so that the emitted GitCommit(s)
+// are reachable upstream. Pass '-PdryRun' to only generate the file and show the diff, without touching your fork or
+// opening a PR. Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs.
+task submitOfficialImage() {
+    doLast {
+        // gh must be authenticated (needed for the upstream fetch below and the PR flow).
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])
+
+        // Generate the library file and write it out for review.
+        def content = generateLibraryContent()
+        def outFile = file('build/library-xwiki')
+        outFile.parentFile.mkdirs()
+        outFile.text = content
+
+        // Fetch the current upstream file and show a real diff against the generated one.
+        def upstreamB64 = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${officialImagesRepo}/contents/${libraryPath}", '--jq', '.content'])
+        def upstreamContent = new String(upstreamB64.replaceAll('\\s', '').decodeBase64(), 'UTF-8')
+        if (content == upstreamContent) {
+            logger.lifecycle('The generated library file is identical to the upstream one; nothing to submit.')
+            return
+        }
+        def upstreamFile = file('build/library-xwiki.upstream')
+        upstreamFile.text = upstreamContent
+        def diff = capture(['git', '--no-pager', 'diff', '--no-index', '--',
+            upstreamFile.path, outFile.path], true)
+        logger.lifecycle("Generated ${libraryPath} (diff upstream -> generated):\n${diff}")
+
+        if (dryRun) {
+            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the guards, fork and PR steps.")
+            return
+        }
+
+        // The working tree must be clean and HEAD must be pushed: the GitCommit values we emit are the last commits
+        // that touched each cycle directory, and docker-library fetches those exact commits from GitRepo, so anything
+        // uncommitted or unpushed would not be reachable upstream.
+        if (!capture(['git', 'status', '--porcelain']).isEmpty()) {
+            throw new GradleException('The working tree is dirty. Commit and push the docker-xwiki ' +
+                'change before running submitOfficialImage.')
+        }
+        def head = capture(['git', 'rev-parse', 'HEAD'])
+        if (capture(['git', 'branch', '-r', '--contains', head]).isEmpty()) {
+            throw new GradleException("HEAD (${head}) is not pushed to any remote. Push the docker-xwiki " +
+                'change before running submitOfficialImage.')
+        }
+
+        // Resolve the GitHub user and the upstream default branch.
+        def login = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', 'user', '--jq', '.login'])
+        def fork = "${login}/official-images"
+        def defaultBranch = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${officialImagesRepo}", '--jq', '.default_branch'])
+
+        // Ensure the fork exists (idempotent) and sync its default branch to upstream.
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'fork', officialImagesRepo, '--clone=false'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', officialImagesRepo,
+            '--branch', defaultBranch])
+
+        // Create a working branch on the fork off the freshly synced default branch (recreating it if a previous run
+        // left one behind).
+        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
+        def branch = "update-xwiki-${stableVersion}"
+        def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/git/ref/heads/${defaultBranch}", '--jq', '.object.sha'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'DELETE',
+            "repos/${fork}/git/refs/heads/${branch}"], true)
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'POST', "repos/${fork}/git/refs",
+            '-f', "ref=refs/heads/${branch}", '-f', "sha=${baseSha}"])
+
+        // Update the single file on that branch via the contents API (needs the current blob sha).
+        def fileSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/contents/${libraryPath}?ref=${branch}", '--jq', '.sha'])
+        def commitMessage = "Update XWiki to ${stableVersion}"
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'PUT',
+            "repos/${fork}/contents/${libraryPath}",
+            '-f', "message=${commitMessage}",
+            '-f', "content=${content.bytes.encodeBase64().toString()}",
+            '-f', "sha=${fileSha}",
+            '-f', "branch=${branch}"])
+
+        // Open the PR against upstream.
+        def roleLabels = ['stable': 'stable', 'intermediate-lts': 'intermediate LTS', 'lts': 'LTS',
+            'old-lts': 'previous LTS']
+        def prBody = 'Update the XWiki official images to the latest releases:\n\n' +
+            tokens.collect { cycle, data -> "- `${cycle}` (${roleLabels[data.role]}): ${data.xwikiVersion}" }
+                .join('\n') + '\n'
+        def prUrl = capture(['env', '-u', 'GH_TOKEN', 'gh', 'pr', 'create', '--repo', officialImagesRepo,
+            '--base', defaultBranch, '--head', "${login}:${branch}",
+            '--title', commitMessage, '--body', prBody])
+        logger.lifecycle("Opened official-images PR: ${prUrl}")
+    }
+}

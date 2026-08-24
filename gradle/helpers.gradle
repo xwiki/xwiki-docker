@@ -1,0 +1,114 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// The HTTP, hashing, version and process helpers shared by the tasks of the other scripts. They are exposed as project
+// extra properties (and thus callable as functions from any of those scripts), since a script-level 'def' is only
+// visible inside the script that declares it.
+
+// Fetch a URL as text, following redirects manually. The Document Foundation download URLs answer with a 302 to a
+// mirror (sometimes switching from https to http), which the default HttpURLConnection redirect handling refuses to
+// follow, so we follow them ourselves.
+def httpGetText
+httpGetText = { String location ->
+    def current = location
+    for (int hop = 0; hop < 5; hop++) {
+        def connection = (HttpURLConnection) new URL(current).openConnection()
+        connection.instanceFollowRedirects = false
+        connection.connectTimeout = 30000
+        connection.readTimeout = 30000
+        def status = connection.responseCode
+        if (status in [301, 302, 303, 307, 308]) {
+            current = connection.getHeaderField('Location')
+            connection.disconnect()
+        } else if (status == 200) {
+            return connection.inputStream.getText('UTF-8')
+        } else {
+            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+        }
+    }
+    throw new GradleException("Too many redirects while fetching [$location]")
+}
+ext.httpGetText = httpGetText
+
+// Stream a URL (following redirects like httpGetText) through a SHA-256 digest without buffering the whole payload in
+// memory, and return the lowercase hex digest. Used to hash the (large) XWiki WAR and the JDBC driver JARs.
+def sha256OfUrl
+sha256OfUrl = { String location ->
+    def current = location
+    for (int hop = 0; hop < 5; hop++) {
+        def connection = (HttpURLConnection) new URL(current).openConnection()
+        connection.instanceFollowRedirects = false
+        connection.connectTimeout = 30000
+        connection.readTimeout = 60000
+        def status = connection.responseCode
+        if (status in [301, 302, 303, 307, 308]) {
+            current = connection.getHeaderField('Location')
+            connection.disconnect()
+        } else if (status == 200) {
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            connection.inputStream.withStream { input ->
+                byte[] buffer = new byte[65536]
+                int read
+                while ((read = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read)
+                }
+            }
+            return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
+        } else {
+            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+        }
+    }
+    throw new GradleException("Too many redirects while fetching [$location]")
+}
+ext.sha256OfUrl = sha256OfUrl
+
+// Compare two dot-separated numeric versions (e.g. '18.10.2' <=> '18.9.5'), component by component.
+def compareVersions = { String a, String b ->
+    def pa = a.tokenize('.').collect { it as int }
+    def pb = b.tokenize('.').collect { it as int }
+    def n = Math.max(pa.size(), pb.size())
+    for (int i = 0; i < n; i++) {
+        def x = i < pa.size() ? pa[i] : 0
+        def y = i < pb.size() ? pb[i] : 0
+        if (x != y) {
+            return x <=> y
+        }
+    }
+    return 0
+}
+ext.compareVersions = compareVersions
+
+// Run an external command (optionally in workingDir), capturing its stdout; throw on a non-zero exit unless
+// allowFailure is set. Returns the trimmed stdout. Used by 'smokeTest'/'runAll' (docker compose) and
+// 'submitOfficialImage' (git/gh plumbing). Uses Groovy's Process API rather than Gradle's exec (removed from the
+// Project API in Gradle 9) so that it works regardless of the Gradle version.
+def capture = { List<String> command, boolean allowFailure = false, File workingDir = null ->
+    def stdout = new StringWriter()
+    def stderr = new StringWriter()
+    def process = workingDir ? command.execute(null, workingDir) : command.execute()
+    process.consumeProcessOutput(stdout, stderr)
+    process.waitFor()
+    if (!allowFailure && process.exitValue() != 0) {
+        throw new GradleException("Command [${command.join(' ')}] failed (exit ${process.exitValue()}):\n" +
+            "${stdout.toString().trim()}\n${stderr.toString().trim()}")
+    }
+    return stdout.toString().trim()
+}
+ext.capture = capture

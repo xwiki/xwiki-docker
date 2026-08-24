@@ -1,0 +1,207 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// The tasks that refresh the version data model in 'versions.json': the XWiki version of each cycle, the JDBC driver
+// versions of each cycle, and the shared LibreOffice version. They all resolve the values from the same places XWiki
+// itself uses and compute the sha256 of the artifacts the images download, so that no version or hash has to be found,
+// downloaded and pasted by hand. Run './gradlew' afterwards to regenerate the images (or use the 'release' umbrella,
+// which chains everything in the right order).
+
+// The version data model (see build.gradle) and the shared helpers (see gradle/helpers.gradle), bound at configuration
+// time so that the task actions below never reach for the project while they run.
+def tokens = project.tokens
+def versionsConfig = project.versionsConfig
+def writeVersions = project.writeVersions
+def httpGetText = project.httpGetText
+def sha256OfUrl = project.sha256OfUrl
+def compareVersions = project.compareVersions
+
+// How 'updateXWiki' tells a 'smokeTest' chained in the same invocation (the 'release' umbrella) which cycles are worth
+// booting: 'ran' distinguishes "updateXWiki did not run, so test everything" from "it ran and nothing changed, so there
+// is nothing to test". A shared mutable holder rather than an extra property written at execution time, since writing
+// one means reaching for the project from a task action.
+def xwikiUpdate = [ran: false, changedCycles: []]
+ext.xwikiUpdate = xwikiUpdate
+
+// Resolve, for each existing cycle, the latest final XWiki version on that cycle's line (18 -> latest 18.x, 18.4 ->
+// latest 18.4.x, ...) from XWiki's Maven metadata, and for any cycle whose version changed, download the WAR, compute
+// its sha256, and rewrite the values in 'versions.json'. Does NOT create new cycles (adding a cycle stays a manual
+// 'versions.json' edit, since it also means deciding its role and its base image).
+task updateXWiki() {
+    doLast {
+        // Resolve versions from nexus.xwiki.org. The generated Dockerfile downloads the WAR from maven.xwiki.org, which
+        // is just a view on nexus.xwiki.org (same artifacts), so the sha256 we compute here is that of the exact bytes
+        // the image will fetch. The metadata lists RCs, hence the finals-only filter below.
+        def metadataUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+            'org/xwiki/platform/xwiki-platform-distribution-war/maven-metadata.xml'
+        def metadata = httpGetText(metadataUrl)
+        def finals = []
+        (metadata =~ /<version>([^<]+)<\/version>/).each { full, v ->
+            if (v ==~ /\d+\.\d+\.\d+/) {
+                finals << v
+            }
+        }
+        if (finals.isEmpty()) {
+            throw new GradleException("No final XWiki versions found at [$metadataUrl]")
+        }
+        def changed = []
+        tokens.each { cycle, data ->
+            def parts = cycle.tokenize('.')
+            def matching = finals.findAll { fv ->
+                def fparts = fv.tokenize('.')
+                parts.size() <= fparts.size() && (0..<parts.size()).every { fparts[it] == parts[it] }
+            }
+            if (matching.isEmpty()) {
+                logger.lifecycle("No final XWiki version found for cycle ${cycle}; skipping.")
+                return
+            }
+            def latest = matching.max { a, b -> compareVersions(a, b) }
+            if (latest == data.xwikiVersion) {
+                logger.lifecycle("XWiki cycle ${cycle} is already up to date (${data.xwikiVersion}).")
+                return
+            }
+            def warUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+                "org/xwiki/platform/xwiki-platform-distribution-war/${latest}/" +
+                "xwiki-platform-distribution-war-${latest}.war"
+            logger.lifecycle("Updating XWiki cycle ${cycle} from ${data.xwikiVersion} to ${latest} " +
+                '(downloading the WAR to compute its sha256, this may take a while)...')
+            def sha = sha256OfUrl(warUrl)
+            data.xwikiVersion = latest
+            data.xwikiSha256 = sha
+            changed << cycle
+        }
+        if (!changed.isEmpty()) {
+            writeVersions()
+            logger.lifecycle("Updated XWiki version for cycle(s): ${changed.join(', ')}.")
+        }
+        // Record the changed cycles so that a chained 'smokeTest' (in the 'release' umbrella) knows what to test.
+        xwikiUpdate.ran = true
+        xwikiUpdate.changedCycles = changed
+        logger.lifecycle("Run './gradlew' to regenerate the images.")
+    }
+}
+
+// For each existing cycle, read the JDBC driver versions declared in that cycle's own xwiki-platform POM (the versions
+// XWiki was tested against) and, for any that changed, download the driver JAR from Maven Central, compute its sha256,
+// and rewrite the per-cycle values in 'versions.json'.
+task updateJDBC() {
+    doLast {
+        def drivers = [
+            [name: 'mysql', prop: 'mysql.version', path: 'com/mysql/mysql-connector-j',
+             jar: { v -> "mysql-connector-j-${v}.jar" },
+             tokenV: 'mysqlJDBCVersion', tokenS: 'mysqlJDBCSha256'],
+            [name: 'mariadb', prop: 'mariadb.version', path: 'org/mariadb/jdbc/mariadb-java-client',
+             jar: { v -> "mariadb-java-client-${v}.jar" },
+             tokenV: 'mariadbJDBCVersion', tokenS: 'mariadbJDBCSha256'],
+            [name: 'postgres', prop: 'pgsql.version', path: 'org/postgresql/postgresql',
+             jar: { v -> "postgresql-${v}.jar" },
+             tokenV: 'postgresJDBCVersion', tokenS: 'postgresJDBCSha256']
+        ]
+        def changed = false
+        tokens.each { cycle, data ->
+            def version = data.xwikiVersion
+            // Read the JDBC driver versions from the cycle's own xwiki-platform POM on nexus.xwiki.org. The driver JARs
+            // themselves are hashed from Maven Central below, because that is where the generated Dockerfile downloads
+            // them from (see template/Dockerfile).
+            def pomUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
+                "org/xwiki/platform/xwiki-platform/${version}/xwiki-platform-${version}.pom"
+            def pom = httpGetText(pomUrl)
+            drivers.each { d ->
+                def matcher = (pom =~ /<${d.prop}>([^<]+)<\/${d.prop}>/)
+                if (!matcher.find()) {
+                    throw new GradleException("Could not find <${d.prop}> in [$pomUrl]")
+                }
+                def newVersion = matcher.group(1)
+                if (newVersion == data[d.tokenV]) {
+                    logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC already up to date (${newVersion}).")
+                    return
+                }
+                def jarUrl = "https://repo1.maven.org/maven2/${d.path}/${newVersion}/${d.jar(newVersion)}"
+                logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC ${data[d.tokenV]} -> ${newVersion} (hashing jar)...")
+                def sha = sha256OfUrl(jarUrl)
+                data[d.tokenV] = newVersion
+                data[d.tokenS] = sha
+                changed = true
+            }
+        }
+        if (changed) {
+            writeVersions()
+        }
+        logger.lifecycle("Run './gradlew' to regenerate the images.")
+    }
+}
+
+// Resolve the LibreOffice version to pin (the LTS one, i.e. the latest patch of the previous stable branch) and its
+// per-architecture sha256 from the Document Foundation, then rewrite the 'libreoffice' values in 'versions.json'. This
+// mirrors how XWiki resolves 'libreoffice.version=lts' at test time (see LibreOfficeResolver in
+// xwiki-platform-test-docker) but bakes a concrete, sha256-verified value into the data file so that image generation
+// stays reproducible.
+task updateLibreOffice() {
+    doLast {
+        def stableUrl = 'https://download.documentfoundation.org/libreoffice/stable/'
+        def listing = httpGetText(stableUrl)
+
+        // Parse the version directories (e.g. "25.8.7/") into major/minor/patch.
+        def versions = []
+        (listing =~ /href="(\d+)\.(\d+)\.(\d+)\/"/).each { full, major, minor, patch ->
+            versions << [major: major as int, minor: minor as int, patch: patch as int]
+        }
+        if (versions.isEmpty()) {
+            throw new GradleException("Failed to find any LibreOffice version at [$stableUrl]")
+        }
+
+        // Group into distinct branches (major.minor) sorted ascending; the LTS is the previous branch (second to last).
+        def branches = versions.collect { [it.major, it.minor] }.unique(false).sort { a, b ->
+            (a[0] <=> b[0]) ?: (a[1] <=> b[1])
+        }
+        if (branches.size() < 2) {
+            throw new GradleException("Expected at least 2 LibreOffice branches at [$stableUrl] to determine the LTS")
+        }
+        def ltsBranch = branches[branches.size() - 2]
+
+        // Keep the latest patch of the LTS branch.
+        def lts = versions.findAll { it.major == ltsBranch[0] && it.minor == ltsBranch[1] }.max { it.patch }
+        def newVersion = "${lts.major}.${lts.minor}.${lts.patch}"
+
+        // Read the sha256 the Document Foundation publishes next to each archive (format: "<sha256>  <filename>").
+        def resolveSha256 = { String archDir, String archFile ->
+            def url = "${stableUrl}${newVersion}/deb/${archDir}/" +
+                "LibreOffice_${newVersion}_Linux_${archFile}_deb.tar.gz.sha256"
+            return httpGetText(url).trim().split(/\s+/)[0]
+        }
+        def newSha256Amd64 = resolveSha256('x86_64', 'x86-64')
+        def newSha256Arm64 = resolveSha256('aarch64', 'aarch64')
+
+        // Persist the values. Mutating the in-memory model also means that a 'generate' chained in the same invocation
+        // (e.g. via the 'release' umbrella) picks up the new LibreOffice version.
+        def oldVersion = versionsConfig.libreoffice.version
+        versionsConfig.libreoffice.version = newVersion
+        versionsConfig.libreoffice.sha256Amd64 = newSha256Amd64
+        versionsConfig.libreoffice.sha256Arm64 = newSha256Arm64
+        writeVersions()
+
+        if (newVersion == oldVersion) {
+            logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
+        } else {
+            logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
+        }
+        logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
+    }
+}
