@@ -101,6 +101,12 @@ task updateXWiki() {
 // For each existing cycle, read the JDBC driver versions declared in that cycle's own xwiki-platform POM (the versions
 // XWiki was tested against) and, for any that changed, download the driver JAR from Maven Central, compute its sha256,
 // and rewrite the per-cycle values in 'versions.json'.
+//
+// The POM value is a floor, not an exact target: it is never applied when it is lower than what is currently pinned. A
+// pin ahead of the POM is a deliberate bump made after that cycle was released (a security fix, or a Renovate upgrade
+// such as XWIKI-24657 for the MySQL connector), and taking the POM value literally would silently revert it and rebuild
+// the images for nothing. Upgrades are applied, including the ones crossing a driver major (the MySQL connector jumping
+// from 9.x to 26.x, say), but they are logged as such since the release manager reviews the diff before committing it.
 task updateJDBC() {
     doLast {
         def drivers = [
@@ -128,15 +134,23 @@ task updateJDBC() {
                 if (!matcher.find()) {
                     throw new GradleException("Could not find <${d.prop}> in [$pomUrl]")
                 }
-                def newVersion = matcher.group(1)
-                if (newVersion == data[d.tokenV]) {
-                    logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC already up to date (${newVersion}).")
+                def pomVersion = matcher.group(1)
+                def pinnedVersion = data[d.tokenV]
+                if (pomVersion == pinnedVersion) {
+                    logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC already up to date (${pomVersion}).")
                     return
                 }
-                def jarUrl = "https://repo1.maven.org/maven2/${d.path}/${newVersion}/${d.jar(newVersion)}"
-                logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC ${data[d.tokenV]} -> ${newVersion} (hashing jar)...")
+                if (compareVersions(pomVersion, pinnedVersion) < 0) {
+                    logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC POM declares ${pomVersion}, keeping the pinned " +
+                        "${pinnedVersion} which is ahead of it.")
+                    return
+                }
+                def majorChange = pomVersion.tokenize('.')[0] != pinnedVersion.tokenize('.')[0]
+                def jarUrl = "https://repo1.maven.org/maven2/${d.path}/${pomVersion}/${d.jar(pomVersion)}"
+                logger.lifecycle("Cycle ${cycle}: ${d.name} JDBC ${pinnedVersion} -> ${pomVersion}" +
+                    "${majorChange ? ' (new driver major, review it)' : ''} (hashing jar)...")
                 def sha = sha256OfUrl(jarUrl)
-                data[d.tokenV] = newVersion
+                data[d.tokenV] = pomVersion
                 data[d.tokenS] = sha
                 changed = true
             }
