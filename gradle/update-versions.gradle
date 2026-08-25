@@ -33,13 +33,15 @@ def httpGetText = project.httpGetText
 def sha256OfUrl = project.sha256OfUrl
 def compareVersions = project.compareVersions
 
-// How the update tasks tell a 'smokeTest' chained in the same invocation (the 'release' umbrella) which cycles are
-// worth booting: 'ran' distinguishes "no update task ran, so test everything" from "one ran and nothing changed, so
-// there is nothing to test", 'changedCycles' collects the cycles whose XWiki version or JDBC drivers changed, and
-// 'allCycles' is set when LibreOffice changed, since that one regenerates every cycle at once. A shared mutable holder
-// rather than an extra property written at execution time, since writing one means reaching for the project from a
-// task action.
-def versionUpdate = [ran: false, changedCycles: new LinkedHashSet(), allCycles: false]
+// How the update tasks tell a 'smokeTest' chained in the same invocation (the 'release' umbrella) what is worth
+// booting: 'ran' distinguishes "no update task ran, so test everything" from "one ran and nothing changed, so there is
+// nothing to test", 'changedCycles' collects the cycles whose XWiki version or JDBC drivers changed, and 'allCycles' is
+// set when LibreOffice changed, since that one regenerates every cycle at once. 'changedDatabases' maps a cycle to the
+// databases whose JDBC driver moved, so that 'smokeTest' boots the variant a driver bump is about rather than only its
+// default one: a driver crossing a major (the MySQL connector going from 9.x to 26.x, say) is exactly the change worth
+// booting, and nothing else in the build ever connects XWiki to that database. A shared mutable holder rather than an
+// extra property written at execution time, since writing one means reaching for the project from a task action.
+def versionUpdate = [ran: false, changedCycles: new LinkedHashSet(), changedDatabases: [:], allCycles: false]
 ext.versionUpdate = versionUpdate
 
 // Resolve, for each existing cycle, the latest final XWiki version on that cycle's line (18 -> latest 18.x, 18.4 ->
@@ -135,6 +137,7 @@ task updateJDBC() {
              tokenV: 'postgresJDBCVersion', tokenS: 'postgresJDBCSha256']
         ]
         def changed = new LinkedHashSet()
+        def changedDatabases = [:]
         tokens.each { cycle, data ->
             def version = data.xwikiVersion
             // Read the JDBC driver versions from the cycle's own xwiki-platform POM on maven.xwiki.org. The driver JARs
@@ -170,15 +173,20 @@ task updateJDBC() {
                 data[d.tokenV] = pomVersion
                 data[d.tokenS] = sha
                 changed << cycle
+                changedDatabases.computeIfAbsent(cycle) { new LinkedHashSet() } << d.name
             }
         }
         if (!changed.isEmpty()) {
             writeVersions()
         }
         // Record the changed cycles so that a chained 'smokeTest' (in the 'release' umbrella) knows what to test: a
-        // driver bump regenerates the images of that cycle just as an XWiki bump does, and is just as worth booting.
+        // driver bump regenerates the images of that cycle just as an XWiki bump does, and is just as worth booting -
+        // the variant of the database whose driver moved in particular, hence the per-database detail.
         versionUpdate.ran = true
         versionUpdate.changedCycles.addAll(changed)
+        changedDatabases.each { cycle, databases ->
+            versionUpdate.changedDatabases.computeIfAbsent(cycle) { new LinkedHashSet() }.addAll(databases)
+        }
         logger.lifecycle("Run './gradlew' to regenerate the images.")
     }
 }
