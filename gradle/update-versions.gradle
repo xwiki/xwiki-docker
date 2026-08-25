@@ -218,22 +218,29 @@ task updateLibreOffice() {
         def newSha256Amd64 = resolveSha256('x86_64', 'x86-64')
         def newSha256Arm64 = resolveSha256('aarch64', 'aarch64')
 
-        // Persist the values. Mutating the in-memory model also means that a 'generate' chained in the same invocation
-        // (e.g. via the 'release' umbrella) picks up the new LibreOffice version.
-        def oldVersion = versionsConfig.libreoffice.version
-        versionsConfig.libreoffice.version = newVersion
-        versionsConfig.libreoffice.sha256Amd64 = newSha256Amd64
-        versionsConfig.libreoffice.sha256Arm64 = newSha256Arm64
-        writeVersions()
-
         // The LibreOffice version is shared by every cycle, so a change to it regenerates them all and a chained
         // 'smokeTest' (in the 'release' umbrella) has to boot them all rather than only the ones bumped elsewhere.
         versionUpdate.ran = true
-        if (newVersion == oldVersion) {
+
+        // Persist the values, and only then: rewriting 'versions.json' with what it already says would touch the file
+        // on every run for nothing. Mutating the in-memory model also means that a 'generate' chained in the same
+        // invocation (e.g. via the 'release' umbrella) picks up the new LibreOffice version.
+        def oldVersion = versionsConfig.libreoffice.version
+        def sha256Changed = newSha256Amd64 != versionsConfig.libreoffice.sha256Amd64 ||
+            newSha256Arm64 != versionsConfig.libreoffice.sha256Arm64
+        if (newVersion == oldVersion && !sha256Changed) {
             logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
         } else {
+            versionsConfig.libreoffice.version = newVersion
+            versionsConfig.libreoffice.sha256Amd64 = newSha256Amd64
+            versionsConfig.libreoffice.sha256Arm64 = newSha256Arm64
+            writeVersions()
             versionUpdate.allCycles = true
-            logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
+            if (newVersion == oldVersion) {
+                logger.lifecycle("Updated the LibreOffice sha256 of the unchanged version ${newVersion}.")
+            } else {
+                logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
+            }
         }
         logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
     }
