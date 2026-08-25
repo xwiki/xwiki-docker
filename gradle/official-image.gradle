@@ -195,14 +195,9 @@ task submitOfficialImage() {
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', officialImagesRepo,
             '--branch', defaultBranch])
 
-        // The branch and the commit message are named after the stable version, so a model without a stable cycle has
-        // nothing to name them after.
-        def stableCycle = tokens.find { cycle, data -> data.role == 'stable' }
-        if (!stableCycle) {
-            throw new GradleException("No cycle declares the 'stable' role in versions.json, so there is no version " +
-                'to name the official images Pull Request after.')
-        }
-        def stableVersion = stableCycle.value.xwikiVersion
+        // The branch and the commit message are named after the stable version. Exactly one cycle carries that role,
+        // which build.gradle checks when it reads the model.
+        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
         def branch = "update-xwiki-${stableVersion}"
 
         // A branch of that name left behind by a previous run is recreated below, but not while a Pull Request is

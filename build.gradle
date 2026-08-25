@@ -25,7 +25,9 @@ import org.apache.tools.ant.filters.ReplaceTokens
 //
 // Note: As a consequence only update the template files and never the generated files!
 //
-// The build logic is split over several scripts, applied at the end of this file:
+// The build logic is split over several scripts, applied at the end of this file. They are applied in dependency
+// order and it matters: each one binds what the earlier ones exposed on the project (the helpers, the model, the
+// tasks it orders), at configuration time, so reordering the 'apply from' lines breaks the build there.
 // - gradle/helpers.gradle: the HTTP, hashing and process helpers shared by the tasks below.
 // - gradle/update-versions.gradle: 'updateXWiki', 'updateJDBC' and 'updateLibreOffice', which refresh 'versions.json'.
 // - gradle/run-instances.gradle: 'smokeTest', 'runAll' and 'stopAll', which boot the generated images.
@@ -63,6 +65,23 @@ def versionsFile = file('versions.json')
 def versionsConfig = new groovy.json.JsonSlurper().parse(versionsFile)
 def tokens = versionsConfig.cycles
 
+// Check the roles as soon as the model is read, because they are not only ours: they drive the tags and the section
+// comments of the official Docker library file that 'submitOfficialImage' submits to docker-library. An unknown role
+// would silently emit a 'null' section header and drop that cycle's stable-*/lts-* tag aliases, and the Pull Request
+// itself is named after the single stable cycle. Failing here beats noticing it in a review upstream.
+def knownRoles = ['stable', 'intermediate-lts', 'lts', 'old-lts']
+tokens.each { cycle, data ->
+    if (!knownRoles.contains(data.role)) {
+        throw new GradleException("Cycle [${cycle}] of [${versionsFile}] declares role [${data.role}], which is not " +
+            "one of ${knownRoles}.")
+    }
+}
+def stableCycles = tokens.findAll { cycle, data -> data.role == 'stable' }.keySet()
+if (stableCycles.size() != 1) {
+    throw new GradleException("Exactly one cycle of [${versionsFile}] must declare the 'stable' role, found " +
+        "${stableCycles.isEmpty() ? 'none' : stableCycles}.")
+}
+
 // Persist the (possibly updated) version data model back to 'versions.json'. Used by the update tasks instead of
 // rewriting a script, so that the configuration and the build logic stay separate.
 def writeVersions = {
@@ -75,7 +94,6 @@ def writeVersions = {
 // deprecates and Gradle 10 removes. That alone does not make this build configuration cache compatible though: the
 // tasks below still call 'copy' while they run, and the ones in the applied scripts still resolve paths with 'file'.
 ext.imageVariants = variants
-ext.versionsFile = versionsFile
 ext.versionsConfig = versionsConfig
 ext.tokens = tokens
 ext.writeVersions = writeVersions
