@@ -62,10 +62,10 @@ waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
     return false
 }
 
-// Boot-check the postgres-tomcat variant of the given cycles: start it with docker compose, wait until XWiki's REST API
-// reports the expected version on http://localhost:8080/rest, then tear it down. By default it tests the cycles whose
-// XWiki version changed in this invocation (set by 'updateXWiki', used by the 'release' umbrella); pass
-// '-Pcycles=18,17' to test specific cycles, or run it standalone to test them all.
+// Boot-check the postgres-tomcat variant of the given cycles: build its image, start it with docker compose, wait until
+// XWiki's REST API reports the expected version on http://localhost:8080/rest, then tear it down. By default it tests
+// the cycles whose XWiki version changed in this invocation (set by 'updateXWiki', used by the 'release' umbrella);
+// pass '-Pcycles=18,17' to test specific cycles, or run it standalone to test them all.
 task smokeTest() {
     doLast {
         def variant = 'postgres-tomcat'
@@ -87,6 +87,13 @@ task smokeTest() {
                 throw new GradleException("smokeTest: directory [${dir}] does not exist.")
             }
             def expectedVersion = tokens[cycle].xwikiVersion
+            // Build the image locally before booting it. The generated docker-compose.yml has no 'build' section, only
+            // 'image: xwiki:<version>-<variant>', so without this the boot would pull that tag from DockerHub, where it
+            // does not exist yet: the official image for a version is only built once the 'submitOfficialImage' pull
+            // request has been merged, which happens after this task runs. Building here also means the smoke test
+            // exercises the Dockerfile that was just regenerated rather than a previously published image.
+            logger.lifecycle("smokeTest: building the XWiki ${cycle} (${variant}) image...")
+            capture(['docker', 'build', '-t', "xwiki:${expectedVersion}-${variant}".toString(), '.'], false, dir)
             logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant})...")
             try {
                 capture(['docker', 'compose', 'up', '-d'], false, dir)
