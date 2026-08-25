@@ -71,8 +71,9 @@ def writeVersions = {
 
 // Expose the model and the variants to the scripts applied at the end of this file, since a script-level 'def' is only
 // visible inside the script that declares it. Those scripts bind them back into their own local variables at
-// configuration time, so that no task action has to reach for the project while it runs (which Gradle 9 deprecates and
-// Gradle 10 removes).
+// configuration time rather than reading them from the project inside their task actions, which is what Gradle 9
+// deprecates and Gradle 10 removes. That alone does not make this build configuration cache compatible though: the
+// tasks below still call 'copy' while they run, and the ones in the applied scripts still resolve paths with 'file'.
 ext.imageVariants = variants
 ext.versionsFile = versionsFile
 ext.versionsConfig = versionsConfig

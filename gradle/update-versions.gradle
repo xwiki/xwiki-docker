@@ -25,7 +25,7 @@
 // which chains everything in the right order).
 
 // The version data model (see build.gradle) and the shared helpers (see gradle/helpers.gradle), bound at configuration
-// time so that the task actions below never reach for the project while they run.
+// time rather than read from the project inside the task actions below (see build.gradle).
 def tokens = project.tokens
 def versionsConfig = project.versionsConfig
 def writeVersions = project.writeVersions

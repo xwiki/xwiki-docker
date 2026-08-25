@@ -23,7 +23,7 @@
 // Pull Request against that repository.
 
 // The version data model (see build.gradle), the 'capture' helper (see gradle/helpers.gradle) and the '-PdryRun' flag,
-// bound at configuration time so that the task action below never reaches for the project while it runs.
+// bound at configuration time rather than read from the project inside the task action below (see build.gradle).
 def tokens = project.tokens
 def capture = project.capture
 def dryRun = project.hasProperty('dryRun')

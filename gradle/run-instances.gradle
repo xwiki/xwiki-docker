@@ -23,7 +23,7 @@
 
 // The version data model (see build.gradle), the 'stream' helper (see gradle/helpers.gradle), what the update tasks
 // report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at configuration
-// time so that the task actions below never reach for the project while they run.
+// time rather than read from the project inside the task actions below (see build.gradle).
 def tokens = project.tokens
 def variants = project.imageVariants
 def stream = project.stream
