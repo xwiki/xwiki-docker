@@ -195,10 +195,28 @@ task submitOfficialImage() {
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', officialImagesRepo,
             '--branch', defaultBranch])
 
-        // Create a working branch on the fork off the freshly synced default branch (recreating it if a previous run
-        // left one behind).
-        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
+        // The branch and the commit message are named after the stable version, so a model without a stable cycle has
+        // nothing to name them after.
+        def stableCycle = tokens.find { cycle, data -> data.role == 'stable' }
+        if (!stableCycle) {
+            throw new GradleException("No cycle declares the 'stable' role in versions.json, so there is no version " +
+                'to name the official images Pull Request after.')
+        }
+        def stableVersion = stableCycle.value.xwikiVersion
         def branch = "update-xwiki-${stableVersion}"
+
+        // A branch of that name left behind by a previous run is recreated below, but not while a Pull Request is
+        // still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream is
+        // not ours to close.
+        def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${officialImagesRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'], true)
+        if (!openPullRequests.isEmpty()) {
+            throw new GradleException("A Pull Request is still open from branch [${branch}]: " +
+                "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
+                'another one.')
+        }
+
+        // Create the working branch on the fork off the freshly synced default branch.
         def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${fork}/git/ref/heads/${defaultBranch}", '--jq', '.object.sha'])
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'DELETE',
