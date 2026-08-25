@@ -35,8 +35,8 @@ tasks.named('updateJDBC').configure { mustRunAfter('updateXWiki') }
 tasks.named('updateLibreOffice').configure { mustRunAfter('updateXWiki', 'updateJDBC') }
 tasks.named('generate').configure { mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice') }
 tasks.named('generateWorkflows').configure { mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice') }
-// 'smokeTest' also orders after the update tasks themselves, and not only after the 'generate' they order before, so
-// that it still sees what they changed when it is chained without 'generate' (e.g. './gradlew updateJDBC smokeTest').
+// 'smokeTest' depends on 'generate' already, so what it needs from here is to run after the update tasks themselves:
+// it reads what they changed to decide which cycles to boot.
 tasks.named('smokeTest').configure {
-    mustRunAfter('generate', 'updateXWiki', 'updateJDBC', 'updateLibreOffice')
+    mustRunAfter('updateXWiki', 'updateJDBC', 'updateLibreOffice')
 }
