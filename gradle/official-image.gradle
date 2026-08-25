@@ -50,7 +50,11 @@ if (dbVariants.keySet() != (imageVariants as Set)) {
 // Constants of the official Docker library file. These match the header currently published for xwiki and rarely
 // change.
 def libraryMaintainers = 'XWiki Core Dev Team <committers@xwiki.org> (@xwiki)'
-def libraryGitRepo = 'https://github.com/xwiki-contrib/docker-xwiki.git'
+// The canonical URL of this repository. The published file still names xwiki-contrib/docker-xwiki, which resolves
+// only through the redirect GitHub kept when the repository moved to the xwiki organisation - and that redirect goes
+// away the day anything else is created under the old name, taking the official image builds with it. So this submits
+// the current URL, which is the one difference between what is generated here and what is published today.
+def libraryGitRepo = 'https://github.com/xwiki/xwiki-docker.git'
 def libraryArchitectures = 'amd64, arm64v8'
 def officialImagesRepo = 'docker-library/official-images'
 def libraryPath = 'library/xwiki'
@@ -127,7 +131,8 @@ def libraryGitCommit = { String cycle ->
 }
 
 // Generate the complete content of the official Docker library file from the version data model, using the algorithm
-// above. Verified to reproduce the current upstream file byte for byte.
+// above. Verified to reproduce the currently published file byte for byte, but for the 'GitRepo' line corrected above
+// and the 'GitCommit' lines, which resolve to the real per-cycle last-touching commits.
 def defaultVariant = dbVariants.keySet().first()
 def generateLibraryContent
 generateLibraryContent = {
