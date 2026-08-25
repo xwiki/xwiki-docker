@@ -79,16 +79,25 @@ sha256OfUrl = { String location ->
 }
 ext.sha256OfUrl = sha256OfUrl
 
-// Compare two dot-separated numeric versions (e.g. '18.10.2' <=> '18.9.5'), component by component.
+// Compare two dot-separated versions (e.g. '18.10.2' <=> '18.9.5'), component by component and numerically, so that
+// 10 sorts after 9. Every version handled here is plain numbers today, but a component is compared on the number it
+// starts with rather than parsed as one: a qualifier turning up some day in a driver version ('3.5.10-1', say) then
+// still orders on its numbers instead of aborting a release with a NumberFormatException. Components whose numbers are
+// equal fall back to comparing them as text, so that the qualifier itself breaks the tie.
+def leadingNumber = { String component ->
+    def digits = (component =~ /^\d+/)
+    return digits ? (digits[0] as long) : 0L
+}
 def compareVersions = { String a, String b ->
-    def pa = a.tokenize('.').collect { it as int }
-    def pb = b.tokenize('.').collect { it as int }
+    def pa = a.tokenize('.')
+    def pb = b.tokenize('.')
     def n = Math.max(pa.size(), pb.size())
     for (int i = 0; i < n; i++) {
-        def x = i < pa.size() ? pa[i] : 0
-        def y = i < pb.size() ? pb[i] : 0
-        if (x != y) {
-            return x <=> y
+        def x = i < pa.size() ? pa[i] : '0'
+        def y = i < pb.size() ? pb[i] : '0'
+        def result = (leadingNumber(x) <=> leadingNumber(y)) ?: (x <=> y)
+        if (result != 0) {
+            return result
         }
     }
     return 0
