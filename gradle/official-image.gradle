@@ -132,6 +132,8 @@ generateLibraryContent = {
 // are reachable upstream. Pass '-PdryRun' to only generate the file and show the diff, without touching your fork or
 // opening a PR. Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs.
 task submitOfficialImage() {
+    group = 'release'
+    description = 'Opens the docker-library Pull Request updating the official XWiki images. Run it after pushing.'
     doLast {
         // gh must be authenticated (needed for the upstream fetch below and the PR flow).
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])

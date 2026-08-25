@@ -47,6 +47,8 @@ ext.versionUpdate = versionUpdate
 // its sha256, and rewrite the values in 'versions.json'. Does NOT create new cycles (adding a cycle stays a manual
 // 'versions.json' edit, since it also means deciding its role and its base image).
 task updateXWiki() {
+    group = 'release'
+    description = 'Updates each cycle in versions.json to the latest final XWiki version released on its line.'
     doLast {
         // Resolve versions from nexus.xwiki.org. The generated Dockerfile downloads the WAR from maven.xwiki.org, which
         // is just a view on nexus.xwiki.org (same artifacts), so the sha256 we compute here is that of the exact bytes
@@ -110,6 +112,8 @@ task updateXWiki() {
 // the images for nothing. Upgrades are applied, including the ones crossing a driver major (the MySQL connector jumping
 // from 9.x to 26.x, say), but they are logged as such since the release manager reviews the diff before committing it.
 task updateJDBC() {
+    group = 'release'
+    description = 'Updates the JDBC drivers of each cycle to the ones its own xwiki-platform POM declares.'
     doLast {
         def drivers = [
             [name: 'mysql', prop: 'mysql.version', path: 'com/mysql/mysql-connector-j',
@@ -174,6 +178,8 @@ task updateJDBC() {
 // xwiki-platform-test-docker) but bakes a concrete, sha256-verified value into the data file so that image generation
 // stays reproducible.
 task updateLibreOffice() {
+    group = 'release'
+    description = 'Updates versions.json to the LibreOffice version XWiki supports, i.e. the LTS one.'
     doLast {
         def stableUrl = 'https://download.documentfoundation.org/libreoffice/stable/'
         def listing = httpGetText(stableUrl)

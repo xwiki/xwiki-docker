@@ -92,6 +92,8 @@ def expandTemplates = { String sourceDirectory, String targetDirectory, List inc
 }
 
 task generate() {
+    group = 'generation'
+    description = 'Generates a directory per XWiki cycle and DB variant from the template directory and versions.json.'
     doLast {
         // Copy the template for all versions and variants
         tokens.keySet().each() { version ->
@@ -125,6 +127,8 @@ def workflowPathFilters = ['*/*/Dockerfile', 'template/**', 'template-github/**'
 // generating it from the same definitions as the images keeps it in sync instead of having to be updated by hand
 // whenever a cycle is added or removed.
 task generateWorkflows() {
+    group = 'generation'
+    description = 'Generates the Docker Build GitHub Actions workflow, whose matrix lists the same cycles and variants.'
     doLast {
         expandTemplates('template-github', '.github/workflows', ['docker-build.yml'], [
             versionMatrix: tokens.keySet().collect { "'$it'" }.join(', '),

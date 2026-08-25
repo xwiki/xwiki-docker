@@ -23,6 +23,8 @@
 // './gradlew submitOfficialImage' to open the official Docker library Pull Request. This automates the "Update Docker
 // Images" step of https://dev.xwiki.org/xwiki/bin/view/ReleasePlans/ReleasePlanHelp.
 task release() {
+    group = 'release'
+    description = 'Updates every version, regenerates everything and smoke tests what changed.'
     dependsOn 'updateXWiki', 'updateJDBC', 'updateLibreOffice', 'generate', 'generateWorkflows', 'smokeTest'
 }
 

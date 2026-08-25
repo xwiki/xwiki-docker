@@ -86,6 +86,8 @@ buildImage = { String task, String cycle, String variant, File variantDir ->
 // version or JDBC drivers were bumped, or all of them when the shared LibreOffice version was. Pass '-Pcycles=18,17'
 // to test specific cycles, or run it standalone to test them all.
 task smokeTest() {
+    group = 'verification'
+    description = 'Boots the postgres-tomcat variant of the changed cycles until XWiki answers, then tears it down.'
     doLast {
         def variant = 'postgres-tomcat'
         def cycles
@@ -179,6 +181,8 @@ runAllCompose = { Map inst, List<String> composeArgs, boolean allowFailure ->
 // '-Pvariants=postgres-tomcat' to narrow it down (running all at once is resource-heavy: one XWiki JVM + one database
 // per instance). Stop them again with the matching './gradlew stopAll' invocation.
 task runAll() {
+    group = 'verification'
+    description = 'Starts the selected cycles and variants, each on its own port, and leaves them running.'
     doLast {
         def selection = runAllSelection()
         if (selection.isEmpty()) {
@@ -216,6 +220,8 @@ task runAll() {
 // Tear down (and remove the volumes of) the instances started by 'runAll'. Accepts the same '-Pcycles' / '-Pvariants'
 // selection as 'runAll' and reconstructs the same project names, so pass the same filters you used to start them.
 task stopAll() {
+    group = 'verification'
+    description = 'Stops the instances started by runAll, passing it the same -Pcycles and -Pvariants selection.'
     doLast {
         def selection = runAllSelection()
         if (selection.isEmpty()) {
