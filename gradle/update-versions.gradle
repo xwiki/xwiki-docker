@@ -50,11 +50,12 @@ task updateXWiki() {
     group = 'release'
     description = 'Updates each cycle in versions.json to the latest final XWiki version released on its line.'
     doLast {
-        // Resolve versions from nexus.xwiki.org. The generated Dockerfile downloads the WAR from maven.xwiki.org, which
-        // is just a view on nexus.xwiki.org (same artifacts), so the sha256 we compute here is that of the exact bytes
-        // the image will fetch. The metadata lists RCs, hence the finals-only filter below.
-        def metadataUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
-            'org/xwiki/platform/xwiki-platform-distribution-war/maven-metadata.xml'
+        // Resolve the versions from maven.xwiki.org, the same repository the generated Dockerfile downloads the WAR
+        // from (see XWIKI_URL_PREFIX in template/Dockerfile), so that the sha256 computed below is that of the exact
+        // bytes the image will fetch rather than of a copy assumed to be identical. The metadata lists RCs, hence the
+        // finals-only filter below.
+        def repositoryUrl = 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/'
+        def metadataUrl = "${repositoryUrl}maven-metadata.xml"
         def metadata = httpGetText(metadataUrl)
         def finals = []
         (metadata =~ /<version>([^<]+)<\/version>/).each { full, v ->
@@ -81,9 +82,7 @@ task updateXWiki() {
                 logger.lifecycle("XWiki cycle ${cycle} is already up to date (${data.xwikiVersion}).")
                 return
             }
-            def warUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
-                "org/xwiki/platform/xwiki-platform-distribution-war/${latest}/" +
-                "xwiki-platform-distribution-war-${latest}.war"
+            def warUrl = "${repositoryUrl}${latest}/xwiki-platform-distribution-war-${latest}.war"
             logger.lifecycle("Updating XWiki cycle ${cycle} from ${data.xwikiVersion} to ${latest} " +
                 '(downloading the WAR to compute its sha256, this may take a while)...')
             def sha = sha256OfUrl(warUrl)
@@ -129,11 +128,11 @@ task updateJDBC() {
         def changed = new LinkedHashSet()
         tokens.each { cycle, data ->
             def version = data.xwikiVersion
-            // Read the JDBC driver versions from the cycle's own xwiki-platform POM on nexus.xwiki.org. The driver JARs
+            // Read the JDBC driver versions from the cycle's own xwiki-platform POM on maven.xwiki.org. The driver JARs
             // themselves are hashed from Maven Central below, because that is where the generated Dockerfile downloads
             // them from (see template/Dockerfile).
-            def pomUrl = 'https://nexus.xwiki.org/nexus/content/groups/public/' +
-                "org/xwiki/platform/xwiki-platform/${version}/xwiki-platform-${version}.pom"
+            def pomUrl = 'https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform/' +
+                "${version}/xwiki-platform-${version}.pom"
             def pom = httpGetText(pomUrl)
             drivers.each { d ->
                 // The property name is quoted, since the '.' it contains is a regex metacharacter matching any
