@@ -43,6 +43,9 @@ def libraryGitRepo = 'https://github.com/xwiki-contrib/docker-xwiki.git'
 def libraryArchitectures = 'amd64, arm64v8'
 def officialImagesRepo = 'docker-library/official-images'
 def libraryPath = 'library/xwiki'
+// The branch of GitRepo that docker-library fetches the emitted GitCommit(s) from. The library file declares no
+// 'GitFetch', so they take the default, 'refs/heads/master'.
+def libraryGitBranch = 'master'
 
 // Default section comment emitted before each cycle's first block, keyed by role. A cycle may override it with its own
 // 'libraryComment' (e.g. cycle 16's "- Added back temporarily" annotation).
@@ -158,17 +161,25 @@ task submitOfficialImage() {
             return
         }
 
-        // The working tree must be clean and HEAD must be pushed: the GitCommit values we emit are the last commits
-        // that touched each cycle directory, and docker-library fetches those exact commits from GitRepo, so anything
-        // uncommitted or unpushed would not be reachable upstream.
+        // The working tree must be clean and HEAD must be on the branch docker-library fetches: the GitCommit values
+        // we emit are the last commits that touched each cycle directory, and docker-library fetches those exact
+        // commits from GitRepo, so anything uncommitted, unpushed or pushed somewhere else would not be reachable
+        // upstream. Being on some remote branch is not enough, hence the check against that one branch: a commit
+        // living only on a Pull Request branch is fetchable by no one but GitHub.
         if (!capture(['git', 'status', '--porcelain']).isEmpty()) {
             throw new GradleException('The working tree is dirty. Commit and push the docker-xwiki ' +
                 'change before running submitOfficialImage.')
         }
+        // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as soon
+        // as the change is pushed from somewhere else (a merged Pull Request, another clone).
+        def remote = capture(['git', 'config', "branch.${libraryGitBranch}.remote"], true) ?: 'origin'
+        capture(['git', 'fetch', remote, libraryGitBranch])
+        def releaseBranch = "${remote}/${libraryGitBranch}"
         def head = capture(['git', 'rev-parse', 'HEAD'])
-        if (capture(['git', 'branch', '-r', '--contains', head]).isEmpty()) {
-            throw new GradleException("HEAD (${head}) is not pushed to any remote. Push the docker-xwiki " +
-                'change before running submitOfficialImage.')
+        if (capture(['git', 'branch', '-r', '--contains', head, '--list', releaseBranch]).isEmpty()) {
+            throw new GradleException("HEAD (${head}) is not on ${releaseBranch}, which is where docker-library " +
+                "fetches the images from. Push the docker-xwiki change to ${libraryGitBranch} before running " +
+                'submitOfficialImage.')
         }
 
         // Resolve the GitHub user and the upstream default branch.
