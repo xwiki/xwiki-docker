@@ -25,7 +25,7 @@
 // reports (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at configuration
 // time so that the task actions below never reach for the project while they run.
 def tokens = project.tokens
-def variants = project.variants
+def variants = project.imageVariants
 def capture = project.capture
 def xwikiUpdate = project.xwikiUpdate
 def selectedCyclesProperty = project.hasProperty('cycles') ? project.property('cycles') : null

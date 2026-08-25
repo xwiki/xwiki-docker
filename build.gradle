@@ -73,7 +73,7 @@ def writeVersions = {
 // visible inside the script that declares it. Those scripts bind them back into their own local variables at
 // configuration time, so that no task action has to reach for the project while it runs (which Gradle 9 deprecates and
 // Gradle 10 removes).
-ext.variants = variants
+ext.imageVariants = variants
 ext.versionsFile = versionsFile
 ext.versionsConfig = versionsConfig
 ext.tokens = tokens
