@@ -129,6 +129,14 @@ def compareVersions = { String a, String b ->
 }
 ext.compareVersions = compareVersions
 
+// Split the comma-separated value of a command line property ('-Pcycles=18, 17') into a list, trimming the entries and
+// dropping the empty ones a trailing or doubled comma leaves behind. Shared by the '-Pcycles' and '-Pvariants'
+// selections of the tasks that boot the images.
+def parseList = { value ->
+    return value.toString().tokenize(',')*.trim().findAll { it }
+}
+ext.parseList = parseList
+
 // Run an external command in the project directory, capturing its stdout; throw on a non-zero exit unless
 // allowFailure is set. Returns the trimmed stdout. Used by 'submitOfficialImage' for its git/gh plumbing, all of which
 // runs against this repository or against GitHub, hence no working directory parameter - 'stream' below has one, for

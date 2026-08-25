@@ -21,15 +21,17 @@
 // The tasks that boot the generated images with docker compose: 'smokeTest' (start, check, tear down) and
 // 'runAll'/'stopAll' (start and leave running for manual inspection). They all need Docker to be running.
 
-// The version data model (see build.gradle), the 'stream' helper (see gradle/helpers.gradle), what the update tasks
-// report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at configuration
-// time rather than read from the project inside the task actions below (see build.gradle).
+// The version data model (see build.gradle), the 'stream' and 'parseList' helpers (see gradle/helpers.gradle), what the
+// update tasks report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at
+// configuration time rather than read from the project inside the task actions below (see build.gradle). The two
+// selections are parsed here and not where they are used, so that the tasks below all read them the same way.
 def tokens = project.tokens
 def variants = project.imageVariants
 def stream = project.stream
+def parseList = project.parseList
 def versionUpdate = project.versionUpdate
-def selectedCyclesProperty = project.hasProperty('cycles') ? project.property('cycles') : null
-def selectedVariantsProperty = project.hasProperty('variants') ? project.property('variants') : null
+def selectedCycles = project.hasProperty('cycles') ? parseList(project.property('cycles')) : null
+def selectedVariants = project.hasProperty('variants') ? parseList(project.property('variants')) : null
 
 // Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying the expected
 // XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a stronger check: the root
@@ -80,6 +82,10 @@ waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
 // platform arguments empty, for instance, so a Dockerfile reading TARGETARCH builds fine with BuildKit and breaks
 // there. The Docker Build workflow builds that way for the same reason, and a check that builds differently from both
 // would miss what they reject.
+//
+// Note that the tag being the one the compose file names, this overwrites whatever the local Docker has under it - the
+// published official image of that version, if it was ever pulled. That is unavoidable (the generated compose file
+// names no other tag) and harmless as long as it is expected: 'docker pull' brings the published one back.
 def buildImage
 buildImage = { String task, String cycle, String variant, File variantDir ->
     logger.lifecycle("${task}: building the XWiki ${cycle} (${variant}) image...")
@@ -139,6 +145,11 @@ def composeProject = { String prefix, String cycle, String variant ->
 // with the image being tested.
 def smokeTestPort = 18080
 
+// The first host port 'runAll' publishes, the next instances taking the ones above it. Off 8080 for the same reason as
+// 'smokeTest' above, and one port past it so that leaving instances running never keeps a later 'smokeTest' from
+// binding its own. Override it with '-PbasePort=8080' to get the ports the generated docker-compose.yml uses.
+def runAllBasePort = project.hasProperty('basePort') ? (project.property('basePort') as int) : 18081
+
 // The variant every cycle is boot-checked with, whatever changed. One variant per cycle is what makes a release-time
 // check affordable, and the DB-specific part of an image is only its JDBC driver, so any of the three stands in for the
 // others as long as that driver is not itself what changed - which is what 'smokeTestVariants' below looks at.
@@ -151,8 +162,8 @@ def smokeTestBaselineVariant = 'postgres-tomcat'
 // entirely untested. '-Pvariants' overrides the lot, for a manual run wanting a specific variant or all of them.
 def smokeTestVariants
 smokeTestVariants = { String cycle ->
-    if (selectedVariantsProperty) {
-        return selectedVariantsProperty.tokenize(',')*.trim().findAll { it }
+    if (selectedVariants) {
+        return selectedVariants
     }
     def selection = new LinkedHashSet([smokeTestBaselineVariant])
     // The variants of a database are matched on the '<db>-' prefix rather than assumed to be '<db>-tomcat', so that
@@ -178,8 +189,8 @@ task smokeTest() {
     dependsOn 'generate'
     doLast {
         def cycles
-        if (selectedCyclesProperty) {
-            cycles = selectedCyclesProperty.tokenize(',')*.trim().findAll { it }
+        if (selectedCycles) {
+            cycles = selectedCycles
         } else if (versionUpdate.ran && !versionUpdate.allCycles) {
             cycles = versionUpdate.changedCycles as List
         } else {
@@ -234,19 +245,17 @@ task smokeTest() {
 }
 
 // Compute the ordered list of cycle/variant instances that 'runAll'/'stopAll' operate on, assigning each a distinct
-// host port starting at 8080 and its own isolated docker compose project name. Honors the '-Pcycles' and '-Pvariants'
-// comma-separated filters, defaulting to every cycle and every variant. The project name depends on the cycle and the
-// variant alone, so 'stopAll' derives the same names as 'runAll' whatever selection each was given.
+// host port starting at 'runAllBasePort' and its own isolated docker compose project name. Honors the '-Pcycles' and
+// '-Pvariants' comma-separated filters, defaulting to every cycle and every variant. The project name depends on the
+// cycle and the variant alone, so 'stopAll' derives the same names as 'runAll' whatever selection each was given.
 def runAllSelection
 runAllSelection = {
-    def selectedCycles = selectedCyclesProperty ?
-        selectedCyclesProperty.tokenize(',')*.trim().findAll { it } : (tokens.keySet() as List)
-    def selectedVariants = selectedVariantsProperty ?
-        selectedVariantsProperty.tokenize(',')*.trim().findAll { it } : variants
+    def cycles = selectedCycles ?: (tokens.keySet() as List)
+    def cycleVariants = selectedVariants ?: variants
     def instances = []
-    def port = 8080
-    selectedCycles.each { cycle ->
-        selectedVariants.each { variant ->
+    def port = runAllBasePort
+    cycles.each { cycle ->
+        cycleVariants.each { variant ->
             instances << [cycle: cycle, variant: variant, port: port,
                 project: composeProject('runall', cycle, variant)]
             port++
@@ -256,11 +265,11 @@ runAllSelection = {
 }
 
 // Start XWiki instances for manual inspection and leave them running (unlike 'smokeTest', which tears down with
-// 'down -v'). Builds each selected cycle/variant image and brings it up on its own host port (8080, 8081, ...), each
-// as an isolated docker compose project, then waits until each serves its REST API with the expected version and
-// prints the browse URLs. By default it runs every cycle x every variant; pass '-Pcycles=18,17' and/or
-// '-Pvariants=postgres-tomcat' to narrow it down (running all at once is resource-heavy: one XWiki JVM + one database
-// per instance). Stop them again with the matching './gradlew stopAll' invocation.
+// 'down -v'). Builds each selected cycle/variant image and brings it up on its own host port (18081, 18082, ...,
+// '-PbasePort' to move them), each as an isolated docker compose project, then waits until each serves its REST API
+// with the expected version and prints the browse URLs. By default it runs every cycle x every variant; pass
+// '-Pcycles=18,17' and/or '-Pvariants=postgres-tomcat' to narrow it down (running all at once is resource-heavy: one
+// XWiki JVM + one database per instance). Stop them again with the matching './gradlew stopAll' invocation.
 task runAll() {
     group = 'verification'
     description = 'Starts the selected cycles and variants, each on its own port, and leaves them running.'

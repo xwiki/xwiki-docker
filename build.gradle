@@ -120,9 +120,12 @@ task generate() {
 }
 
 // The paths that must trigger the Docker Build workflow: the generated Dockerfiles, everything they are generated from,
-// and the workflow itself.
-def workflowPathFilters = ['*/*/Dockerfile', 'template/**', 'template-github/**', 'build.gradle', 'gradle/*.gradle',
-    'versions.json', '.github/workflows/docker-build.yml']
+// and the workflow itself. The scripts applied from 'gradle/' are deliberately not in there: none of them takes part in
+// the generation, so a change to one cannot change an image, and building all the variants for it would cost the whole
+// matrix for nothing. That they still configure and generate is what the Gradlew Check workflow verifies, on every
+// Pull Request and every push.
+def workflowPathFilters = ['*/*/Dockerfile', 'template/**', 'template-github/**', 'build.gradle', 'versions.json',
+    '.github/workflows/docker-build.yml']
 
 // Generate the GitHub Actions workflow that builds the images. Its build matrix lists all the versions and variants, so
 // generating it from the same definitions as the images keeps it in sync instead of having to be updated by hand

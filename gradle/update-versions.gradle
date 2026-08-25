@@ -104,11 +104,13 @@ task updateXWiki() {
         if (!changed.isEmpty()) {
             writeVersions()
             logger.lifecycle("Updated XWiki version for cycle(s): ${changed.join(', ')}.")
+            // Only worth saying when something moved: nothing to regenerate otherwise, and 'release' regenerates on
+            // its own anyway.
+            logger.lifecycle("Run './gradlew' to regenerate the images.")
         }
         // Record the changed cycles so that a chained 'smokeTest' (in the 'release' umbrella) knows what to test.
         versionUpdate.ran = true
         versionUpdate.changedCycles.addAll(changed)
-        logger.lifecycle("Run './gradlew' to regenerate the images.")
     }
 }
 
@@ -178,6 +180,8 @@ task updateJDBC() {
         }
         if (!changed.isEmpty()) {
             writeVersions()
+            logger.lifecycle("Updated the JDBC driver(s) of cycle(s): ${changed.join(', ')}.")
+            logger.lifecycle("Run './gradlew' to regenerate the images.")
         }
         // Record the changed cycles so that a chained 'smokeTest' (in the 'release' umbrella) knows what to test: a
         // driver bump regenerates the images of that cycle just as an XWiki bump does, and is just as worth booting -
@@ -257,7 +261,7 @@ task updateLibreOffice() {
             } else {
                 logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
             }
+            logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
         }
-        logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
     }
 }
