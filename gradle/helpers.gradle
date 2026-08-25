@@ -22,60 +22,85 @@
 // extra properties (and thus callable as functions from any of those scripts), since a script-level 'def' is only
 // visible inside the script that declares it.
 
-// Fetch a URL as text, following redirects manually. The Document Foundation download URLs answer with a 302 to a
-// mirror (sometimes switching from https to http), which the default HttpURLConnection redirect handling refuses to
-// follow, so we follow them ourselves.
-def httpGetText
-httpGetText = { String location ->
-    def current = location
-    for (int hop = 0; hop < 5; hop++) {
-        def connection = (HttpURLConnection) new URL(current).openConnection()
-        connection.instanceFollowRedirects = false
-        connection.connectTimeout = 30000
-        connection.readTimeout = 30000
-        def status = connection.responseCode
-        if (status in [301, 302, 303, 307, 308]) {
-            current = connection.getHeaderField('Location')
-            connection.disconnect()
-        } else if (status == 200) {
-            return connection.inputStream.getText('UTF-8')
-        } else {
-            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+// How many times a download is attempted before giving up, and how long to wait between attempts (growing with the
+// attempt). The XWiki WAR and the LibreOffice archives are hundreds of megabytes fetched from hosts that fail
+// transiently often enough to matter - the generated Dockerfile retries its own downloads for that very reason, see
+// CURL_OPTIONS in template/Dockerfile. Without retrying here, a single blip aborts a release run, possibly after
+// 'versions.json' was already rewritten for the cycles handled before it.
+def httpAttempts = 3
+def httpRetryDelayMillis = 5000
+
+// Fetch a URL and hand its response stream to 'consumer', returning what the consumer returns.
+//
+// Redirects are followed manually: the Document Foundation download URLs answer with a 302 to a mirror (sometimes
+// switching from https to http), which the default HttpURLConnection redirect handling refuses to follow.
+//
+// A transient failure - an IOException, including one raised while the consumer is reading, or a status saying "try
+// again later" - restarts the whole fetch, redirect chain included, so 'consumer' must tolerate running more than
+// once. A status that will not get better on its own (a 404 on a version that does not exist, say) fails immediately
+// rather than burning the delays first.
+def httpGet
+httpGet = { String location, int readTimeout, Closure consumer ->
+    def failure = null
+    for (int attempt = 1; attempt <= httpAttempts; attempt++) {
+        try {
+            def current = location
+            for (int hop = 0; hop < 5; hop++) {
+                def connection = (HttpURLConnection) new URL(current).openConnection()
+                connection.instanceFollowRedirects = false
+                connection.connectTimeout = 30000
+                connection.readTimeout = readTimeout
+                def status = connection.responseCode
+                if (status in [301, 302, 303, 307, 308]) {
+                    current = connection.getHeaderField('Location')
+                    connection.disconnect()
+                } else if (status == 200) {
+                    try {
+                        return consumer(connection.inputStream)
+                    } finally {
+                        connection.disconnect()
+                    }
+                } else {
+                    connection.disconnect()
+                    def message = "Unexpected HTTP status [$status] while fetching [$current]"
+                    // 408/429 and the 5xx are the ones worth trying again; anything else is our mistake, not the
+                    // server having a bad minute.
+                    throw (status == 408 || status == 429 || status >= 500) ? new IOException(message)
+                        : new GradleException(message)
+                }
+            }
+            throw new GradleException("Too many redirects while fetching [$location]")
+        } catch (IOException e) {
+            failure = e
+            if (attempt < httpAttempts) {
+                logger.lifecycle("Fetching [$location] failed (${e.message}); retrying (attempt " +
+                    "${attempt + 1} of ${httpAttempts})...")
+                Thread.sleep(httpRetryDelayMillis * attempt)
+            }
         }
     }
-    throw new GradleException("Too many redirects while fetching [$location]")
+    throw new GradleException("Failed to fetch [$location] after ${httpAttempts} attempts: ${failure.message}",
+        failure)
+}
+
+// Fetch a URL as text.
+def httpGetText = { String location ->
+    return httpGet(location, 30000) { input -> input.getText('UTF-8') }
 }
 ext.httpGetText = httpGetText
 
-// Stream a URL (following redirects like httpGetText) through a SHA-256 digest without buffering the whole payload in
-// memory, and return the lowercase hex digest. Used to hash the (large) XWiki WAR and the JDBC driver JARs.
-def sha256OfUrl
-sha256OfUrl = { String location ->
-    def current = location
-    for (int hop = 0; hop < 5; hop++) {
-        def connection = (HttpURLConnection) new URL(current).openConnection()
-        connection.instanceFollowRedirects = false
-        connection.connectTimeout = 30000
-        connection.readTimeout = 60000
-        def status = connection.responseCode
-        if (status in [301, 302, 303, 307, 308]) {
-            current = connection.getHeaderField('Location')
-            connection.disconnect()
-        } else if (status == 200) {
-            def digest = java.security.MessageDigest.getInstance('SHA-256')
-            connection.inputStream.withStream { input ->
-                byte[] buffer = new byte[65536]
-                int read
-                while ((read = input.read(buffer)) != -1) {
-                    digest.update(buffer, 0, read)
-                }
-            }
-            return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
-        } else {
-            throw new GradleException("Unexpected HTTP status [$status] while fetching [$current]")
+// Stream a URL through a SHA-256 digest without buffering the whole payload in memory, and return the lowercase hex
+// digest. Used to hash the (large) XWiki WAR and the JDBC driver JARs.
+def sha256OfUrl = { String location ->
+    return httpGet(location, 60000) { input ->
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        byte[] buffer = new byte[65536]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
         }
+        return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
     }
-    throw new GradleException("Too many redirects while fetching [$location]")
 }
 ext.sha256OfUrl = sha256OfUrl
 
@@ -135,7 +160,10 @@ ext.capture = capture
 // can be lost, and stderr is merged into stdout so that both are reported in the order they were written.
 def stream = { List<String> command, boolean allowFailure = false, File workingDir = null,
     Map<String, String> environment = [:] ->
-    def builder = new ProcessBuilder(command).redirectErrorStream(true)
+    // Copy the command to plain Strings: ProcessBuilder only turns its list into an array when the process
+    // starts, so a GString slipped into it fails there with an ArrayStoreException rather than where it was
+    // written. 'capture' below takes GStrings in its stride, and these two helpers are used interchangeably.
+    def builder = new ProcessBuilder(command*.toString()).redirectErrorStream(true)
     if (workingDir) {
         builder.directory(workingDir)
     }
