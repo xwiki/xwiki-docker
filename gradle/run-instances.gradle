@@ -21,12 +21,12 @@
 // The tasks that boot the generated images with docker compose: 'smokeTest' (start, check, tear down) and
 // 'runAll'/'stopAll' (start and leave running for manual inspection). They all need Docker to be running.
 
-// The version data model (see build.gradle), the 'capture' helper (see gradle/helpers.gradle), what the update tasks
+// The version data model (see build.gradle), the 'stream' helper (see gradle/helpers.gradle), what the update tasks
 // report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at configuration
 // time so that the task actions below never reach for the project while they run.
 def tokens = project.tokens
 def variants = project.imageVariants
-def capture = project.capture
+def stream = project.stream
 def versionUpdate = project.versionUpdate
 def selectedCyclesProperty = project.hasProperty('cycles') ? project.property('cycles') : null
 def selectedVariantsProperty = project.hasProperty('variants') ? project.property('variants') : null
@@ -70,7 +70,7 @@ waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
 def buildImage
 buildImage = { String task, String cycle, String variant, File variantDir ->
     logger.lifecycle("${task}: building the XWiki ${cycle} (${variant}) image...")
-    capture(['docker', 'build', '-t', "xwiki:${tokens[cycle].xwikiVersion}-${variant}".toString(), '.'], false,
+    stream(['docker', 'build', '-t', "xwiki:${tokens[cycle].xwikiVersion}-${variant}".toString(), '.'], false,
         variantDir)
 }
 
@@ -104,7 +104,7 @@ task smokeTest() {
             buildImage('smokeTest', cycle, variant, dir)
             logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant})...")
             try {
-                capture(['docker', 'compose', 'up', '-d'], false, dir)
+                stream(['docker', 'compose', 'up', '-d'], false, dir)
                 if (!waitForXWiki(8080, expectedVersion, 600000)) {
                     throw new GradleException("smokeTest: XWiki ${cycle} (${variant}) did not report " +
                         "version ${expectedVersion} on http://localhost:8080/rest within the timeout.")
@@ -112,7 +112,7 @@ task smokeTest() {
                 logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) is up " +
                     "(REST reports version ${expectedVersion}).")
             } finally {
-                capture(['docker', 'compose', 'down', '-v'], true, dir)
+                stream(['docker', 'compose', 'down', '-v'], true, dir)
             }
         }
     }
@@ -162,7 +162,7 @@ runAllCompose = { Map inst, List<String> composeArgs, boolean allowFailure ->
     def composeFile = file("build/runAll/${inst.project}.yml")
     composeFile.parentFile.mkdirs()
     composeFile.text = composeText
-    capture(['docker', 'compose', '--project-directory', variantDir.absolutePath,
+    stream(['docker', 'compose', '--project-directory', variantDir.absolutePath,
         '-f', composeFile.absolutePath, '-p', inst.project] + composeArgs, allowFailure, variantDir)
 }
 

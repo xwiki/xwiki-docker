@@ -117,3 +117,28 @@ def capture = { List<String> command, boolean allowFailure = false, File working
     return stdout.toString().trim()
 }
 ext.capture = capture
+
+// Run an external command (optionally in workingDir, optionally with extra environment variables), reporting its output
+// as it is produced rather than returning it; throw on a non-zero exit unless allowFailure is set. Used for the docker
+// commands, which take minutes and keep saying what they are doing while they do it: buffering all that until they end
+// would leave whoever runs a release in front of a silent build, and holding a whole docker build log in memory only to
+// throw it away serves no purpose. Reading the stream to its end before waiting for the process also means no output
+// can be lost, and stderr is merged into stdout so that both are reported in the order they were written.
+def stream = { List<String> command, boolean allowFailure = false, File workingDir = null,
+    Map<String, String> environment = [:] ->
+    def builder = new ProcessBuilder(command).redirectErrorStream(true)
+    if (workingDir) {
+        builder.directory(workingDir)
+    }
+    builder.environment().putAll(environment)
+    def process = builder.start()
+    process.inputStream.withReader('UTF-8') { reader ->
+        reader.eachLine { line -> logger.lifecycle(line) }
+    }
+    def exitValue = process.waitFor()
+    if (!allowFailure && exitValue != 0) {
+        throw new GradleException("Command [${command.join(' ')}] failed (exit ${exitValue}), see the output above.")
+    }
+    return exitValue
+}
+ext.stream = stream
