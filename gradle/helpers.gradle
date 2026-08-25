@@ -129,9 +129,10 @@ def compareVersions = { String a, String b ->
 }
 ext.compareVersions = compareVersions
 
-// Run an external command (optionally in workingDir), capturing its stdout; throw on a non-zero exit unless
-// allowFailure is set. Returns the trimmed stdout. Used by 'smokeTest'/'runAll' (docker compose) and
-// 'submitOfficialImage' (git/gh plumbing). Uses Groovy's Process API rather than Gradle's exec (removed from the
+// Run an external command in the project directory, capturing its stdout; throw on a non-zero exit unless
+// allowFailure is set. Returns the trimmed stdout. Used by 'submitOfficialImage' for its git/gh plumbing, all of which
+// runs against this repository or against GitHub, hence no working directory parameter - 'stream' below has one, for
+// the docker commands that do run elsewhere. Uses Groovy's Process API rather than Gradle's exec (removed from the
 // Project API in Gradle 9) so that it works regardless of the Gradle version.
 //
 // 'waitForProcessOutput' waits for both the process and the threads draining its streams. Consuming the output and
@@ -139,10 +140,10 @@ ext.compareVersions = compareVersions
 // have bytes to write, and the captured stdout then comes back truncated or altogether empty. Everything read here is
 // used to decide something ('git status --porcelain' to refuse a dirty tree) or to build content submitted upstream
 // (the 'GitCommit' of each cycle, the blob sha of the file to update), so a silently short read is not an option.
-def capture = { List<String> command, boolean allowFailure = false, File workingDir = null ->
+def capture = { List<String> command, boolean allowFailure = false ->
     def stdout = new StringWriter()
     def stderr = new StringWriter()
-    def process = workingDir ? command.execute(null, workingDir) : command.execute()
+    def process = command.execute()
     process.waitForProcessOutput(stdout, stderr)
     if (!allowFailure && process.exitValue() != 0) {
         throw new GradleException("Command [${command.join(' ')}] failed (exit ${process.exitValue()}):\n" +
@@ -162,7 +163,7 @@ def stream = { List<String> command, boolean allowFailure = false, File workingD
     Map<String, String> environment = [:] ->
     // Copy the command to plain Strings: ProcessBuilder only turns its list into an array when the process
     // starts, so a GString slipped into it fails there with an ArrayStoreException rather than where it was
-    // written. 'capture' below takes GStrings in its stride, and these two helpers are used interchangeably.
+    // written. 'capture' above takes GStrings in its stride, and these two helpers are used interchangeably.
     def builder = new ProcessBuilder(command*.toString()).redirectErrorStream(true)
     if (workingDir) {
         builder.directory(workingDir)

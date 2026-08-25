@@ -17,8 +17,6 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-import org.apache.tools.ant.filters.ReplaceTokens
-
 // Run this Gradle build with 'gradle' to generate the various versions and variants from the template directory, plus
 // the GitHub Actions workflow that builds them. The versions the images are generated for live in the 'versions.json'
 // data file next to this script and are refreshed by the update tasks, so they are not edited by hand anymore.
@@ -42,8 +40,9 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // LibreOffice version + one sha256 per CPU architecture (the official image is built for both amd64 and arm64). It is
 // kept in the 'versions.json' data file rather than in this script so that the configuration stays separate from the
 // build logic and is easy to update programmatically. Each cycle carries:
-// - 'role': drives the tag aliases generated for the official Docker library file (see 'submitOfficialImage'). One of
-//   'stable', 'lts', 'intermediate-lts', 'old-lts'.
+// - 'role': drives the tag aliases and the section comment generated for the official Docker library file (see
+//   'submitOfficialImage'). One of 'stable', 'lts', 'intermediate-lts', 'old-lts'; the values are checked at
+//   configuration time against the single map that defines them, in gradle/official-image.gradle.
 // - 'xwikiVersion' / 'xwikiSha256': the WAR the image downloads, updated by './gradlew updateXWiki'.
 // - the per-DB JDBC driver version + sha256: updated by './gradlew updateJDBC' from the cycle's own xwiki-platform POM
 //   (i.e. the versions XWiki was tested against, stored per cycle since each cycle may test against different ones).
@@ -56,31 +55,14 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // './gradlew updateLibreOffice'.
 //
 // The artifacts the sha256 are computed from, should you ever need to check one by hand ('sha256sum <file>' on Unix,
-// 'shasum --algorithm 256 <file>' on Mac): the XWiki WAR from
-// https://nexus.xwiki.org/nexus/content/groups/public/org/xwiki/platform/xwiki-platform-distribution-war, the JDBC
-// driver JARs from Maven Central (com.mysql:mysql-connector-j, org.mariadb.jdbc:mariadb-java-client,
-// org.postgresql:postgresql) and the LibreOffice archives from
-// https://download.documentfoundation.org/libreoffice/stable/.
+// 'shasum --algorithm 256 <file>' on Mac). Each is named at the URL the generated image downloads it from and not at
+// some other copy of it, since a hash computed elsewhere says nothing about the bytes the build will fetch: the XWiki
+// WAR from https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war, the JDBC driver JARs
+// from Maven Central (com.mysql:mysql-connector-j, org.mariadb.jdbc:mariadb-java-client, org.postgresql:postgresql)
+// and the LibreOffice archives from https://download.documentfoundation.org/libreoffice/stable/.
 def versionsFile = file('versions.json')
 def versionsConfig = new groovy.json.JsonSlurper().parse(versionsFile)
 def tokens = versionsConfig.cycles
-
-// Check the roles as soon as the model is read, because they are not only ours: they drive the tags and the section
-// comments of the official Docker library file that 'submitOfficialImage' submits to docker-library. An unknown role
-// would silently emit a 'null' section header and drop that cycle's stable-*/lts-* tag aliases, and the Pull Request
-// itself is named after the single stable cycle. Failing here beats noticing it in a review upstream.
-def knownRoles = ['stable', 'intermediate-lts', 'lts', 'old-lts']
-tokens.each { cycle, data ->
-    if (!knownRoles.contains(data.role)) {
-        throw new GradleException("Cycle [${cycle}] of [${versionsFile}] declares role [${data.role}], which is not " +
-            "one of ${knownRoles}.")
-    }
-}
-def stableCycles = tokens.findAll { cycle, data -> data.role == 'stable' }.keySet()
-if (stableCycles.size() != 1) {
-    throw new GradleException("Exactly one cycle of [${versionsFile}] must declare the 'stable' role, found " +
-        "${stableCycles.isEmpty() ? 'none' : stableCycles}.")
-}
 
 // Persist the (possibly updated) version data model back to 'versions.json'. Used by the update tasks instead of
 // rewriting a script, so that the configuration and the build logic stay separate.
