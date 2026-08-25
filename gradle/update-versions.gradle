@@ -82,6 +82,15 @@ task updateXWiki() {
                 logger.lifecycle("XWiki cycle ${cycle} is already up to date (${data.xwikiVersion}).")
                 return
             }
+            // Never go backwards. The pinned version being ahead of everything the metadata lists means the metadata
+            // lost it (a release pulled for being broken, a repository half synced), and downgrading a cycle to an
+            // older XWiki is not a decision this task gets to make silently: it would rebuild and republish the
+            // official images backwards. Same rule as the JDBC drivers below, for the same reason.
+            if (compareVersions(latest, data.xwikiVersion) < 0) {
+                logger.lifecycle("XWiki cycle ${cycle}: the latest final version listed is ${latest}, keeping the " +
+                    "pinned ${data.xwikiVersion} which is ahead of it.")
+                return
+            }
             def warUrl = "${repositoryUrl}${latest}/xwiki-platform-distribution-war-${latest}.war"
             logger.lifecycle("Updating XWiki cycle ${cycle} from ${data.xwikiVersion} to ${latest} " +
                 '(downloading the WAR to compute its sha256, this may take a while)...')
