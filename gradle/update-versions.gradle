@@ -136,7 +136,10 @@ task updateJDBC() {
                 "org/xwiki/platform/xwiki-platform/${version}/xwiki-platform-${version}.pom"
             def pom = httpGetText(pomUrl)
             drivers.each { d ->
-                def matcher = (pom =~ /<${d.prop}>([^<]+)<\/${d.prop}>/)
+                // The property name is quoted, since the '.' it contains is a regex metacharacter matching any
+                // character, and a POM property is looked up by its name and not by something merely close to it.
+                def property = java.util.regex.Pattern.quote(d.prop)
+                def matcher = (pom =~ /<${property}>([^<]+)<\/${property}>/)
                 if (!matcher.find()) {
                     throw new GradleException("Could not find <${d.prop}> in [$pomUrl]")
                 }
