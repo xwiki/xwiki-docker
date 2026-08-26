@@ -28,7 +28,7 @@
 // tasks it orders), at configuration time, so reordering the 'apply from' lines breaks the build there.
 // - gradle/helpers.gradle: the HTTP, hashing and process helpers shared by the tasks below.
 // - gradle/update-versions.gradle: 'updateXWiki', 'updateJDBC' and 'updateLibreOffice', which refresh 'versions.json'.
-// - gradle/run-instances.gradle: 'smokeTest', 'runAll' and 'stopAll', which boot the generated images.
+// - gradle/run-instances.gradle: 'smokeTest', which boots the generated images and checks that XWiki answers.
 // - gradle/official-image.gradle: 'submitOfficialImage', which opens the DockerHub official-images Pull Request.
 // - gradle/release.gradle: the 'release' umbrella chaining the above, and the ordering they need.
 
@@ -80,33 +80,6 @@ ext.versionsConfig = versionsConfig
 ext.tokens = tokens
 ext.writeVersions = writeVersions
 
-// Which cycles 'generate' below actually rewrote, for a 'smokeTest' chained in the same invocation (the 'release'
-// umbrella) to boot. The update tasks report the cycles whose versions they bumped, but that is not everything that
-// changes an image: an edit to 'template/' moves every generated file without moving a single version, and a release
-// run right after one would otherwise boot nothing and still report success. A shared mutable holder rather than an
-// extra property written at execution time, since writing one means reaching for the project from a task action.
-def generateChanges = [cycles: new LinkedHashSet()]
-ext.generateChanges = generateChanges
-
-// A snapshot of everything a generated directory holds, taken before and after the copy so that the cycles whose
-// content actually changed can be told apart from the ones merely rewritten with the same bytes. Everything generated
-// is text, and there are a few dozen small files per variant, so their content is compared directly. A directory that
-// does not exist yet snapshots as null, which no snapshot of an existing one equals - a brand new cycle counts as
-// changed. The path and its content are separated by a newline, which a path cannot contain, so that no two different
-// (path, content) pairs can produce the same entry. Written as an escape and not as the character itself: a control
-// byte in the source makes git treat this whole script as binary, which stops it being diffed on a Pull Request and
-// merged as text rather than by taking one whole side.
-def directorySnapshot = { File directory ->
-    if (!directory.exists()) {
-        return null
-    }
-    def entries = []
-    directory.eachFileRecurse(groovy.io.FileType.FILES) { f ->
-        entries << "${directory.toPath().relativize(f.toPath())}\n${f.getText('UTF-8')}".toString()
-    }
-    return entries.sort()
-}
-
 // Check that every relative bind mount of a generated compose file points at a file that was actually generated next
 // to it. Docker creates a *directory* for a bind mount source that does not exist, and the database images then fail
 // to read that directory as the SQL script they are handed, so the database container exits at boot - from a compose
@@ -157,14 +130,10 @@ task generate() {
                 ]
                 // Copy the common template files plus the ones specific to this variant's db and servlet container
                 def targetDirectory = file("${version}/${variant}")
-                def before = directorySnapshot(targetDirectory)
                 expandTemplates('template', "${version}/${variant}",
                     ['.env', 'Dockerfile', 'docker-compose.yml', 'xwiki/*', "${db}/*", "${servlet}/*"],
                     values)
                 verifyBindMounts(targetDirectory)
-                if (directorySnapshot(targetDirectory) != before) {
-                    generateChanges.cycles << version
-                }
             }
         }
     }

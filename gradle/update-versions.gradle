@@ -260,25 +260,36 @@ task updateLibreOffice() {
         // 'smokeTest' (in the 'release' umbrella) has to boot them all rather than only the ones bumped elsewhere.
         versionUpdate.ran = true
 
-        // Persist the values, and only then: rewriting 'versions.json' with what it already says would touch the file
-        // on every run for nothing. Mutating the in-memory model also means that a 'generate' chained in the same
-        // invocation (e.g. via the 'release' umbrella) picks up the new LibreOffice version.
         def oldVersion = versionsConfig.libreoffice.version
-        def sha256Changed = newSha256Amd64 != versionsConfig.libreoffice.sha256Amd64 ||
-            newSha256Arm64 != versionsConfig.libreoffice.sha256Arm64
-        if (newVersion == oldVersion && !sha256Changed) {
+        if (newVersion == oldVersion) {
+            // The archives of a version already pinned must hash to what is pinned for it. A sha256 that moved while
+            // the version did not means the Document Foundation is serving different bytes under a version this
+            // repository has already published images for, which is exactly what pinning a hash exists to detect - so
+            // it is reported as the supply chain event it is rather than quietly adopted. Accepting the new hash would
+            // republish every image on bytes nobody looked at, and say 'Updated the sha256' while doing it. Resolve it
+            // by hand: establish what happened upstream, then either edit the values in 'versions.json' or move the
+            // pin to another version.
+            def moved = [amd64: [versionsConfig.libreoffice.sha256Amd64, newSha256Amd64],
+                arm64: [versionsConfig.libreoffice.sha256Arm64, newSha256Arm64]].findAll { arch, shas ->
+                    shas[0] != shas[1]
+                }
+            if (!moved.isEmpty()) {
+                throw new GradleException('The sha256 published for the pinned LibreOffice version ' +
+                    "${newVersion} no longer matches the one in [versions.json]:\n" +
+                    moved.collect { arch, shas -> "  ${arch}: pinned ${shas[0]}, published ${shas[1]}" }.join('\n') +
+                    "\nThe archives served for that version have changed. Establish why before touching the pin.")
+            }
             logger.lifecycle("LibreOffice is already up to date (${newVersion}).")
         } else {
+            // Persist the values, and only then: rewriting 'versions.json' with what it already says would touch the
+            // file on every run for nothing. Mutating the in-memory model also means that a 'generate' chained in the
+            // same invocation (e.g. via the 'release' umbrella) picks up the new LibreOffice version.
             versionsConfig.libreoffice.version = newVersion
             versionsConfig.libreoffice.sha256Amd64 = newSha256Amd64
             versionsConfig.libreoffice.sha256Arm64 = newSha256Arm64
             writeVersions()
             versionUpdate.allCycles = true
-            if (newVersion == oldVersion) {
-                logger.lifecycle("Updated the LibreOffice sha256 of the unchanged version ${newVersion}.")
-            } else {
-                logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
-            }
+            logger.lifecycle("Updated LibreOffice from ${oldVersion} to ${newVersion}.")
             logger.lifecycle("Run './gradlew' to regenerate the images with the pinned LibreOffice version.")
         }
     }

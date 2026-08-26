@@ -18,28 +18,22 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-// The tasks that boot the generated images with docker compose: 'smokeTest' (start, check, tear down) and
-// 'runAll'/'stopAll' (start and leave running for manual inspection). They all need Docker to be running.
+// 'smokeTest', the task that boot-checks the generated images with docker compose: start, wait until XWiki answers,
+// tear down. It needs Docker to be running.
 
 // The version data model (see build.gradle), the 'stream' and 'parseList' helpers (see gradle/helpers.gradle), what the
 // update tasks report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at
-// configuration time rather than read from the project inside the task actions below (see build.gradle). The two
-// selections are parsed here and not where they are used, so that the tasks below all read them the same way.
+// configuration time rather than read from the project inside the task action below (see build.gradle). The two
+// selections are parsed here and not where they are used, so that they are read the same way wherever they are read.
 def tokens = project.tokens
 def variants = project.imageVariants
 def stream = project.stream
 def parseList = project.parseList
 def versionUpdate = project.versionUpdate
-def generateChanges = project.generateChanges
 def selectedCycles = project.hasProperty('cycles') ? parseList('cycles', project.property('cycles'),
     tokens.keySet()) : null
 def selectedVariants = project.hasProperty('variants') ? parseList('variants', project.property('variants'),
     variants) : null
-// '-Pfresh' makes 'runAll' tear each instance down before starting it, as 'smokeTest' always does. Off by default,
-// because 'runAll' exists to leave instances running and a developer starting a second one while the first is up
-// would not expect that one's content to go: this has to be asked for. Ask for it after a version bump, where reusing
-// the volumes means inspecting an in-place upgrade of the previous instance's data rather than a fresh install.
-def freshInstances = project.booleanFlag('fresh')
 
 // Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying the expected
 // XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a stronger check: the root
@@ -148,31 +142,16 @@ composeInstance = { Map inst, List<String> composeArgs, boolean allowFailure ->
 }
 
 // A compose project name has to be lowercase and free of dots, which a cycle key such as '18.4' is not. The prefix
-// keeps the projects of 'smokeTest' and 'runAll' apart, so that tearing one down never touches the other.
-def composeProject = { String prefix, String cycle, String variant ->
-    return "${prefix}-${cycle}-${variant}".toString().replace('.', '-')
+// keeps these projects apart from anything else docker compose holds, so that tearing one down never touches an
+// instance a developer started by hand in the same variant directory.
+def composeProject = { String cycle, String variant ->
+    return "smoketest-${cycle}-${variant}".toString().replace('.', '-')
 }
 
 // The host port 'smokeTest' publishes. Not 8080, which is what the generated docker-compose.yml uses and therefore
 // what a developer's own instance already holds: binding it would fail the boot for a reason that has nothing to do
 // with the image being tested.
 def smokeTestPort = 18080
-
-// The first host port 'runAll' publishes, the next instances taking the ones above it. Off 8080 for the same reason as
-// 'smokeTest' above, and one port past it so that leaving instances running never keeps a later 'smokeTest' from
-// binding its own. Override it with '-PbasePort=8080' to get the ports the generated docker-compose.yml uses.
-//
-// Validated rather than coerced with 'as int', because this is read at configuration time: '-PbasePort' with no value
-// (or with a typo) would otherwise fail every task of the build, 'generate' included, with a bare
-// NumberFormatException naming neither the property nor what it expected.
-def parsePort = { value ->
-    def text = value.toString().trim()
-    if (!(text ==~ /\d+/)) {
-        throw new GradleException("-PbasePort expects a port number, got [${text}].")
-    }
-    return text as int
-}
-def runAllBasePort = project.hasProperty('basePort') ? parsePort(project.property('basePort')) : 18081
 
 // The variant every cycle is boot-checked with, whatever changed. One variant per cycle is what makes a release-time
 // check affordable, and the DB-specific part of an image is only its JDBC driver, so any of the three stands in for the
@@ -199,11 +178,11 @@ smokeTestVariants = { String cycle ->
 }
 
 // Boot-check the given cycles: build the image of each variant to test, start it with docker compose, wait until
-// XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles that changed in
-// this invocation (used by the 'release' umbrella): the ones whose XWiki version or JDBC drivers were bumped, the ones
-// 'generate' rewrote, or all of them when the shared LibreOffice version was updated. Pass '-Pcycles=18,17' to test
-// specific cycles, or run it standalone to test them all; '-Pvariants=mysql-tomcat,postgres-tomcat' picks the variants
-// by hand.
+// XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles whose versions the
+// update tasks bumped in this invocation (used by the 'release' umbrella), or all of them when the shared LibreOffice
+// version was updated, since that one regenerates every cycle. Pass '-Pcycles=18,17' to test specific cycles - which
+// is also how a change to 'template/' gets boot-checked, no version having moved for it - or run it standalone to test
+// them all; '-Pvariants=mysql-tomcat,postgres-tomcat' picks the variants by hand.
 task smokeTest() {
     group = 'verification'
     description = 'Boots the changed cycles until XWiki answers, then tears them down.'
@@ -217,14 +196,9 @@ task smokeTest() {
         if (selectedCycles) {
             cycles = selectedCycles
         } else if (versionUpdate.ran && !versionUpdate.allCycles) {
-            // What the update tasks bumped, plus what 'generate' actually rewrote. The second is not implied by the
-            // first: an edit to 'template/' changes every generated image without changing a single version, so a
-            // release run right after one would otherwise boot nothing and still report success. Taken in the model's
-            // order rather than in the order they were collected, so that the cycles are booted oldest key first
-            // whichever of the two reported them.
-            def changed = new LinkedHashSet(versionUpdate.changedCycles)
-            changed.addAll(generateChanges.cycles)
-            cycles = tokens.keySet().findAll { changed.contains(it) }
+            // What the update tasks bumped, taken in the model's order rather than in the order they reported it, so
+            // that the cycles are booted oldest key first whichever task reported them.
+            cycles = tokens.keySet().findAll { versionUpdate.changedCycles.contains(it) }
         } else {
             cycles = tokens.keySet() as List
         }
@@ -245,7 +219,7 @@ task smokeTest() {
                 }
                 def expectedVersion = tokens[cycle].xwikiVersion
                 def instance = [cycle: cycle, variant: variant, port: smokeTestPort,
-                    project: composeProject('smoketest', cycle, variant)]
+                    project: composeProject(cycle, variant)]
                 buildImage('smokeTest', cycle, variant, dir)
                 logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant}) on port ${smokeTestPort}...")
                 try {
@@ -272,99 +246,6 @@ task smokeTest() {
                     composeInstance(instance, ['down', '-v'], true)
                 }
             }
-        }
-    }
-}
-
-// Compute the ordered list of cycle/variant instances that 'runAll'/'stopAll' operate on, assigning each a distinct
-// host port starting at 'runAllBasePort' and its own isolated docker compose project name. Honors the '-Pcycles' and
-// '-Pvariants' comma-separated filters, defaulting to every cycle and every variant. The project name depends on the
-// cycle and the variant alone, so 'stopAll' derives the same names as 'runAll' whatever selection each was given.
-def runAllSelection
-runAllSelection = {
-    def cycles = selectedCycles ?: (tokens.keySet() as List)
-    def cycleVariants = selectedVariants ?: variants
-    def instances = []
-    def port = runAllBasePort
-    cycles.each { cycle ->
-        cycleVariants.each { variant ->
-            instances << [cycle: cycle, variant: variant, port: port,
-                project: composeProject('runall', cycle, variant)]
-            port++
-        }
-    }
-    return instances
-}
-
-// Start XWiki instances for manual inspection and leave them running (unlike 'smokeTest', which tears down with
-// 'down -v'). Builds each selected cycle/variant image and brings it up on its own host port (18081, 18082, ...,
-// '-PbasePort' to move them), each as an isolated docker compose project, then waits until each serves its REST API
-// with the expected version and prints the browse URLs. By default it runs every cycle x every variant; pass
-// '-Pcycles=18,17' and/or '-Pvariants=postgres-tomcat' to narrow it down (running all at once is resource-heavy: one
-// XWiki JVM + one database per instance). Stop them again with the matching './gradlew stopAll' invocation.
-//
-// An instance left over from a previous run is restarted with its volumes, so what comes up after a version bump is
-// the previous instance's data upgraded in place rather than a fresh install - and the version check below cannot
-// tell, the REST API reporting the product version either way. Pass '-Pfresh' to remove each instance and its volumes
-// before starting it.
-task runAll() {
-    group = 'verification'
-    description = 'Starts the selected cycles and variants, each on its own port, and leaves them running.'
-    // Same reason as 'smokeTest': what is booted has to match the model the image is tagged from.
-    dependsOn 'generate'
-    doLast {
-        def selection = runAllSelection()
-        if (selection.isEmpty()) {
-            logger.lifecycle('runAll: nothing to run.')
-            return
-        }
-        logger.lifecycle("runAll: starting ${selection.size()} instance(s); this is resource-heavy " +
-            '(one XWiki JVM + one database each).')
-        selection.each { inst ->
-            def variantDir = file("${inst.cycle}/${inst.variant}")
-            if (!variantDir.exists()) {
-                throw new GradleException("runAll: directory [${variantDir}] does not exist. Run './gradlew' first.")
-            }
-            buildImage('runAll', inst.cycle, inst.variant, variantDir)
-            if (freshInstances) {
-                logger.lifecycle("runAll: fresh set, removing the previous XWiki ${inst.cycle} (${inst.variant}) " +
-                    'instance and its volumes...')
-                composeInstance(inst, ['down', '-v'], true)
-            }
-            logger.lifecycle("runAll: starting XWiki ${inst.cycle} (${inst.variant}) on port ${inst.port}...")
-            composeInstance(inst, ['up', '-d'], false)
-        }
-        // Wait for each to come up (in the background they boot in parallel) and report the browse URL.
-        selection.each { inst ->
-            def expectedVersion = tokens[inst.cycle].xwikiVersion
-            if (waitForXWiki(inst.port, expectedVersion, 600000)) {
-                logger.lifecycle("runAll: XWiki ${inst.cycle} (${inst.variant}) is up at " +
-                    "http://localhost:${inst.port}/ (version ${expectedVersion}).")
-            } else {
-                logger.lifecycle("runAll: WARNING - XWiki ${inst.cycle} (${inst.variant}) on port " +
-                    "${inst.port} did not report version ${expectedVersion} within the timeout; " +
-                    'left running for inspection anyway.')
-            }
-        }
-        logger.lifecycle("runAll: all instances left running. Stop them with the matching " +
-            "'./gradlew stopAll' invocation (repeat the same -Pcycles/-Pvariants).")
-    }
-}
-
-// Tear down (and remove the volumes of) the instances started by 'runAll'. Accepts the same '-Pcycles' / '-Pvariants'
-// selection as 'runAll' and reconstructs the same project names, so pass the same filters you used to start them.
-task stopAll() {
-    group = 'verification'
-    description = 'Stops the instances started by runAll, passing it the same -Pcycles and -Pvariants selection.'
-    doLast {
-        def selection = runAllSelection()
-        if (selection.isEmpty()) {
-            logger.lifecycle('stopAll: nothing to stop.')
-            return
-        }
-        selection.each { inst ->
-            logger.lifecycle("stopAll: stopping XWiki ${inst.cycle} (${inst.variant})...")
-            composeInstance(inst, ['down', '-v'], true)
         }
     }
 }

@@ -105,22 +105,15 @@ def sha256OfUrl = { String location ->
 ext.sha256OfUrl = sha256OfUrl
 
 // Compare two dot-separated versions (e.g. '18.10.2' <=> '18.9.5'), component by component and numerically, so that
-// 10 sorts after 9. Every version handled here is plain numbers today, but a component is compared on the number it
-// starts with rather than parsed as one: a qualifier turning up some day in a driver version ('3.5.10-1', say) then
-// still orders on its numbers instead of aborting a release with a NumberFormatException. Components whose numbers are
-// equal fall back to comparing them as text, so that the qualifier itself breaks the tie.
-def leadingNumber = { String component ->
-    def digits = (component =~ /^\d+/)
-    return digits ? (digits[0] as long) : 0L
-}
+// 10 sorts after 9. Every version this handles - XWiki releases and JDBC driver releases - is made of plain numbers, so
+// a component that is not one is a version this build has no business ordering and the NumberFormatException that
+// follows is the right answer: it stops a release run in front of the release manager rather than picking an order.
 def compareVersions = { String a, String b ->
     def pa = a.tokenize('.')
     def pb = b.tokenize('.')
     def n = Math.max(pa.size(), pb.size())
     for (int i = 0; i < n; i++) {
-        def x = i < pa.size() ? pa[i] : '0'
-        def y = i < pb.size() ? pb[i] : '0'
-        def result = (leadingNumber(x) <=> leadingNumber(y)) ?: (x <=> y)
+        def result = (i < pa.size() ? pa[i] as long : 0L) <=> (i < pb.size() ? pb[i] as long : 0L)
         if (result != 0) {
             return result
         }
@@ -205,17 +198,6 @@ def capture = { List<String> command, boolean allowFailure = false ->
     return stdout.toString().trim()
 }
 ext.capture = capture
-
-// Run an external command in the project directory and return its exit code, discarding its output. For the git
-// queries that answer with their exit status rather than on stdout ('merge-base --is-ancestor'), where 'capture' above
-// would either throw on the answer being 'no' or, told to allow the failure, hide it in an empty string. The output is
-// still drained, since a process whose pipes nobody reads can block on writing to them.
-def exitCode = { List<String> command ->
-    def process = new ProcessBuilder(command*.toString()).directory(projectDirectory).start()
-    process.waitForProcessOutput(new StringWriter(), new StringWriter())
-    return process.exitValue()
-}
-ext.exitCode = exitCode
 
 // Run an external command (optionally in workingDir, optionally with extra environment variables), reporting its output
 // as it is produced rather than returning it; throw on a non-zero exit unless allowFailure is set. Used for the docker

@@ -26,12 +26,7 @@
 // flags, bound at configuration time rather than read from the project inside the task action below (see build.gradle).
 def tokens = project.tokens
 def capture = project.capture
-def exitCode = project.exitCode
 def dryRun = project.booleanFlag('dryRun')
-// '-PskipCiCheck' waives the Docker Build check below. The images this submits are built by the Docker Build workflow
-// first, and that workflow downloads hundreds of megabytes from maven.xwiki.org and download.documentfoundation.org, so
-// it goes red on a transient network failure often enough that a release cannot be held hostage to it.
-def skipCiCheck = project.booleanFlag('skipCiCheck')
 
 // The DB variants and their short names as used in the official Docker library file. The first entry is the default
 // variant (the one that also gets the version-only and role-global tags), and the order is the one the blocks are
@@ -62,33 +57,11 @@ def libraryMaintainers = 'XWiki Core Dev Team <committers@xwiki.org> (@xwiki)'
 def sourceRepo = 'xwiki/xwiki-docker'
 def libraryGitRepo = "https://github.com/${sourceRepo}.git"
 def libraryArchitectures = 'amd64, arm64v8'
-def officialImagesRepo = 'docker-library/official-images'
+def upstreamRepo = 'docker-library/official-images'
 def libraryPath = 'library/xwiki'
-// The workflow that builds the images of this repository, i.e. the one whose verdict says whether what is submitted
-// below builds at all.
-def imageWorkflow = 'docker-build.yml'
 // The branch of GitRepo that docker-library fetches the emitted GitCommit(s) from. The library file declares no
 // 'GitFetch', so they take the default, 'refs/heads/master'.
 def libraryGitBranch = 'master'
-
-// The repository the Pull Request is opened against. 'docker-library/official-images' for a real submission, and
-// '-PtargetRepo=<you>/official-images' to rehearse the whole write path - fork or own repository, branch, file update,
-// Pull Request - against a repository of your own. The write path is the one part of this that a dry run cannot
-// exercise, and a release is a poor moment to run it for the first time. A rehearsal waives the guards on what is
-// reachable upstream, since the point of it is precisely to run against something that is not.
-//
-// The value is checked to be an '<owner>/<repository>' pair, since everything below builds GitHub API paths out of it
-// and splits it on '/' to name the fork: '-PtargetRepo' with no value, or with a bare repository name, would otherwise
-// be taken for a rehearsal (it is not the upstream repository) and then fail deep in the write path.
-def parseRepo = { value ->
-    def text = value.toString().trim()
-    if (!(text ==~ /[\w.-]+\/[\w.-]+/)) {
-        throw new GradleException("-PtargetRepo expects an <owner>/<repository> pair, got [${text}].")
-    }
-    return text
-}
-def upstreamRepo = project.hasProperty('targetRepo') ? parseRepo(project.property('targetRepo')) : officialImagesRepo
-def rehearsal = upstreamRepo != officialImagesRepo
 
 // What a cycle's 'role' means: the default section comment emitted before that cycle's first block (a cycle may
 // override it with its own 'libraryComment', e.g. cycle 16's "- Added back temporarily" annotation), and the wording
@@ -170,35 +143,12 @@ def libraryGitCommit = { String cycle ->
     return commit
 }
 
-// The 'GitCommit' of every cycle, resolved once: the file emits them and the Docker Build check below reads them to
-// tell whether the images being submitted are the ones a workflow run built.
+// The 'GitCommit' of every cycle, resolved once, since the emitted file names each of them.
 def libraryGitCommits = {
     return tokens.collectEntries { cycle, data -> [(cycle): libraryGitCommit(cycle)] }
 }
 
 def defaultVariant = dbVariants.keySet().first()
-
-// No tag may be emitted twice: docker-library rejects a library file declaring the same tag on two images, and nothing
-// else here would notice. What produces one is two cycles sitting on the same version line, since the tags a cycle
-// contributes are derived from its version: a stable cycle '18' pinned to 18.4.4 while cycle '18.4' is on 18.4.4 too
-// (the state right after an intermediate LTS is declared, if the stable line has not moved past it yet) makes both
-// emit '18.4', '18.4.4' and every per-variant form of them. That is a 'versions.json' mistake rather than a code one,
-// so it is caught here, where the tags are decided, rather than upstream in front of the docker-library maintainers.
-//
-// The tags are compared as Strings: the prefixes above are built with GStrings, which are never equal to the String
-// carrying the same characters, so comparing them as they come would find no duplicate at all.
-def allLibraryTags = tokens.collectMany { cycle, data ->
-    def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
-    return dbVariants.collectMany { variant, db ->
-        libraryTags(variant, db, variant == defaultVariant, data.role, prefixes)*.toString()
-    }
-}
-def duplicateLibraryTags = allLibraryTags.countBy { it }.findAll { tag, count -> count > 1 }.keySet()
-if (!duplicateLibraryTags.isEmpty()) {
-    throw new GradleException("The official Docker library file would declare the tag(s) " +
-        "${duplicateLibraryTags.join(', ')} more than once, which docker-library rejects. Two cycles of " +
-        '[versions.json] are on the same version line, so both claim its tags; only one cycle may own a line.')
-}
 
 // Generate the complete content of the official Docker library file from the version data model, using the algorithm
 // above. Verified to reproduce the currently published file byte for byte, but for the 'GitRepo' line corrected above
@@ -229,95 +179,6 @@ generateLibraryContent = { Map cycleCommits ->
     return sb.toString()
 }
 
-// Check that the Docker Build workflow went green on the commit being submitted. docker-library rebuilds the images
-// from the GitCommit(s) emitted above, so that workflow is what says they build at all: without this, the first thing
-// to notice a Dockerfile that does not build is the upstream Pull Request, in front of the docker-library maintainers.
-// The workflow only triggers on the paths the images are made of, so a HEAD that touched none of them has no run of
-// its own; the latest run on the release branch may then still describe the images being submitted, and that is the
-// one checked instead. Finding no run at all is reported but not fatal - refusing to release over a missing run would
-// be a guard firing at nothing. '-PskipCiCheck' waives the whole check.
-//
-// Whether that fallback run does describe them is not assumed but established, per cycle: a run built the images of a
-// cycle if it ran on a commit that contains that cycle's GitCommit. Absence of a run on HEAD is not by itself evidence
-// that HEAD changed no image - a run GitHub has not created yet looks exactly the same over the API, and pushing and
-// then submitting a few seconds later is precisely how a release goes - so falling back on the strength of that
-// absence would let the check pass on images nothing ever built.
-//
-// Returns the reason the submission must be refused, or null when there is none, rather than throwing: the caller
-// collects those reasons so that '-PdryRun' can report them all instead of aborting on the first (see the task below).
-def checkImagesBuild
-checkImagesBuild = { String head, Map cycleCommits ->
-    if (skipCiCheck) {
-        logger.lifecycle("skipCiCheck set: not checking the ${imageWorkflow} result of the submitted commit.")
-        return null
-    }
-    // Not allowed to fail: a check that cannot be made has not been passed, and letting the call return an empty
-    // string would render a rate-limited or unauthenticated 'gh' indistinguishable from a repository with no run.
-    //
-    // Only the most recent runs are looked at, which is all the two questions below need: whether HEAD itself has a
-    // run, and which is the latest run of the history leading to it. A HEAD older than all of them answers no to both
-    // and lands on the "found no run" warning rather than on a run that does not describe it.
-    def runs = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
-        "repos/${sourceRepo}/actions/workflows/${imageWorkflow}/runs" +
-            "?branch=${libraryGitBranch}&event=push&per_page=20",
-        '--jq', '.workflow_runs[] | [.head_sha, .status, .conclusion, .html_url] | @tsv'])
-        .readLines().collect { it.split('\t', -1) }.findAll { it.size() == 4 }
-    // Whether a commit is contained in another, i.e. whether the second was built from a tree holding the first.
-    // 'merge-base --is-ancestor' answers with its exit status, whence 'exitCode'; anything above 1 is the question
-    // failing rather than being answered with a no - a run's commit that this clone does not have, because it was
-    // force-pushed away or never fetched.
-    //
-    // Such a commit is reported and read as a no, rather than aborting: the search below walks the runs newest first,
-    // so a single unresolvable sha would otherwise stop a release on a run that was only going to be skipped anyway.
-    // Reading it as a no cannot make the check pass on something unbuilt either - it only ever removes a run from the
-    // candidates - and the uncovered-cycle check below asks solely about commits this clone has by construction (our
-    // own cycle directories, and a run commit already established to be contained in HEAD).
-    def contained = { String commit, String within ->
-        def code = exitCode(['git', 'merge-base', '--is-ancestor', commit, within])
-        if (code > 1) {
-            logger.lifecycle("WARNING: cannot tell whether commit [${commit}] is contained in [${within}] - it is " +
-                'not in this clone; treating it as not contained.')
-            return false
-        }
-        return code == 0
-    }
-    def run = runs.find { it[0] == head }
-    if (!run) {
-        // No run on HEAD: fall back to the latest run of the history being submitted - a run on a commit HEAD does
-        // not contain built some other tree, whatever it concluded. That one describes the images being submitted
-        // only if it contains the GitCommit of every cycle, which is what makes falling back legitimate here and an
-        // error just below when the release commit is among them.
-        def latest = runs.find { contained(it[0], head) }
-        if (!latest) {
-            logger.lifecycle("WARNING: found no ${imageWorkflow} run on ${libraryGitBranch} to check the submitted " +
-                'images against; submitting anyway.')
-            return null
-        }
-        def uncovered = cycleCommits.findAll { cycle, commit -> !contained(commit, latest[0]) }
-        if (!uncovered.isEmpty()) {
-            return "The submitted commit (${head}) triggered no ${imageWorkflow} run, and the latest run on " +
-                "${libraryGitBranch} (${latest[0].take(8)}) predates the images of cycle(s) " +
-                "${uncovered.keySet().join(', ')}, so nothing has built them. Either the run of the pushed commit " +
-                'has not been created yet, in which case wait for it and run this again, or pass -PskipCiCheck to ' +
-                'submit anyway.'
-        }
-        run = latest
-    }
-    def which = run[0] == head ? 'of the submitted commit' :
-        "on ${libraryGitBranch} (${run[0].take(8)}), the one that built the images being submitted,"
-    if (run[1] != 'completed') {
-        return "The ${imageWorkflow} run ${which} has not finished (${run[1]}): ${run[3]}. Wait for it, or pass " +
-            '-PskipCiCheck to submit anyway.'
-    }
-    if (run[2] != 'success') {
-        return "The ${imageWorkflow} run ${which} did not succeed (${run[2]}): ${run[3]}. The images submitted here " +
-            'are the ones it built, so fix it first - or, if it failed on one of the transient download errors that ' +
-            'workflow is prone to, pass -PskipCiCheck to submit anyway.'
-    }
-    logger.lifecycle("The ${imageWorkflow} run ${which} is green (${run[3]}).")
-    return null
-}
-
 // Generate the official Docker library file for xwiki and open a pull request against docker-library/official-images,
 // updating the single 'library/xwiki' file on a branch of your GitHub fork (no local clone). Run it AFTER
 // './gradlew release' and after you have committed and pushed the docker-xwiki change, so that the emitted GitCommit(s)
@@ -325,10 +186,8 @@ checkImagesBuild = { String head, Map cycleCommits ->
 // a dirty tree rather than as a library file publishing tags the pushed Dockerfiles do not produce.
 // Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs, and needs 'git', 'gh' and 'env'
 // on the PATH, i.e. Linux or macOS.
-// Command line flags: '-PdryRun' to generate the file, show the diff and report what the guards make of the current
-// state, without touching your fork or opening a PR; '-PtargetRepo=<you>/official-images' to rehearse the write path
-// against a repository of your own; '-PskipCiCheck' to submit without the Docker Build workflow having gone green on
-// the commit being submitted.
+// Command line flag: '-PdryRun' to generate the file and show the diff against the published one, without touching
+// your fork or opening a Pull Request.
 task submitOfficialImage() {
     group = 'release'
     description = 'Opens the docker-library Pull Request updating the official XWiki images. Run it after pushing.'
@@ -365,6 +224,15 @@ task submitOfficialImage() {
             upstreamFile.path, outFile.path], true)
         logger.lifecycle("Generated ${libraryPath} (diff upstream -> generated):\n${diff}")
 
+        // A dry run stops here, before the guards below rather than after them: they are all about not writing
+        // something wrong, and a dry run writes nothing. Stopping here is also what makes a preview usable at the
+        // moment it is reached for - right after './gradlew release', with the regenerated tree not yet committed,
+        // which is exactly the state the guards refuse to submit from.
+        if (dryRun) {
+            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the guards, the fork and the Pull Request steps.")
+            return
+        }
+
         // Resolve the GitHub user, and the branch and commit message named after the stable version. Exactly one cycle
         // carries that role, which the check at the top of this script enforces. Both are needed by the guards below
         // as well as by the write path, hence resolved before them.
@@ -373,119 +241,60 @@ task submitOfficialImage() {
         def branch = "update-xwiki-${stableVersion}"
         def commitMessage = "Update XWiki to ${stableVersion}"
 
-        // The reasons the submission has to be refused, collected rather than thrown one by one, and established
-        // before '-PdryRun' returns rather than after it. "Am I ready to submit?" is what a dry run is reached for,
-        // and answering only "here is what the file would look like" leaves the release manager to discover a red
-        // Docker Build run on the real invocation instead. Collecting them also means one run names everything that
-        // is in the way rather than the first thing.
-        //
-        // A dry run reports them and still succeeds, where a real one fails on them: the natural moment to preview the
-        // file is right after './gradlew release', with the regenerated tree not yet committed, and a preview that
-        // refused to run until the release was pushed would be of no use at that moment.
-        def problems = []
-
-        if (rehearsal) {
-            logger.lifecycle("targetRepo set: rehearsing the submission against ${upstreamRepo}; the guards on what " +
-                'is reachable upstream and on the Docker Build result are skipped.')
-        } else {
-            // The working tree must be clean and HEAD must be on the branch docker-library fetches: the GitCommit
-            // values we emit are the last commits that touched each cycle directory, and docker-library fetches those
-            // exact commits from GitRepo, so anything uncommitted, unpushed or pushed somewhere else would not be
-            // reachable upstream. Being on some remote branch is not enough, hence the check against that one branch:
-            // a commit living only on a Pull Request branch is fetchable by no one but GitHub.
-            // Untracked files are deliberately not part of that: a release manager's scratch notes have no bearing on
-            // whether the commits we emit are reachable, and refusing to submit because of one is a guard firing at
-            // the wrong thing. What matters is that nothing tracked is still uncommitted, hence '--untracked-files=no'.
-            // The tree was regenerated on the way here (see the task's dependencies), so a generated file turning up
-            // among these is not only something left uncommitted: it is the pushed images and 'versions.json' having
-            // drifted apart, which is the one inconsistency nothing else would report.
-            def uncommitted = capture(['git', 'status', '--porcelain', '--untracked-files=no'])
-            if (!uncommitted.isEmpty()) {
-                problems << ('The working tree has uncommitted changes after regenerating:\n' + uncommitted +
-                    '\nCommit and push the docker-xwiki change before running submitOfficialImage. If you did not ' +
-                    'change anything, these are the files the current versions.json generates and what is pushed ' +
-                    'was generated from something else.')
-            }
-            // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as
-            // soon as the change is pushed from somewhere else (a merged Pull Request, another clone).
-            def remote = capture(['git', 'config', "branch.${libraryGitBranch}.remote"], true) ?: 'origin'
-            capture(['git', 'fetch', remote, libraryGitBranch])
-            def releaseBranch = "${remote}/${libraryGitBranch}"
-            def submittedHead = capture(['git', 'rev-parse', 'HEAD'])
-            if (capture(['git', 'branch', '-r', '--contains', submittedHead, '--list', releaseBranch]).isEmpty()) {
-                problems << ("HEAD (${submittedHead}) is not on ${releaseBranch}, which is where docker-library " +
-                    "fetches the images from. Push the docker-xwiki change to ${libraryGitBranch} before running " +
-                    'submitOfficialImage.')
-            }
-            def ciProblem = checkImagesBuild(submittedHead, cycleCommits)
-            if (ciProblem) {
-                problems << ciProblem
-            }
+        // The working tree must be clean and HEAD must be on the branch docker-library fetches: the GitCommit values we
+        // emit are the last commits that touched each cycle directory, and docker-library fetches those exact commits
+        // from GitRepo, so anything uncommitted, unpushed or pushed somewhere else would not be reachable upstream.
+        // Being on some remote branch is not enough, hence the check against that one branch: a commit living only on a
+        // Pull Request branch is fetchable by no one but GitHub.
+        // Untracked files are deliberately not part of that: a release manager's scratch notes have no bearing on
+        // whether the commits we emit are reachable, and refusing to submit because of one is a guard firing at the
+        // wrong thing. What matters is that nothing tracked is still uncommitted, hence '--untracked-files=no'.
+        // The tree was regenerated on the way here (see the task's dependencies), so a generated file turning up among
+        // these is not only something left uncommitted: it is the pushed images and 'versions.json' having drifted
+        // apart, which is the one inconsistency nothing else would report.
+        def uncommitted = capture(['git', 'status', '--porcelain', '--untracked-files=no'])
+        if (!uncommitted.isEmpty()) {
+            throw new GradleException('Refusing to submit: the working tree has uncommitted changes after ' +
+                "regenerating:\n${uncommitted}\nCommit and push the docker-xwiki change before running " +
+                'submitOfficialImage. If you did not change anything, these are the files the current versions.json ' +
+                'generates and what is pushed was generated from something else.')
+        }
+        // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as soon as
+        // the change is pushed from somewhere else (a merged Pull Request, another clone).
+        def remote = capture(['git', 'config', "branch.${libraryGitBranch}.remote"], true) ?: 'origin'
+        capture(['git', 'fetch', remote, libraryGitBranch])
+        def releaseBranch = "${remote}/${libraryGitBranch}"
+        def submittedHead = capture(['git', 'rev-parse', 'HEAD'])
+        if (capture(['git', 'branch', '-r', '--contains', submittedHead, '--list', releaseBranch]).isEmpty()) {
+            throw new GradleException("Refusing to submit: HEAD (${submittedHead}) is not on ${releaseBranch}, which " +
+                "is where docker-library fetches the images from. Push the docker-xwiki change to " +
+                "${libraryGitBranch} before running submitOfficialImage.")
         }
 
         // A branch of that name left behind by a previous run is recreated further down, but not while a Pull Request
         // is still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream
-        // is not ours to close. Checked in a rehearsal too, unlike the guards above: it is about not destroying
-        // something on the target, which a target of your own has just as much of. Not allowed to fail, for that very
-        // reason: an empty answer is what says there is none, and a call that failed would say the same and take the
-        // branch - and the Pull Request on it - down with it.
+        // is not ours to close. Not allowed to fail, for that very reason: an empty answer is what says there is none,
+        // and a call that failed would say the same and take the branch - and the Pull Request on it - down with it.
         def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'])
         if (!openPullRequests.isEmpty()) {
-            problems << ("A Pull Request is still open from branch [${branch}]: " +
+            throw new GradleException("Refusing to submit: a Pull Request is still open from branch [${branch}]: " +
                 "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
                 'another one.')
         }
 
-        if (!problems.isEmpty()) {
-            def rendered = problems.collect { "- ${it}" }.join('\n')
-            if (!dryRun) {
-                throw new GradleException("Refusing to submit the official images:\n${rendered}")
-            }
-            logger.lifecycle("dryRun set: the submission would be refused for:\n${rendered}")
-        } else if (!rehearsal) {
-            logger.lifecycle('The submission guards all pass.')
-        }
-
-        if (dryRun) {
-            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the fork and Pull Request steps.")
-            return
-        }
+        logger.lifecycle('The submission guards all pass.')
 
         // The target repository's default branch, which the working branch is created off.
         def defaultBranch = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${upstreamRepo}", '--jq', '.default_branch'])
 
-        // The repository the branch and the file update are pushed to. Normally a fork of the target under your own
-        // account, ensured to exist (idempotent) and synced to the target's default branch. GitHub creates a fork
-        // asynchronously, so on a first-ever run the sync can arrive before the fork is queryable and fail on a
-        // repository that is about to exist; retry it a few times before believing it.
-        // When the target is a repository you own - a rehearsal against your own copy - there is nothing to fork, since
-        // GitHub does not let you fork your own repository: the branch then lives in the target itself and the Pull
-        // Request is opened inside it.
-        def fork
-        if (upstreamRepo.startsWith("${login}/")) {
-            fork = upstreamRepo
-            logger.lifecycle("${upstreamRepo} is yours: submitting from a branch of it rather than from a fork.")
-        } else {
-            fork = "${login}/${upstreamRepo.tokenize('/')[1]}"
-            capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'fork', upstreamRepo, '--clone=false'])
-            def syncAttempts = 5
-            for (int attempt = 1; ; attempt++) {
-                try {
-                    capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', upstreamRepo,
-                        '--branch', defaultBranch])
-                    break
-                } catch (GradleException e) {
-                    if (attempt >= syncAttempts) {
-                        throw e
-                    }
-                    logger.lifecycle("Syncing ${fork} failed (attempt ${attempt} of ${syncAttempts}); it may still " +
-                        'be being created, retrying...')
-                    Thread.sleep(5000)
-                }
-            }
-        }
+        // The fork under your own account that the branch and the file update are pushed to, ensured to exist
+        // (idempotent) and synced to the target's default branch.
+        def fork = "${login}/${upstreamRepo.tokenize('/')[1]}"
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'fork', upstreamRepo, '--clone=false'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', upstreamRepo,
+            '--branch', defaultBranch])
 
         // Create the working branch on the fork off the freshly synced default branch.
         def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
