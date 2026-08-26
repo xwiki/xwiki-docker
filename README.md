@@ -29,16 +29,6 @@ The Dockerfile repository is also licensed under the [LGPL 2.1](https://github.c
 -	Note that changes need to be merged to all other branches where they make sense and if they make sense for existing tags, those tags must be deleted and recreated.
 -	In addition, whenever a branch or tag is modified, a Pull Request on the [DockerHub XWiki official image](https://github.com/docker-library/official-images/blob/master/library/xwiki) must be made
 
-# Releasing new versions
-
-This is for maintainers performing the "Update Docker Images" step of an XWiki release, see [ReleasePlanHelp](https://dev.xwiki.org/xwiki/bin/view/ReleasePlans/ReleasePlanHelp#HUpdateDocker) for the full context. The version bumps and the DockerHub official-images Pull Request are automated as Gradle tasks; you only review, commit and push the `docker-xwiki` change in between. These tasks drive `docker`, `git` and the `gh` CLI, so they run on Linux and macOS.
-
--	`./gradlew release` (pre-push): refreshes every cycle to the latest XWiki release, the JDBC drivers (read for each cycle from that cycle's own `xwiki-platform` POM) and the LibreOffice version in `versions.json`, regenerates all the version/variant directories and the build workflow, then smoke-tests the cycles whose versions moved: for each it builds the `postgres-tomcat` variant, plus the variant of any database whose JDBC driver moved, boots each one and waits until its REST API reports the expected version. Docker must be running.
--	Review the resulting diff, then commit and push `versions.json` together with the regenerated directories.
--	`./gradlew submitOfficialImage` (post-push): regenerates the images and the `library/xwiki` file, and opens the Pull Request against [docker-library/official-images](https://github.com/docker-library/official-images) from your GitHub fork. It refuses to submit commits that are not reachable upstream: a dirty tree, a `HEAD` that is not on `master`, or a Pull Request still open from a previous run. Regenerating first means a `versions.json` that was pushed without its regenerated directories shows up as that dirty tree, rather than as a library file publishing tags the pushed Dockerfiles do not produce. Requires an authenticated `gh` CLI. Pass `-PdryRun` to generate the file and show the diff against the published one without opening a Pull Request.
-
-Each step is also runnable on its own: `updateXWiki`, `updateJDBC`, `updateLibreOffice`, `generate`, `generateWorkflows`, `smokeTest` and `submitOfficialImage`. `smokeTest` takes `-Pcycles=18,17` and `-Pvariants=mysql-tomcat,postgres-tomcat` to pick what to boot by hand, which is also how a change to `template/` gets boot-checked, no version having moved for it; run standalone it boots every cycle. It builds each image locally under the tag the generated `docker-compose.yml` names, so it overwrites whatever your Docker holds under it, the published official image of that version included; `docker pull` brings it back. It also removes the volumes of the instances it starts, and therefore whatever wiki content they held. To try an image out by hand and keep it, run `docker compose up` in the version/variant directory as usual. See the comments in `build.gradle` and in the scripts it applies from `gradle/` for the details.
-
 # Credits
 
 -	Originally created by Vincent Massol
