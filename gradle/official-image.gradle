@@ -76,7 +76,18 @@ def libraryGitBranch = 'master'
 // Pull Request - against a repository of your own. The write path is the one part of this that a dry run cannot
 // exercise, and a release is a poor moment to run it for the first time. A rehearsal waives the guards on what is
 // reachable upstream, since the point of it is precisely to run against something that is not.
-def upstreamRepo = project.hasProperty('targetRepo') ? project.property('targetRepo').toString() : officialImagesRepo
+//
+// The value is checked to be an '<owner>/<repository>' pair, since everything below builds GitHub API paths out of it
+// and splits it on '/' to name the fork: '-PtargetRepo' with no value, or with a bare repository name, would otherwise
+// be taken for a rehearsal (it is not the upstream repository) and then fail deep in the write path.
+def parseRepo = { value ->
+    def text = value.toString().trim()
+    if (!(text ==~ /[\w.-]+\/[\w.-]+/)) {
+        throw new GradleException("-PtargetRepo expects an <owner>/<repository> pair, got [${text}].")
+    }
+    return text
+}
+def upstreamRepo = project.hasProperty('targetRepo') ? parseRepo(project.property('targetRepo')) : officialImagesRepo
 def rehearsal = upstreamRepo != officialImagesRepo
 
 // What a cycle's 'role' means: the default section comment emitted before that cycle's first block (a cycle may
@@ -164,10 +175,33 @@ def libraryGitCommits = {
     return tokens.collectEntries { cycle, data -> [(cycle): libraryGitCommit(cycle)] }
 }
 
+def defaultVariant = dbVariants.keySet().first()
+
+// No tag may be emitted twice: docker-library rejects a library file declaring the same tag on two images, and nothing
+// else here would notice. What produces one is two cycles sitting on the same version line, since the tags a cycle
+// contributes are derived from its version: a stable cycle '18' pinned to 18.4.4 while cycle '18.4' is on 18.4.4 too
+// (the state right after an intermediate LTS is declared, if the stable line has not moved past it yet) makes both
+// emit '18.4', '18.4.4' and every per-variant form of them. That is a 'versions.json' mistake rather than a code one,
+// so it is caught here, where the tags are decided, rather than upstream in front of the docker-library maintainers.
+//
+// The tags are compared as Strings: the prefixes above are built with GStrings, which are never equal to the String
+// carrying the same characters, so comparing them as they come would find no duplicate at all.
+def allLibraryTags = tokens.collectMany { cycle, data ->
+    def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
+    return dbVariants.collectMany { variant, db ->
+        libraryTags(variant, db, variant == defaultVariant, data.role, prefixes)*.toString()
+    }
+}
+def duplicateLibraryTags = allLibraryTags.countBy { it }.findAll { tag, count -> count > 1 }.keySet()
+if (!duplicateLibraryTags.isEmpty()) {
+    throw new GradleException("The official Docker library file would declare the tag(s) " +
+        "${duplicateLibraryTags.join(', ')} more than once, which docker-library rejects. Two cycles of " +
+        '[versions.json] are on the same version line, so both claim its tags; only one cycle may own a line.')
+}
+
 // Generate the complete content of the official Docker library file from the version data model, using the algorithm
 // above. Verified to reproduce the currently published file byte for byte, but for the 'GitRepo' line corrected above
 // and the 'GitCommit' lines, which resolve to the real per-cycle last-touching commits.
-def defaultVariant = dbVariants.keySet().first()
 def generateLibraryContent
 generateLibraryContent = { Map cycleCommits ->
     def sb = new StringBuilder()
@@ -222,14 +256,20 @@ checkImagesBuild = { String head, Map cycleCommits ->
         .readLines().collect { it.split('\t', -1) }.findAll { it.size() == 4 }
     // Whether a commit is contained in another, i.e. whether the second was built from a tree holding the first.
     // 'merge-base --is-ancestor' answers with its exit status, whence 'exitCode'; anything above 1 is the question
-    // failing rather than being answered with a no (an object missing locally, say), which is not something to read
-    // as either verdict.
+    // failing rather than being answered with a no - a run's commit that this clone does not have, because it was
+    // force-pushed away or never fetched.
+    //
+    // Such a commit is reported and read as a no, rather than aborting: the search below walks the runs newest first,
+    // so a single unresolvable sha would otherwise stop a release on a run that was only going to be skipped anyway.
+    // Reading it as a no cannot make the check pass on something unbuilt either - it only ever removes a run from the
+    // candidates - and the uncovered-cycle check below asks solely about commits this clone has by construction (our
+    // own cycle directories, and a run commit already established to be contained in HEAD).
     def contained = { String commit, String within ->
         def code = exitCode(['git', 'merge-base', '--is-ancestor', commit, within])
         if (code > 1) {
-            throw new GradleException("Could not tell whether commit [${commit}] is contained in [${within}], one " +
-                "of the ${imageWorkflow} runs on ${libraryGitBranch}. Fetch it, or pass -PskipCiCheck to submit " +
-                'without the check.')
+            logger.lifecycle("WARNING: cannot tell whether commit [${commit}] is contained in [${within}] - it is " +
+                'not in this clone; treating it as not contained.')
+            return false
         }
         return code == 0
     }
@@ -408,7 +448,10 @@ task submitOfficialImage() {
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'PUT',
             "repos/${fork}/contents/${libraryPath}",
             '-f', "message=${commitMessage}",
-            '-f', "content=${content.bytes.encodeBase64().toString()}",
+            // Encoded from the UTF-8 bytes and not from 'content.bytes', which would encode whatever the platform
+            // default charset happens to be: the file is pure ASCII today, so this only ever matters the day a
+            // maintainer name or a comment is not, and that is a poor day to discover it.
+            '-f', "content=${content.getBytes('UTF-8').encodeBase64().toString()}",
             '-f', "sha=${fileSha}",
             '-f', "branch=${branch}"])
 

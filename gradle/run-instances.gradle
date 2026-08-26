@@ -50,21 +50,21 @@ waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
     def versionPattern = ~/(?<![\d.-])${java.util.regex.Pattern.quote(expectedVersion)}(?![\d.-])/
     def deadline = System.currentTimeMillis() + timeoutMillis
     while (System.currentTimeMillis() < deadline) {
+        // Disconnected in a 'finally', since the polling attempt that throws is the common case here, not the
+        // exception: a boot answers nothing at all for minutes, and one leaked connection per attempt over a ten
+        // minute wait is a leak worth not having.
+        def conn = null
         try {
-            def conn = (HttpURLConnection) new URL("http://localhost:${port}/rest").openConnection()
+            conn = (HttpURLConnection) new URL("http://localhost:${port}/rest").openConnection()
             conn.connectTimeout = 5000
             conn.readTimeout = 5000
-            if (conn.responseCode == 200) {
-                def body = conn.inputStream.getText('UTF-8')
-                conn.disconnect()
-                if (versionPattern.matcher(body).find()) {
-                    return true
-                }
-            } else {
-                conn.disconnect()
+            if (conn.responseCode == 200 && versionPattern.matcher(conn.inputStream.getText('UTF-8')).find()) {
+                return true
             }
         } catch (ignored) {
             // XWiki not serving yet; keep polling.
+        } finally {
+            conn?.disconnect()
         }
         Thread.sleep(5000)
     }
@@ -122,10 +122,15 @@ composeInstance = { Map inst, List<String> composeArgs, boolean allowFailure ->
         }
         return text.replace(from, to)
     }
+    // The web container is named after the whole variant and the database one after its db part, which is how the
+    // template names them: 'container_name: xwiki-${db}-tomcat-web' in a '<db>-<servlet>' variant directory is
+    // 'xwiki-<variant>-web'. Deriving it from the variant rather than from the db plus a hardcoded '-tomcat-' keeps
+    // this in step with 'smokeTestVariants' below, which deliberately makes no assumption about the servlet container
+    // either.
     def db = inst.variant.tokenize('-')[0]
     def composeText = composeSource.text
     composeText = rewrite(composeText, '"8080:8080"', "\"${inst.port}:8080\"".toString())
-    composeText = rewrite(composeText, "xwiki-${db}-tomcat-web".toString(), "xwiki-${inst.project}-web".toString())
+    composeText = rewrite(composeText, "xwiki-${inst.variant}-web".toString(), "xwiki-${inst.project}-web".toString())
     composeText = rewrite(composeText, "xwiki-${db}-db".toString(), "xwiki-${inst.project}-db".toString())
     def composeFile = file("build/compose/${inst.project}.yml")
     composeFile.parentFile.mkdirs()
@@ -148,7 +153,18 @@ def smokeTestPort = 18080
 // The first host port 'runAll' publishes, the next instances taking the ones above it. Off 8080 for the same reason as
 // 'smokeTest' above, and one port past it so that leaving instances running never keeps a later 'smokeTest' from
 // binding its own. Override it with '-PbasePort=8080' to get the ports the generated docker-compose.yml uses.
-def runAllBasePort = project.hasProperty('basePort') ? (project.property('basePort') as int) : 18081
+//
+// Validated rather than coerced with 'as int', because this is read at configuration time: '-PbasePort' with no value
+// (or with a typo) would otherwise fail every task of the build, 'generate' included, with a bare
+// NumberFormatException naming neither the property nor what it expected.
+def parsePort = { value ->
+    def text = value.toString().trim()
+    if (!(text ==~ /\d+/)) {
+        throw new GradleException("-PbasePort expects a port number, got [${text}].")
+    }
+    return text as int
+}
+def runAllBasePort = project.hasProperty('basePort') ? parsePort(project.property('basePort')) : 18081
 
 // The variant every cycle is boot-checked with, whatever changed. One variant per cycle is what makes a release-time
 // check affordable, and the DB-specific part of an image is only its JDBC driver, so any of the three stands in for the
