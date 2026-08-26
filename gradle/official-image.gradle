@@ -1,0 +1,329 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// Generation of the DockerHub official images definition for xwiki (the 'library/xwiki' file of
+// https://github.com/docker-library/official-images) from the version data model, and the task that submits it as a
+// Pull Request against that repository.
+
+// The version data model (see build.gradle), the 'capture' helper (see gradle/helpers.gradle) and the command line
+// flags, bound at configuration time rather than read from the project inside the task action below (see build.gradle).
+def tokens = project.tokens
+def capture = project.capture
+def dryRun = project.booleanFlag('dryRun')
+
+// The DB variants and their short names as used in the official Docker library file. The first entry is the default
+// variant (the one that also gets the version-only and role-global tags), and the order is the one the blocks are
+// emitted in - which is why this is a list of its own rather than a view of the generated variants.
+def dbVariants = [
+    'mysql-tomcat': 'mysql',
+    'postgres-tomcat': 'postgres',
+    'mariadb-tomcat': 'mariadb'
+]
+
+// Which is also why it has to be kept in step by hand, and therefore checked: a variant added to build.gradle but not
+// here would be generated, committed and built by CI, yet silently never make it into the file that publishes it, so
+// the images would simply not exist on DockerHub.
+def imageVariants = project.imageVariants
+if (dbVariants.keySet() != (imageVariants as Set)) {
+    throw new GradleException("The variants of the official Docker library file ${dbVariants.keySet()} do not match " +
+        "the generated ones ${imageVariants}. A variant needs its short name and its place in the emitted order " +
+        'declared in gradle/official-image.gradle too.')
+}
+
+// Constants of the official Docker library file. These match the header currently published for xwiki and rarely
+// change.
+def libraryMaintainers = 'XWiki Core Dev Team <committers@xwiki.org> (@xwiki)'
+// This repository, and the canonical URL derived from it. The published file still names xwiki-contrib/docker-xwiki,
+// which resolves only through the redirect GitHub kept when the repository moved to the xwiki organisation - and that
+// redirect goes away the day anything else is created under the old name, taking the official image builds with it. So
+// this submits the current URL, which is the one difference between what is generated here and what is published today.
+def sourceRepo = 'xwiki/xwiki-docker'
+def libraryGitRepo = "https://github.com/${sourceRepo}.git"
+def libraryArchitectures = 'amd64, arm64v8'
+def upstreamRepo = 'docker-library/official-images'
+def libraryPath = 'library/xwiki'
+// The branch of GitRepo that docker-library fetches the emitted GitCommit(s) from. The library file declares no
+// 'GitFetch', so they take the default, 'refs/heads/master'.
+def libraryGitBranch = 'master'
+
+// What a cycle's 'role' means: the default section comment emitted before that cycle's first block (a cycle may
+// override it with its own 'libraryComment', e.g. cycle 16's "- Added back temporarily" annotation), and the wording
+// used for it in the Pull Request body. One map for both, so that a role cannot be half-declared: declaring it in one
+// place and not in the other would leave the Pull Request body rendering that role as 'null' while everything else
+// looked right.
+def libraryRoles = [
+    'stable': [comment: '# Latest stable', label: 'stable'],
+    'intermediate-lts': [comment: '# Intermediate LTS', label: 'intermediate LTS'],
+    'lts': [comment: '# LTS', label: 'LTS'],
+    'old-lts': [comment: '# Previous LTS', label: 'previous LTS']
+]
+
+// Check the roles against that map as soon as the model is read, because they are not only ours: they drive the tags
+// and the section comments of the file this script submits to docker-library. An unknown role would silently emit a
+// 'null' section header and drop that cycle's stable-*/lts-* tag aliases, and the Pull Request itself is named after
+// the single stable cycle. Failing at configuration time beats noticing it in a review upstream.
+tokens.each { cycle, data ->
+    if (!libraryRoles.containsKey(data.role)) {
+        throw new GradleException("Cycle [${cycle}] of [versions.json] declares role [${data.role}], which is not " +
+            "one of ${libraryRoles.keySet()}.")
+    }
+}
+def stableCycles = tokens.findAll { cycle, data -> data.role == 'stable' }.keySet()
+if (stableCycles.size() != 1) {
+    throw new GradleException("Exactly one cycle of [versions.json] must declare the 'stable' role, found " +
+        "${stableCycles.isEmpty() ? 'none' : stableCycles}.")
+}
+
+// The version tags a cycle contributes, from most to least generic. A major-only cycle key (e.g. '18', version 18.5.0)
+// yields [18, 18.5, 18.5.0]; a major.minor key (e.g. '18.4', version 18.4.2) yields [18.4, 18.4.2] (no bare-major tag,
+// since another cycle owns the major line).
+def libraryVersionPrefixes = { String cycle, String version ->
+    def v = version.tokenize('.')
+    if (cycle.tokenize('.').size() == 1) {
+        return [v[0], "${v[0]}.${v[1]}", version]
+    }
+    return ["${v[0]}.${v[1]}", version]
+}
+
+// The full ordered tag list for one cycle/variant, reproducing the upstream conventions: bare version tags only on the
+// default variant; per-variant version tags on every variant; and role-driven aliases (bare variant + stable-/lts- +
+// the global stable/latest/lts tags) added only for the stable and LTS cycles.
+def libraryTags = { String variant, String db, boolean isDefault, String role, List prefixes ->
+    def tags = []
+    if (isDefault) {
+        tags += prefixes
+    }
+    tags += prefixes.collect { "${it}-${variant}".toString() }
+    if (role == 'stable') {
+        tags += variant
+        tags += ["stable-${variant}".toString(), "stable-${db}".toString()]
+        if (isDefault) {
+            tags += ['stable', 'latest']
+        }
+    } else if (role == 'lts') {
+        tags += ["lts-${variant}".toString(), "lts-${db}".toString()]
+        if (isDefault) {
+            tags += 'lts'
+        }
+    }
+    return tags
+}
+
+// The 'GitCommit' of a cycle = the last commit that touched that cycle's directory. docker-library fetches this exact
+// commit from GitRepo to (re)build the images, so it only rebuilds cycles whose GitCommit changed.
+//
+// A cycle whose directory has never been committed has no such commit, and 'git log' says so by printing nothing at
+// all rather than by failing. That is not a hypothetical: adding a cycle is a manual 'versions.json' edit followed by
+// './gradlew', which leaves a brand new - and therefore untracked - directory behind, and the dirty tree guard below
+// deliberately ignores untracked files. Emitting the empty string would submit a 'GitCommit:' line with nothing on it,
+// so it fails here instead.
+def libraryGitCommit = { String cycle ->
+    def commit = capture(['git', 'log', '-1', '--format=%H', '--', "${cycle}/".toString()])
+    if (commit.isEmpty()) {
+        throw new GradleException("No commit was found for the [${cycle}/] directory, so docker-library would have " +
+            'nothing to fetch for that cycle. Commit (and push) it before submitting it.')
+    }
+    return commit
+}
+
+// The 'GitCommit' of every cycle, resolved once, since the emitted file names each of them.
+def libraryGitCommits = {
+    return tokens.collectEntries { cycle, data -> [(cycle): libraryGitCommit(cycle)] }
+}
+
+def defaultVariant = dbVariants.keySet().first()
+
+// Generate the complete content of the official Docker library file from the version data model, using the algorithm
+// above. Verified to reproduce the currently published file byte for byte, but for the 'GitRepo' line corrected above
+// and the 'GitCommit' lines, which resolve to the real per-cycle last-touching commits.
+def generateLibraryContent
+generateLibraryContent = { Map cycleCommits ->
+    def sb = new StringBuilder()
+    sb << "Maintainers: ${libraryMaintainers}\n"
+    sb << "GitRepo: ${libraryGitRepo}\n"
+    tokens.each { cycle, data ->
+        def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
+        def commit = cycleCommits[cycle]
+        def comment = data.libraryComment ?: libraryRoles[data.role].comment
+        sb << "\n${comment}\n"
+        def first = true
+        dbVariants.each { variant, db ->
+            if (!first) {
+                sb << '\n'
+            }
+            first = false
+            def tags = libraryTags(variant, db, variant == defaultVariant, data.role, prefixes)
+            sb << "Tags: ${tags.join(', ')}\n"
+            sb << "Architectures: ${libraryArchitectures}\n"
+            sb << "Directory: ${cycle}/${variant}\n"
+            sb << "GitCommit: ${commit}\n"
+        }
+    }
+    return sb.toString()
+}
+
+// Generate the official Docker library file for xwiki and open a pull request against docker-library/official-images,
+// updating the single 'library/xwiki' file on a branch of your GitHub fork (no local clone). Run it AFTER
+// './gradlew release' and after you have committed and pushed the docker-xwiki change, so that the emitted GitCommit(s)
+// are reachable upstream. It regenerates the images first, so that a 'versions.json' pushed without them shows up as
+// a dirty tree rather than as a library file publishing tags the pushed Dockerfiles do not produce.
+// Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs, and needs 'git', 'gh' and 'env'
+// on the PATH, i.e. Linux or macOS.
+// Command line flag: '-PdryRun' to generate the file and show the diff against the published one, without touching
+// your fork or opening a Pull Request.
+task submitOfficialImage() {
+    group = 'release'
+    description = 'Opens the docker-library Pull Request updating the official XWiki images. Run it after pushing.'
+    // Regenerate before submitting, so that the dirty tree guard below also answers a question it could not otherwise
+    // ask: whether the pushed images are the ones 'versions.json' describes. The library file is generated from
+    // 'versions.json' while docker-library builds the Dockerfiles committed at the emitted GitCommit(s), and nothing
+    // upstream ties the two together - a 'versions.json' committed without regenerating would publish tags for
+    // versions the committed Dockerfiles do not produce. The Docker Build workflow does not catch it either: it
+    // builds those Dockerfiles and they build fine, being merely the previous ones. Regenerating here turns that into
+    // a dirty tree, which the guard already knows how to report.
+    dependsOn 'generate', 'generateWorkflows'
+    doLast {
+        // gh must be authenticated (needed for the upstream fetch below and the PR flow).
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])
+
+        // Generate the library file and write it out for review.
+        def cycleCommits = libraryGitCommits()
+        def content = generateLibraryContent(cycleCommits)
+        def outFile = file('build/library-xwiki')
+        outFile.parentFile.mkdirs()
+        outFile.text = content
+
+        // Fetch the current upstream file and show a real diff against the generated one.
+        def upstreamB64 = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${upstreamRepo}/contents/${libraryPath}", '--jq', '.content'])
+        def upstreamContent = new String(upstreamB64.replaceAll('\\s', '').decodeBase64(), 'UTF-8')
+        if (content == upstreamContent) {
+            logger.lifecycle('The generated library file is identical to the upstream one; nothing to submit.')
+            return
+        }
+        def upstreamFile = file('build/library-xwiki.upstream')
+        upstreamFile.text = upstreamContent
+        def diff = capture(['git', '--no-pager', 'diff', '--no-index', '--',
+            upstreamFile.path, outFile.path], true)
+        logger.lifecycle("Generated ${libraryPath} (diff upstream -> generated):\n${diff}")
+
+        // A dry run stops here, before the guards below rather than after them: they are all about not writing
+        // something wrong, and a dry run writes nothing. Stopping here is also what makes a preview usable at the
+        // moment it is reached for - right after './gradlew release', with the regenerated tree not yet committed,
+        // which is exactly the state the guards refuse to submit from.
+        if (dryRun) {
+            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the guards, the fork and the Pull Request steps.")
+            return
+        }
+
+        // Resolve the GitHub user, and the branch and commit message named after the stable version. Exactly one cycle
+        // carries that role, which the check at the top of this script enforces. Both are needed by the guards below
+        // as well as by the write path, hence resolved before them.
+        def login = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', 'user', '--jq', '.login'])
+        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
+        def branch = "update-xwiki-${stableVersion}"
+        def commitMessage = "Update XWiki to ${stableVersion}"
+
+        // The working tree must be clean and HEAD must be on the branch docker-library fetches: the GitCommit values we
+        // emit are the last commits that touched each cycle directory, and docker-library fetches those exact commits
+        // from GitRepo, so anything uncommitted, unpushed or pushed somewhere else would not be reachable upstream.
+        // Being on some remote branch is not enough, hence the check against that one branch: a commit living only on a
+        // Pull Request branch is fetchable by no one but GitHub.
+        // Untracked files are deliberately not part of that: a release manager's scratch notes have no bearing on
+        // whether the commits we emit are reachable, and refusing to submit because of one is a guard firing at the
+        // wrong thing. What matters is that nothing tracked is still uncommitted, hence '--untracked-files=no'.
+        // The tree was regenerated on the way here (see the task's dependencies), so a generated file turning up among
+        // these is not only something left uncommitted: it is the pushed images and 'versions.json' having drifted
+        // apart, which is the one inconsistency nothing else would report.
+        def uncommitted = capture(['git', 'status', '--porcelain', '--untracked-files=no'])
+        if (!uncommitted.isEmpty()) {
+            throw new GradleException('Refusing to submit: the working tree has uncommitted changes after ' +
+                "regenerating:\n${uncommitted}\nCommit and push the docker-xwiki change before running " +
+                'submitOfficialImage. If you did not change anything, these are the files the current versions.json ' +
+                'generates and what is pushed was generated from something else.')
+        }
+        // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as soon as
+        // the change is pushed from somewhere else (a merged Pull Request, another clone).
+        def remote = capture(['git', 'config', "branch.${libraryGitBranch}.remote"], true) ?: 'origin'
+        capture(['git', 'fetch', remote, libraryGitBranch])
+        def releaseBranch = "${remote}/${libraryGitBranch}"
+        def submittedHead = capture(['git', 'rev-parse', 'HEAD'])
+        if (capture(['git', 'branch', '-r', '--contains', submittedHead, '--list', releaseBranch]).isEmpty()) {
+            throw new GradleException("Refusing to submit: HEAD (${submittedHead}) is not on ${releaseBranch}, which " +
+                "is where docker-library fetches the images from. Push the docker-xwiki change to " +
+                "${libraryGitBranch} before running submitOfficialImage.")
+        }
+
+        // A branch of that name left behind by a previous run is recreated further down, but not while a Pull Request
+        // is still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream
+        // is not ours to close. Not allowed to fail, for that very reason: an empty answer is what says there is none,
+        // and a call that failed would say the same and take the branch - and the Pull Request on it - down with it.
+        def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'])
+        if (!openPullRequests.isEmpty()) {
+            throw new GradleException("Refusing to submit: a Pull Request is still open from branch [${branch}]: " +
+                "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
+                'another one.')
+        }
+
+        logger.lifecycle('The submission guards all pass.')
+
+        // The target repository's default branch, which the working branch is created off.
+        def defaultBranch = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${upstreamRepo}", '--jq', '.default_branch'])
+
+        // The fork under your own account that the branch and the file update are pushed to, ensured to exist
+        // (idempotent) and synced to the target's default branch.
+        def fork = "${login}/${upstreamRepo.tokenize('/')[1]}"
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'fork', upstreamRepo, '--clone=false'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'repo', 'sync', fork, '--source', upstreamRepo,
+            '--branch', defaultBranch])
+
+        // Create the working branch on the fork off the freshly synced default branch.
+        def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/git/ref/heads/${defaultBranch}", '--jq', '.object.sha'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'DELETE',
+            "repos/${fork}/git/refs/heads/${branch}"], true)
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'POST', "repos/${fork}/git/refs",
+            '-f', "ref=refs/heads/${branch}", '-f', "sha=${baseSha}"])
+
+        // Update the single file on that branch via the contents API (needs the current blob sha).
+        def fileSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${fork}/contents/${libraryPath}?ref=${branch}", '--jq', '.sha'])
+        capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'PUT',
+            "repos/${fork}/contents/${libraryPath}",
+            '-f', "message=${commitMessage}",
+            // Encoded from the UTF-8 bytes and not from 'content.bytes', which would encode whatever the platform
+            // default charset happens to be: the file is pure ASCII today, so this only ever matters the day a
+            // maintainer name or a comment is not, and that is a poor day to discover it.
+            '-f', "content=${content.getBytes('UTF-8').encodeBase64().toString()}",
+            '-f', "sha=${fileSha}",
+            '-f', "branch=${branch}"])
+
+        // Open the PR against upstream.
+        def prBody = 'Update the XWiki official images to the latest releases:\n\n' +
+            tokens.collect { cycle, data -> "- `${cycle}` (${libraryRoles[data.role].label}): ${data.xwikiVersion}" }
+                .join('\n') + '\n'
+        def prUrl = capture(['env', '-u', 'GH_TOKEN', 'gh', 'pr', 'create', '--repo', upstreamRepo,
+            '--base', defaultBranch, '--head', "${login}:${branch}",
+            '--title', commitMessage, '--body', prBody])
+        logger.lifecycle("Opened the ${upstreamRepo} Pull Request: ${prUrl}")
+    }
+}

@@ -1,0 +1,251 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// 'smokeTest', the task that boot-checks the generated images with docker compose: start, wait until XWiki answers,
+// tear down. It needs Docker to be running.
+
+// The version data model (see build.gradle), the 'stream' and 'parseList' helpers (see gradle/helpers.gradle), what the
+// update tasks report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at
+// configuration time rather than read from the project inside the task action below (see build.gradle). The two
+// selections are parsed here and not where they are used, so that they are read the same way wherever they are read.
+def tokens = project.tokens
+def variants = project.imageVariants
+def stream = project.stream
+def parseList = project.parseList
+def versionUpdate = project.versionUpdate
+def selectedCycles = project.hasProperty('cycles') ? parseList('cycles', project.property('cycles'),
+    tokens.keySet()) : null
+def selectedVariants = project.hasProperty('variants') ? parseList('variants', project.property('variants'),
+    variants) : null
+
+// Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying the expected
+// XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a stronger check: the root
+// REST resource returns the running XWiki product version in its <xwiki version="..."> element (it is served to guests,
+// no auth needed), so a match proves XWiki actually finished initializing - not merely that Tomcat is up. Returns true
+// on success, false on timeout. XWiki is deployed as the ROOT webapp in these images, so there is no /xwiki context
+// prefix.
+//
+// The version is looked for between boundaries rather than as a plain substring, since one version string can be the
+// prefix of another: an instance answering 17.10.12 contains '17.10.1' and would pass a smoke test expecting 17.10.1,
+// i.e. the release gate would go green on the wrong image. Only what could continue a version - a digit, a dot or the
+// dash of a qualifier - is excluded around it, so this stays independent of how the version is quoted or attributed in
+// the response while still telling 18.6.0 apart from 18.6.0-SNAPSHOT and from the 18.6.0-postgres-tomcat image tag.
+def waitForXWiki
+waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
+    def versionPattern = ~/(?<![\d.-])${java.util.regex.Pattern.quote(expectedVersion)}(?![\d.-])/
+    def deadline = System.currentTimeMillis() + timeoutMillis
+    while (System.currentTimeMillis() < deadline) {
+        // Disconnected in a 'finally', since the polling attempt that throws is the common case here, not the
+        // exception: a boot answers nothing at all for minutes, and one leaked connection per attempt over a ten
+        // minute wait is a leak worth not having.
+        def conn = null
+        try {
+            conn = (HttpURLConnection) new URL("http://localhost:${port}/rest").openConnection()
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            if (conn.responseCode == 200 && versionPattern.matcher(conn.inputStream.getText('UTF-8')).find()) {
+                return true
+            }
+        } catch (ignored) {
+            // XWiki not serving yet; keep polling.
+        } finally {
+            conn?.disconnect()
+        }
+        Thread.sleep(5000)
+    }
+    return false
+}
+
+// Build the image of one cycle/variant locally, tagged the way the generated docker-compose.yml expects it. That file
+// has no 'build' section, only 'image: xwiki:<version>-<variant>', so without this the boot would pull that tag from
+// DockerHub, where it does not exist yet: the official image for a version is only built once the
+// 'submitOfficialImage' pull request has been merged, which happens after the release tasks run. Building it here also
+// means that what is booted is the Dockerfile that was just regenerated rather than a previously published image.
+//
+// The build is asked for the classic builder ('DOCKER_BUILDKIT=0'), because that is the one the Docker Official Images
+// infrastructure uses and the two do not accept the same Dockerfiles: the classic builder leaves Docker's automatic
+// platform arguments empty, for instance, so a Dockerfile reading TARGETARCH builds fine with BuildKit and breaks
+// there. The Docker Build workflow builds that way for the same reason, and a check that builds differently from both
+// would miss what they reject.
+//
+// Note that the tag being the one the compose file names, this overwrites whatever the local Docker has under it - the
+// published official image of that version, if it was ever pulled. That is unavoidable (the generated compose file
+// names no other tag) and harmless as long as it is expected: 'docker pull' brings the published one back.
+def buildImage
+buildImage = { String task, String cycle, String variant, File variantDir ->
+    logger.lifecycle("${task}: building the XWiki ${cycle} (${variant}) image...")
+    stream(['docker', 'build', '-t', "xwiki:${tokens[cycle].xwikiVersion}-${variant}".toString(), '.'], false,
+        variantDir, [DOCKER_BUILDKIT: '0'])
+}
+
+// Render a port/name-isolated compose file for one instance and invoke 'docker compose' on it. The generated
+// version/variant docker-compose.yml hardcodes the host port (8080) and the container names (per DB, not per cycle),
+// so taking it as it is would put every instance started from a directory of the same name into a single compose
+// project: 'smokeTest' on cycle 18 would adopt, and then 'down -v' away, the instance a developer started by hand in
+// 17/postgres-tomcat, volumes included. So we take that file and rewrite: the published port -> the instance's port,
+// and the container names (web + db, the db name also being referenced as DB_HOST) -> project-scoped names. Each
+// instance runs as its own compose project (-p) so its network and volumes are isolated too. '--project-directory'
+// keeps '.env' and the relative './init.sql' bind mount resolving against the original variant directory.
+//
+// Every one of those rewrites has to actually match. If the template ever changes how it publishes the port or names
+// its containers, a silent no-op here is not a cosmetic regression: the instance would come up on 8080 in the shared
+// project and 'smokeTest' would then 'down -v' the volumes of whatever a developer had started by hand, which is the
+// very thing this indirection exists to prevent. So a rewrite that finds nothing to replace fails the build.
+def composeInstance
+composeInstance = { Map inst, List<String> composeArgs, boolean allowFailure ->
+    def variantDir = file("${inst.cycle}/${inst.variant}")
+    if (!variantDir.exists()) {
+        throw new GradleException("Directory [${variantDir}] does not exist. Run './gradlew' first.")
+    }
+    def composeSource = file("${variantDir}/docker-compose.yml")
+    def rewrite = { String text, String from, String to ->
+        if (!text.contains(from)) {
+            throw new GradleException("Could not find [${from}] in [${composeSource}], so the instance could not be " +
+                'isolated. The rewrites in gradle/run-instances.gradle no longer match what ' +
+                'template/docker-compose.yml generates and have to be brought back in line with it, since booting ' +
+                'without them would collide with (and tear down) an instance started by hand.')
+        }
+        return text.replace(from, to)
+    }
+    // The web container is named after the whole variant and the database one after its db part, which is how the
+    // template names them: 'container_name: xwiki-${db}-tomcat-web' in a '<db>-<servlet>' variant directory is
+    // 'xwiki-<variant>-web'. Deriving it from the variant rather than from the db plus a hardcoded '-tomcat-' keeps
+    // this in step with 'smokeTestVariants' below, which deliberately makes no assumption about the servlet container
+    // either.
+    def db = inst.variant.tokenize('-')[0]
+    def composeText = composeSource.text
+    composeText = rewrite(composeText, '"8080:8080"', "\"${inst.port}:8080\"".toString())
+    composeText = rewrite(composeText, "xwiki-${inst.variant}-web".toString(), "xwiki-${inst.project}-web".toString())
+    composeText = rewrite(composeText, "xwiki-${db}-db".toString(), "xwiki-${inst.project}-db".toString())
+    def composeFile = file("build/compose/${inst.project}.yml")
+    composeFile.parentFile.mkdirs()
+    composeFile.text = composeText
+    stream(['docker', 'compose', '--project-directory', variantDir.absolutePath,
+        '-f', composeFile.absolutePath, '-p', inst.project] + composeArgs, allowFailure, variantDir)
+}
+
+// A compose project name has to be lowercase and free of dots, which a cycle key such as '18.4' is not. The prefix
+// keeps these projects apart from anything else docker compose holds, so that tearing one down never touches an
+// instance a developer started by hand in the same variant directory.
+def composeProject = { String cycle, String variant ->
+    return "smoketest-${cycle}-${variant}".toString().replace('.', '-')
+}
+
+// The host port 'smokeTest' publishes. Not 8080, which is what the generated docker-compose.yml uses and therefore
+// what a developer's own instance already holds: binding it would fail the boot for a reason that has nothing to do
+// with the image being tested.
+def smokeTestPort = 18080
+
+// The variant every cycle is boot-checked with, whatever changed. One variant per cycle is what makes a release-time
+// check affordable, and the DB-specific part of an image is only its JDBC driver, so any of the three stands in for the
+// others as long as that driver is not itself what changed - which is what 'smokeTestVariants' below looks at.
+def smokeTestBaselineVariant = 'postgres-tomcat'
+
+// The variants to boot for one cycle: the baseline above, plus the variant of every database whose JDBC driver
+// 'updateJDBC' moved for that cycle in this invocation. A driver bump is the one change that is DB-specific, and
+// nothing else in the build ever connects XWiki to a database - the Docker Build workflow only checks that the driver
+// jar landed in WEB-INF/lib - so booting only the baseline would leave a MySQL connector crossing a major (9.x to 26.x)
+// entirely untested. '-Pvariants' overrides the lot, for a manual run wanting a specific variant or all of them.
+def smokeTestVariants
+smokeTestVariants = { String cycle ->
+    if (selectedVariants) {
+        return selectedVariants
+    }
+    def selection = new LinkedHashSet([smokeTestBaselineVariant])
+    // The variants of a database are matched on the '<db>-' prefix rather than assumed to be '<db>-tomcat', so that
+    // adding a variant on another servlet container brings it along on its own.
+    versionUpdate.changedDatabases[cycle]?.each { db ->
+        selection.addAll(variants.findAll { it.startsWith("${db}-") })
+    }
+    return selection as List
+}
+
+// Boot-check the given cycles: build the image of each variant to test, start it with docker compose, wait until
+// XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles whose versions the
+// update tasks bumped in this invocation (used by the 'release' umbrella), or all of them when the shared LibreOffice
+// version was updated, since that one regenerates every cycle. Pass '-Pcycles=18,17' to test specific cycles - which
+// is also how a change to 'template/' gets boot-checked, no version having moved for it - or run it standalone to test
+// them all; '-Pvariants=mysql-tomcat,postgres-tomcat' picks the variants by hand.
+task smokeTest() {
+    group = 'verification'
+    description = 'Boots the changed cycles until XWiki answers, then tears them down.'
+    // What is booted has to be what the current model describes: the image is tagged with the model's XWiki version
+    // while the compose file names the one in the generated '.env', so booting without regenerating first (say
+    // './gradlew updateXWiki smokeTest') would silently pull the previously published image and then wait for a
+    // version it cannot report.
+    dependsOn 'generate'
+    doLast {
+        def cycles
+        if (selectedCycles) {
+            cycles = selectedCycles
+        } else if (versionUpdate.ran && !versionUpdate.allCycles) {
+            // What the update tasks bumped, taken in the model's order rather than in the order they reported it, so
+            // that the cycles are booted oldest key first whichever task reported them.
+            cycles = tokens.keySet().findAll { versionUpdate.changedCycles.contains(it) }
+        } else {
+            cycles = tokens.keySet() as List
+        }
+        if (cycles.isEmpty()) {
+            logger.lifecycle('smokeTest: no cycles to test.')
+            return
+        }
+        // One instance at a time, so they can share the single port above and so a release run needs the resources of
+        // one XWiki + one database rather than of all of them at once.
+        def plan = cycles.collectEntries { cycle -> [(cycle): smokeTestVariants(cycle)] }
+        logger.lifecycle('smokeTest: testing ' +
+            plan.collect { cycle, cycleVariants -> "${cycle} (${cycleVariants.join(', ')})" }.join('; ') + '.')
+        plan.each { cycle, cycleVariants ->
+            cycleVariants.each { variant ->
+                def dir = file("${cycle}/${variant}")
+                if (!dir.exists()) {
+                    throw new GradleException("smokeTest: directory [${dir}] does not exist.")
+                }
+                def expectedVersion = tokens[cycle].xwikiVersion
+                def instance = [cycle: cycle, variant: variant, port: smokeTestPort,
+                    project: composeProject(cycle, variant)]
+                buildImage('smokeTest', cycle, variant, dir)
+                logger.lifecycle("smokeTest: starting XWiki ${cycle} (${variant}) on port ${smokeTestPort}...")
+                try {
+                    // Clear anything this project left behind, before starting rather than only after stopping. The
+                    // teardown below covers a normal run and a cancelled one (Gradle interrupts the task, so the
+                    // 'finally' still runs), but not a killed daemon or a reboot - and a smoke test adopting a stale
+                    // container from a previous attempt would report on that one instead of on the image just built.
+                    composeInstance(instance, ['down', '-v'], true)
+                    composeInstance(instance, ['up', '-d'], false)
+                    if (!waitForXWiki(smokeTestPort, expectedVersion, 600000)) {
+                        // Report what the containers said while they still exist: the 'down -v' below takes them, and
+                        // their logs, away, and a bare timeout message is not something a failed release can be
+                        // diagnosed from. Tail-limited because a container that boot-loops writes without end, and it
+                        // is the last thing each one said that says why.
+                        logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) never came up; " +
+                            'the tail of the container logs follows.')
+                        composeInstance(instance, ['logs', '--no-color', '--tail', '500'], true)
+                        throw new GradleException("smokeTest: XWiki ${cycle} (${variant}) did not report version " +
+                            "${expectedVersion} on http://localhost:${smokeTestPort}/rest within the timeout.")
+                    }
+                    logger.lifecycle("smokeTest: XWiki ${cycle} (${variant}) is up " +
+                        "(REST reports version ${expectedVersion}).")
+                } finally {
+                    composeInstance(instance, ['down', '-v'], true)
+                }
+            }
+        }
+    }
+}

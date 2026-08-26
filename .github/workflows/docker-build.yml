@@ -39,6 +39,7 @@ on:
       - 'template/**'
       - 'template-github/**'
       - 'build.gradle'
+      - 'versions.json'
       - '.github/workflows/docker-build.yml'
   pull_request:
     paths:
@@ -46,6 +47,7 @@ on:
       - 'template/**'
       - 'template-github/**'
       - 'build.gradle'
+      - 'versions.json'
       - '.github/workflows/docker-build.yml'
 
 jobs:

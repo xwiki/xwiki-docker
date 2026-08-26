@@ -26,6 +26,9 @@ name: Gradlew Check
 on:
   push:
     branches: [ master ]
+  # Also on Pull Requests: this check is what guarantees that the committed generated files match what the templates
+  # and versions.json produce, and a Pull Request touching either is exactly where that can stop being true.
+  pull_request:
 
 jobs:
   gradlew-check:

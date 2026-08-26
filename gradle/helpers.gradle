@@ -1,0 +1,230 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
+// The HTTP, hashing, version and process helpers shared by the tasks of the other scripts. They are exposed as project
+// extra properties (and thus callable as functions from any of those scripts), since a script-level 'def' is only
+// visible inside the script that declares it.
+
+// How many times a download is attempted before giving up, and how long to wait between attempts (growing with the
+// attempt). The XWiki WAR and the LibreOffice archives are hundreds of megabytes fetched from hosts that fail
+// transiently often enough to matter - the generated Dockerfile retries its own downloads for that very reason, see
+// CURL_OPTIONS in template/Dockerfile. Without retrying here, a single blip aborts a release run, possibly after
+// 'versions.json' was already rewritten for the cycles handled before it.
+def httpAttempts = 3
+def httpRetryDelayMillis = 5000
+
+// Fetch a URL and hand its response stream to 'consumer', returning what the consumer returns.
+//
+// Redirects are followed manually: the Document Foundation download URLs answer with a 302 to a mirror (sometimes
+// switching from https to http), which the default HttpURLConnection redirect handling refuses to follow.
+//
+// A transient failure - an IOException, including one raised while the consumer is reading, or a status saying "try
+// again later" - restarts the whole fetch, redirect chain included, so 'consumer' must tolerate running more than
+// once. A status that will not get better on its own (a 404 on a version that does not exist, say) fails immediately
+// rather than burning the delays first.
+def httpGet
+httpGet = { String location, int readTimeout, Closure consumer ->
+    def failure = null
+    for (int attempt = 1; attempt <= httpAttempts; attempt++) {
+        try {
+            def current = location
+            for (int hop = 0; hop < 5; hop++) {
+                def connection = (HttpURLConnection) new URL(current).openConnection()
+                connection.instanceFollowRedirects = false
+                connection.connectTimeout = 30000
+                connection.readTimeout = readTimeout
+                def status = connection.responseCode
+                if (status in [301, 302, 303, 307, 308]) {
+                    current = connection.getHeaderField('Location')
+                    connection.disconnect()
+                } else if (status == 200) {
+                    try {
+                        return consumer(connection.inputStream)
+                    } finally {
+                        connection.disconnect()
+                    }
+                } else {
+                    connection.disconnect()
+                    def message = "Unexpected HTTP status [$status] while fetching [$current]"
+                    // 408/429 and the 5xx are the ones worth trying again; anything else is our mistake, not the
+                    // server having a bad minute.
+                    throw (status == 408 || status == 429 || status >= 500) ? new IOException(message)
+                        : new GradleException(message)
+                }
+            }
+            throw new GradleException("Too many redirects while fetching [$location]")
+        } catch (IOException e) {
+            failure = e
+            if (attempt < httpAttempts) {
+                logger.lifecycle("Fetching [$location] failed (${e.message}); retrying (attempt " +
+                    "${attempt + 1} of ${httpAttempts})...")
+                Thread.sleep(httpRetryDelayMillis * attempt)
+            }
+        }
+    }
+    throw new GradleException("Failed to fetch [$location] after ${httpAttempts} attempts: ${failure.message}",
+        failure)
+}
+
+// Fetch a URL as text.
+def httpGetText = { String location ->
+    return httpGet(location, 30000) { input -> input.getText('UTF-8') }
+}
+ext.httpGetText = httpGetText
+
+// Stream a URL through a SHA-256 digest without buffering the whole payload in memory, and return the lowercase hex
+// digest. Used to hash the (large) XWiki WAR and the JDBC driver JARs.
+def sha256OfUrl = { String location ->
+    return httpGet(location, 60000) { input ->
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        byte[] buffer = new byte[65536]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
+        }
+        return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
+    }
+}
+ext.sha256OfUrl = sha256OfUrl
+
+// Compare two dot-separated versions (e.g. '18.10.2' <=> '18.9.5'), component by component and numerically, so that
+// 10 sorts after 9. Every version this handles - XWiki releases and JDBC driver releases - is made of plain numbers, so
+// a component that is not one is a version this build has no business ordering and the NumberFormatException that
+// follows is the right answer: it stops a release run in front of the release manager rather than picking an order.
+def compareVersions = { String a, String b ->
+    def pa = a.tokenize('.')
+    def pb = b.tokenize('.')
+    def n = Math.max(pa.size(), pb.size())
+    for (int i = 0; i < n; i++) {
+        def result = (i < pa.size() ? pa[i] as long : 0L) <=> (i < pb.size() ? pb[i] as long : 0L)
+        if (result != 0) {
+            return result
+        }
+    }
+    return 0
+}
+ext.compareVersions = compareVersions
+
+// Split the comma-separated value of a command line property ('-Pcycles=18, 17') into a list, trimming the entries and
+// dropping the empty ones a trailing or doubled comma leaves behind, then check them against what exists. Shared by the
+// '-Pcycles' and '-Pvariants' selections of the tasks that boot the images.
+//
+// The entries are validated rather than taken as they come, and here rather than where they are used, because this is
+// read at configuration time and both ways of getting it wrong are silent otherwise: '-Pcycles' with no value (or with
+// nothing but separators) leaves an empty list, which every caller reads as "no selection" and therefore as "all of
+// them", i.e. the opposite of narrowing anything down; and a typo ('-Pvariants=mysql' for 'mysql-tomcat') only
+// surfaces later as a missing directory, naming a path rather than the property that named it. The available values
+// are listed in the message, since they are precisely what whoever got it wrong is looking for.
+def parseList = { String property, value, Collection<String> available ->
+    def entries = value.toString().tokenize(',')*.trim().findAll { it }
+    if (entries.isEmpty()) {
+        throw new GradleException("-P${property} expects a comma-separated list of ${available}, got [${value}].")
+    }
+    def unknown = entries.findAll { !available.contains(it) }
+    if (!unknown.isEmpty()) {
+        throw new GradleException("-P${property} does not know ${unknown.join(', ')}; the available values are " +
+            "${available.join(', ')}.")
+    }
+    return entries
+}
+ext.parseList = parseList
+
+// Read a boolean command line flag ('-PdryRun', '-PdryRun=true', '-PdryRun=false'), defaulting to false when the
+// property is absent. Present with no value means true, which is how a flag is normally passed, but an explicit value
+// is honoured rather than ignored: with a bare presence test '-PdryRun=false' reads as true, i.e. asking not to
+// rehearse is what starts the real submission. Anything else is rejected rather than guessed at, for the same reason
+// as in 'parseList' above - this is read at configuration time, where a typo is otherwise silent.
+def parseFlag = { String property, value ->
+    def text = value.toString().trim().toLowerCase()
+    if (text.isEmpty() || text == 'true') {
+        return true
+    }
+    if (text == 'false') {
+        return false
+    }
+    throw new GradleException("-P${property} expects no value, 'true' or 'false', got [${value}].")
+}
+def booleanFlag = { String property ->
+    return project.hasProperty(property) ? parseFlag(property, project.property(property)) : false
+}
+ext.booleanFlag = booleanFlag
+
+// Run an external command in the project directory, capturing its stdout; throw on a non-zero exit unless
+// allowFailure is set. Returns the trimmed stdout. Used by 'submitOfficialImage' for its git/gh plumbing, all of which
+// runs against this repository or against GitHub, hence no working directory parameter - 'stream' below has one, for
+// the docker commands that do run elsewhere. Uses Groovy's Process API rather than Gradle's exec (removed from the
+// Project API in Gradle 9) so that it works regardless of the Gradle version.
+//
+// The project directory is set explicitly rather than inherited from the build process. Every git command run here
+// answers a question about this repository - is the tree dirty, which commit last touched this cycle - and a process
+// inherits the working directory of the JVM that starts it, which for a Gradle build is the daemon's and therefore
+// not something this script gets to assume.
+//
+// 'waitForProcessOutput' waits for both the process and the threads draining its streams. Consuming the output and
+// then merely waiting for the process to exit would race with those threads: the process can exit while they still
+// have bytes to write, and the captured stdout then comes back truncated or altogether empty. Everything read here is
+// used to decide something ('git status --porcelain' to refuse a dirty tree) or to build content submitted upstream
+// (the 'GitCommit' of each cycle, the blob sha of the file to update), so a silently short read is not an option.
+def projectDirectory = project.projectDir
+def capture = { List<String> command, boolean allowFailure = false ->
+    def stdout = new StringWriter()
+    def stderr = new StringWriter()
+    // The command is copied to plain Strings for the same reason as in 'stream' below: ProcessBuilder only turns its
+    // list into an array when the process starts, so a GString slipped into it fails there rather than where it was
+    // written.
+    def process = new ProcessBuilder(command*.toString()).directory(projectDirectory).start()
+    process.waitForProcessOutput(stdout, stderr)
+    if (!allowFailure && process.exitValue() != 0) {
+        throw new GradleException("Command [${command.join(' ')}] failed (exit ${process.exitValue()}):\n" +
+            "${stdout.toString().trim()}\n${stderr.toString().trim()}")
+    }
+    return stdout.toString().trim()
+}
+ext.capture = capture
+
+// Run an external command (optionally in workingDir, optionally with extra environment variables), reporting its output
+// as it is produced rather than returning it; throw on a non-zero exit unless allowFailure is set. Used for the docker
+// commands, which take minutes and keep saying what they are doing while they do it: buffering all that until they end
+// would leave whoever runs a release in front of a silent build, and holding a whole docker build log in memory only to
+// throw it away serves no purpose. Reading the stream to its end before waiting for the process also means no output
+// can be lost, and stderr is merged into stdout so that both are reported in the order they were written.
+//
+// 'workingDir' defaults to the project directory rather than to the build process's, for the same reason as in
+// 'capture' above: a process inherits the working directory of the JVM that starts it, which for a Gradle build is the
+// daemon's. Every command run here takes one today, so this only ever matters for the next one written without.
+def stream = { List<String> command, boolean allowFailure = false, File workingDir = projectDirectory,
+    Map<String, String> environment = [:] ->
+    // Copy the command to plain Strings: ProcessBuilder only turns its list into an array when the process
+    // starts, so a GString slipped into it fails there with an ArrayStoreException rather than where it was
+    // written. 'capture' above does the same, since the two helpers are used interchangeably.
+    def builder = new ProcessBuilder(command*.toString()).redirectErrorStream(true)
+    builder.directory(workingDir)
+    builder.environment().putAll(environment)
+    def process = builder.start()
+    process.inputStream.withReader('UTF-8') { reader ->
+        reader.eachLine { line -> logger.lifecycle(line) }
+    }
+    def exitValue = process.waitFor()
+    if (!allowFailure && exitValue != 0) {
+        throw new GradleException("Command [${command.join(' ')}] failed (exit ${exitValue}), see the output above.")
+    }
+    return exitValue
+}
+ext.stream = stream

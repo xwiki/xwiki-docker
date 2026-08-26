@@ -56,7 +56,7 @@ services:
     # - Provide a SQL script to be executed when the db image starts (to set permissions to create subwikis)
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     # Configure the MySQL database and create a user with provided name/password.
     # See https://hub.docker.com/_/mysql/ for more details.
@@ -80,7 +80,7 @@ services:
     # - Provide a SQL script to be executed when the db image starts (to set permissions to create subwikis)
     volumes:
       - mariadb-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     # Configure the MariaDB database and create a user with provided name/password.
     # See https://hub.docker.com/_/mariadb/ for more details.
