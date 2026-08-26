@@ -30,10 +30,16 @@ def variants = project.imageVariants
 def stream = project.stream
 def parseList = project.parseList
 def versionUpdate = project.versionUpdate
+def generateChanges = project.generateChanges
 def selectedCycles = project.hasProperty('cycles') ? parseList('cycles', project.property('cycles'),
     tokens.keySet()) : null
 def selectedVariants = project.hasProperty('variants') ? parseList('variants', project.property('variants'),
     variants) : null
+// '-Pfresh' makes 'runAll' tear each instance down before starting it, as 'smokeTest' always does. Off by default,
+// because 'runAll' exists to leave instances running and a developer starting a second one while the first is up
+// would not expect that one's content to go: this has to be asked for. Ask for it after a version bump, where reusing
+// the volumes means inspecting an in-place upgrade of the previous instance's data rather than a fresh install.
+def freshInstances = project.booleanFlag('fresh')
 
 // Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying the expected
 // XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a stronger check: the root
@@ -193,10 +199,11 @@ smokeTestVariants = { String cycle ->
 }
 
 // Boot-check the given cycles: build the image of each variant to test, start it with docker compose, wait until
-// XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles that the update
-// tasks changed in this invocation (used by the 'release' umbrella): the ones whose XWiki version or JDBC drivers were
-// bumped, or all of them when the shared LibreOffice version was. Pass '-Pcycles=18,17' to test specific cycles, or
-// run it standalone to test them all; '-Pvariants=mysql-tomcat,postgres-tomcat' picks the variants by hand.
+// XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles that changed in
+// this invocation (used by the 'release' umbrella): the ones whose XWiki version or JDBC drivers were bumped, the ones
+// 'generate' rewrote, or all of them when the shared LibreOffice version was updated. Pass '-Pcycles=18,17' to test
+// specific cycles, or run it standalone to test them all; '-Pvariants=mysql-tomcat,postgres-tomcat' picks the variants
+// by hand.
 task smokeTest() {
     group = 'verification'
     description = 'Boots the changed cycles until XWiki answers, then tears them down.'
@@ -210,7 +217,14 @@ task smokeTest() {
         if (selectedCycles) {
             cycles = selectedCycles
         } else if (versionUpdate.ran && !versionUpdate.allCycles) {
-            cycles = versionUpdate.changedCycles as List
+            // What the update tasks bumped, plus what 'generate' actually rewrote. The second is not implied by the
+            // first: an edit to 'template/' changes every generated image without changing a single version, so a
+            // release run right after one would otherwise boot nothing and still report success. Taken in the model's
+            // order rather than in the order they were collected, so that the cycles are booted oldest key first
+            // whichever of the two reported them.
+            def changed = new LinkedHashSet(versionUpdate.changedCycles)
+            changed.addAll(generateChanges.cycles)
+            cycles = tokens.keySet().findAll { changed.contains(it) }
         } else {
             cycles = tokens.keySet() as List
         }
@@ -288,6 +302,11 @@ runAllSelection = {
 // with the expected version and prints the browse URLs. By default it runs every cycle x every variant; pass
 // '-Pcycles=18,17' and/or '-Pvariants=postgres-tomcat' to narrow it down (running all at once is resource-heavy: one
 // XWiki JVM + one database per instance). Stop them again with the matching './gradlew stopAll' invocation.
+//
+// An instance left over from a previous run is restarted with its volumes, so what comes up after a version bump is
+// the previous instance's data upgraded in place rather than a fresh install - and the version check below cannot
+// tell, the REST API reporting the product version either way. Pass '-Pfresh' to remove each instance and its volumes
+// before starting it.
 task runAll() {
     group = 'verification'
     description = 'Starts the selected cycles and variants, each on its own port, and leaves them running.'
@@ -307,6 +326,11 @@ task runAll() {
                 throw new GradleException("runAll: directory [${variantDir}] does not exist. Run './gradlew' first.")
             }
             buildImage('runAll', inst.cycle, inst.variant, variantDir)
+            if (freshInstances) {
+                logger.lifecycle("runAll: fresh set, removing the previous XWiki ${inst.cycle} (${inst.variant}) " +
+                    'instance and its volumes...')
+                composeInstance(inst, ['down', '-v'], true)
+            }
             logger.lifecycle("runAll: starting XWiki ${inst.cycle} (${inst.variant}) on port ${inst.port}...")
             composeInstance(inst, ['up', '-d'], false)
         }

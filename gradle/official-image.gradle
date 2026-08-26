@@ -27,11 +27,11 @@
 def tokens = project.tokens
 def capture = project.capture
 def exitCode = project.exitCode
-def dryRun = project.hasProperty('dryRun')
+def dryRun = project.booleanFlag('dryRun')
 // '-PskipCiCheck' waives the Docker Build check below. The images this submits are built by the Docker Build workflow
 // first, and that workflow downloads hundreds of megabytes from maven.xwiki.org and download.documentfoundation.org, so
 // it goes red on a transient network failure often enough that a release cannot be held hostage to it.
-def skipCiCheck = project.hasProperty('skipCiCheck')
+def skipCiCheck = project.booleanFlag('skipCiCheck')
 
 // The DB variants and their short names as used in the official Docker library file. The first entry is the default
 // variant (the one that also gets the version-only and role-global tags), and the order is the one the blocks are
@@ -92,8 +92,9 @@ def rehearsal = upstreamRepo != officialImagesRepo
 
 // What a cycle's 'role' means: the default section comment emitted before that cycle's first block (a cycle may
 // override it with its own 'libraryComment', e.g. cycle 16's "- Added back temporarily" annotation), and the wording
-// used for it in the Pull Request body. One map for both, so that a role cannot be half-declared - the previous split
-// left the Pull Request body free to render an unknown role as 'null' while everything else looked right.
+// used for it in the Pull Request body. One map for both, so that a role cannot be half-declared: declaring it in one
+// place and not in the other would leave the Pull Request body rendering that role as 'null' while everything else
+// looked right.
 def libraryRoles = [
     'stable': [comment: '# Latest stable', label: 'stable'],
     'intermediate-lts': [comment: '# Intermediate LTS', label: 'intermediate LTS'],
@@ -320,7 +321,10 @@ checkImagesBuild = { String head, Map cycleCommits ->
 // Generate the official Docker library file for xwiki and open a pull request against docker-library/official-images,
 // updating the single 'library/xwiki' file on a branch of your GitHub fork (no local clone). Run it AFTER
 // './gradlew release' and after you have committed and pushed the docker-xwiki change, so that the emitted GitCommit(s)
-// are reachable upstream. Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs.
+// are reachable upstream. It regenerates the images first, so that a 'versions.json' pushed without them shows up as
+// a dirty tree rather than as a library file publishing tags the pushed Dockerfiles do not produce.
+// Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs, and needs 'git', 'gh' and 'env'
+// on the PATH, i.e. Linux or macOS.
 // Command line flags: '-PdryRun' to generate the file, show the diff and report what the guards make of the current
 // state, without touching your fork or opening a PR; '-PtargetRepo=<you>/official-images' to rehearse the write path
 // against a repository of your own; '-PskipCiCheck' to submit without the Docker Build workflow having gone green on
@@ -328,6 +332,14 @@ checkImagesBuild = { String head, Map cycleCommits ->
 task submitOfficialImage() {
     group = 'release'
     description = 'Opens the docker-library Pull Request updating the official XWiki images. Run it after pushing.'
+    // Regenerate before submitting, so that the dirty tree guard below also answers a question it could not otherwise
+    // ask: whether the pushed images are the ones 'versions.json' describes. The library file is generated from
+    // 'versions.json' while docker-library builds the Dockerfiles committed at the emitted GitCommit(s), and nothing
+    // upstream ties the two together - a 'versions.json' committed without regenerating would publish tags for
+    // versions the committed Dockerfiles do not produce. The Docker Build workflow does not catch it either: it
+    // builds those Dockerfiles and they build fine, being merely the previous ones. Regenerating here turns that into
+    // a dirty tree, which the guard already knows how to report.
+    dependsOn 'generate', 'generateWorkflows'
     doLast {
         // gh must be authenticated (needed for the upstream fetch below and the PR flow).
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])
@@ -384,10 +396,15 @@ task submitOfficialImage() {
             // Untracked files are deliberately not part of that: a release manager's scratch notes have no bearing on
             // whether the commits we emit are reachable, and refusing to submit because of one is a guard firing at
             // the wrong thing. What matters is that nothing tracked is still uncommitted, hence '--untracked-files=no'.
+            // The tree was regenerated on the way here (see the task's dependencies), so a generated file turning up
+            // among these is not only something left uncommitted: it is the pushed images and 'versions.json' having
+            // drifted apart, which is the one inconsistency nothing else would report.
             def uncommitted = capture(['git', 'status', '--porcelain', '--untracked-files=no'])
             if (!uncommitted.isEmpty()) {
-                problems << ('The working tree has uncommitted changes:\n' + uncommitted +
-                    '\nCommit and push the docker-xwiki change before running submitOfficialImage.')
+                problems << ('The working tree has uncommitted changes after regenerating:\n' + uncommitted +
+                    '\nCommit and push the docker-xwiki change before running submitOfficialImage. If you did not ' +
+                    'change anything, these are the files the current versions.json generates and what is pushed ' +
+                    'was generated from something else.')
             }
             // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as
             // soon as the change is pushed from somewhere else (a merged Pull Request, another clone).

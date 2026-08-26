@@ -153,6 +153,26 @@ def parseList = { String property, value, Collection<String> available ->
 }
 ext.parseList = parseList
 
+// Read a boolean command line flag ('-PdryRun', '-PdryRun=true', '-PdryRun=false'), defaulting to false when the
+// property is absent. Present with no value means true, which is how a flag is normally passed, but an explicit value
+// is honoured rather than ignored: with a bare presence test '-PdryRun=false' reads as true, i.e. asking not to
+// rehearse is what starts the real submission. Anything else is rejected rather than guessed at, for the same reason
+// as in 'parseList' above - this is read at configuration time, where a typo is otherwise silent.
+def parseFlag = { String property, value ->
+    def text = value.toString().trim().toLowerCase()
+    if (text.isEmpty() || text == 'true') {
+        return true
+    }
+    if (text == 'false') {
+        return false
+    }
+    throw new GradleException("-P${property} expects no value, 'true' or 'false', got [${value}].")
+}
+def booleanFlag = { String property ->
+    return project.hasProperty(property) ? parseFlag(property, project.property(property)) : false
+}
+ext.booleanFlag = booleanFlag
+
 // Run an external command in the project directory, capturing its stdout; throw on a non-zero exit unless
 // allowFailure is set. Returns the trimmed stdout. Used by 'submitOfficialImage' for its git/gh plumbing, all of which
 // runs against this repository or against GitHub, hence no working directory parameter - 'stream' below has one, for

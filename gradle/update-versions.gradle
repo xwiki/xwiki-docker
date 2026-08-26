@@ -68,6 +68,10 @@ task updateXWiki() {
         if (finals.isEmpty()) {
             throw new GradleException("No final XWiki versions found at [$metadataUrl]")
         }
+        // The 'major.minor' a version sits on, which is what decides whether two cycles claim the same tags: a cycle
+        // keyed by a bare major publishes its resolved major.minor as a tag just as a cycle keyed by a major.minor
+        // publishes its own.
+        def versionLine = { String v -> v.tokenize('.').take(2).join('.') }
         def changed = []
         tokens.each { cycle, data ->
             def parts = cycle.tokenize('.')
@@ -91,6 +95,21 @@ task updateXWiki() {
             if (compareVersions(latest, data.xwikiVersion) < 0) {
                 logger.lifecycle("XWiki cycle ${cycle}: the latest final version listed is ${latest}, keeping the " +
                     "pinned ${data.xwikiVersion} which is ahead of it.")
+                return
+            }
+            // Never put two cycles on the same version line either. The tags a cycle publishes are derived from its
+            // version, so two cycles sharing a major.minor claim the same ones, which docker-library rejects - and the
+            // build refuses to configure at all in that state (see the duplicate tag check in
+            // gradle/official-image.gradle). Writing it here would therefore leave every later './gradlew' failing,
+            // 'generate' included, until 'versions.json' is edited by hand. It is reachable: the stable cycle resolves
+            // to the latest final of its whole major, which is still on the line an intermediate LTS cycle owns until
+            // the next minor is released. Keeping the pin is the right answer there, since that intermediate LTS cycle
+            // is already publishing that version.
+            def colliding = tokens.find { c, d -> c != cycle && versionLine(d.xwikiVersion) == versionLine(latest) }
+            if (colliding) {
+                logger.lifecycle("XWiki cycle ${cycle}: the latest final version listed is ${latest}, which is on " +
+                    "the same version line as cycle ${colliding.key} (${colliding.value.xwikiVersion}); keeping " +
+                    "${data.xwikiVersion}. Both cycles would otherwise publish the same tags.")
                 return
             }
             def warUrl = "${repositoryUrl}${latest}/xwiki-platform-distribution-war-${latest}.war"
@@ -119,9 +138,9 @@ task updateXWiki() {
 // and rewrite the per-cycle values in 'versions.json'.
 //
 // The POM value is a floor, not an exact target: it is never applied when it is lower than what is currently pinned. A
-// pin ahead of the POM is a deliberate bump made after that cycle was released (a security fix, or a Renovate upgrade
-// such as XWIKI-24657 for the MySQL connector), and taking the POM value literally would silently revert it and rebuild
-// the images for nothing. Upgrades are applied, including the ones crossing a driver major (the MySQL connector jumping
+// pin ahead of the POM is a deliberate bump made after that cycle was released (a security fix, or a Renovate
+// upgrade), and taking the POM value literally would silently revert it and rebuild the images for nothing. Upgrades
+// are applied, including the ones crossing a driver major (the MySQL connector jumping
 // from 9.x to 26.x, say), but they are logged as such since the release manager reviews the diff before committing it.
 task updateJDBC() {
     group = 'release'
