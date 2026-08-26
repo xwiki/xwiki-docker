@@ -143,15 +143,24 @@ ext.parseList = parseList
 // the docker commands that do run elsewhere. Uses Groovy's Process API rather than Gradle's exec (removed from the
 // Project API in Gradle 9) so that it works regardless of the Gradle version.
 //
+// The project directory is set explicitly rather than inherited from the build process. Every git command run here
+// answers a question about this repository - is the tree dirty, which commit last touched this cycle - and a process
+// inherits the working directory of the JVM that starts it, which for a Gradle build is the daemon's and therefore
+// not something this script gets to assume.
+//
 // 'waitForProcessOutput' waits for both the process and the threads draining its streams. Consuming the output and
 // then merely waiting for the process to exit would race with those threads: the process can exit while they still
 // have bytes to write, and the captured stdout then comes back truncated or altogether empty. Everything read here is
 // used to decide something ('git status --porcelain' to refuse a dirty tree) or to build content submitted upstream
 // (the 'GitCommit' of each cycle, the blob sha of the file to update), so a silently short read is not an option.
+def projectDirectory = project.projectDir
 def capture = { List<String> command, boolean allowFailure = false ->
     def stdout = new StringWriter()
     def stderr = new StringWriter()
-    def process = command.execute()
+    // The command is copied to plain Strings for the same reason as in 'stream' below: ProcessBuilder only turns its
+    // list into an array when the process starts, so a GString slipped into it fails there rather than where it was
+    // written.
+    def process = new ProcessBuilder(command*.toString()).directory(projectDirectory).start()
     process.waitForProcessOutput(stdout, stderr)
     if (!allowFailure && process.exitValue() != 0) {
         throw new GradleException("Command [${command.join(' ')}] failed (exit ${process.exitValue()}):\n" +
@@ -160,6 +169,17 @@ def capture = { List<String> command, boolean allowFailure = false ->
     return stdout.toString().trim()
 }
 ext.capture = capture
+
+// Run an external command in the project directory and return its exit code, discarding its output. For the git
+// queries that answer with their exit status rather than on stdout ('merge-base --is-ancestor'), where 'capture' above
+// would either throw on the answer being 'no' or, told to allow the failure, hide it in an empty string. The output is
+// still drained, since a process whose pipes nobody reads can block on writing to them.
+def exitCode = { List<String> command ->
+    def process = new ProcessBuilder(command*.toString()).directory(projectDirectory).start()
+    process.waitForProcessOutput(new StringWriter(), new StringWriter())
+    return process.exitValue()
+}
+ext.exitCode = exitCode
 
 // Run an external command (optionally in workingDir, optionally with extra environment variables), reporting its output
 // as it is produced rather than returning it; throw on a non-zero exit unless allowFailure is set. Used for the docker
@@ -171,7 +191,7 @@ def stream = { List<String> command, boolean allowFailure = false, File workingD
     Map<String, String> environment = [:] ->
     // Copy the command to plain Strings: ProcessBuilder only turns its list into an array when the process
     // starts, so a GString slipped into it fails there with an ArrayStoreException rather than where it was
-    // written. 'capture' above takes GStrings in its stride, and these two helpers are used interchangeably.
+    // written. 'capture' above does the same, since the two helpers are used interchangeably.
     def builder = new ProcessBuilder(command*.toString()).redirectErrorStream(true)
     if (workingDir) {
         builder.directory(workingDir)

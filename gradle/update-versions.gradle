@@ -191,7 +191,6 @@ task updateJDBC() {
         changedDatabases.each { cycle, databases ->
             versionUpdate.changedDatabases.computeIfAbsent(cycle) { new LinkedHashSet() }.addAll(databases)
         }
-        logger.lifecycle("Run './gradlew' to regenerate the images.")
     }
 }
 

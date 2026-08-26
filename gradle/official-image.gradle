@@ -26,6 +26,7 @@
 // flags, bound at configuration time rather than read from the project inside the task action below (see build.gradle).
 def tokens = project.tokens
 def capture = project.capture
+def exitCode = project.exitCode
 def dryRun = project.hasProperty('dryRun')
 // '-PskipCiCheck' waives the Docker Build check below. The images this submits are built by the Docker Build workflow
 // first, and that workflow downloads hundreds of megabytes from maven.xwiki.org and download.documentfoundation.org, so
@@ -142,8 +143,25 @@ def libraryTags = { String variant, String db, boolean isDefault, String role, L
 
 // The 'GitCommit' of a cycle = the last commit that touched that cycle's directory. docker-library fetches this exact
 // commit from GitRepo to (re)build the images, so it only rebuilds cycles whose GitCommit changed.
+//
+// A cycle whose directory has never been committed has no such commit, and 'git log' says so by printing nothing at
+// all rather than by failing. That is not a hypothetical: adding a cycle is a manual 'versions.json' edit followed by
+// './gradlew', which leaves a brand new - and therefore untracked - directory behind, and the dirty tree guard below
+// deliberately ignores untracked files. Emitting the empty string would submit a 'GitCommit:' line with nothing on it,
+// so it fails here instead.
 def libraryGitCommit = { String cycle ->
-    return capture(['git', 'log', '-1', '--format=%H', '--', "${cycle}/".toString()])
+    def commit = capture(['git', 'log', '-1', '--format=%H', '--', "${cycle}/".toString()])
+    if (commit.isEmpty()) {
+        throw new GradleException("No commit was found for the [${cycle}/] directory, so docker-library would have " +
+            'nothing to fetch for that cycle. Commit (and push) it before submitting it.')
+    }
+    return commit
+}
+
+// The 'GitCommit' of every cycle, resolved once: the file emits them and the Docker Build check below reads them to
+// tell whether the images being submitted are the ones a workflow run built.
+def libraryGitCommits = {
+    return tokens.collectEntries { cycle, data -> [(cycle): libraryGitCommit(cycle)] }
 }
 
 // Generate the complete content of the official Docker library file from the version data model, using the algorithm
@@ -151,13 +169,13 @@ def libraryGitCommit = { String cycle ->
 // and the 'GitCommit' lines, which resolve to the real per-cycle last-touching commits.
 def defaultVariant = dbVariants.keySet().first()
 def generateLibraryContent
-generateLibraryContent = {
+generateLibraryContent = { Map cycleCommits ->
     def sb = new StringBuilder()
     sb << "Maintainers: ${libraryMaintainers}\n"
     sb << "GitRepo: ${libraryGitRepo}\n"
     tokens.each { cycle, data ->
         def prefixes = libraryVersionPrefixes(cycle, data.xwikiVersion)
-        def commit = libraryGitCommit(cycle)
+        def commit = cycleCommits[cycle]
         def comment = data.libraryComment ?: libraryRoles[data.role].comment
         sb << "\n${comment}\n"
         def first = true
@@ -179,29 +197,66 @@ generateLibraryContent = {
 // Check that the Docker Build workflow went green on the commit being submitted. docker-library rebuilds the images
 // from the GitCommit(s) emitted above, so that workflow is what says they build at all: without this, the first thing
 // to notice a Dockerfile that does not build is the upstream Pull Request, in front of the docker-library maintainers.
-// The workflow only triggers on the paths the images are made of, so a HEAD that touched none of them has no run of its
-// own; the latest run on the release branch then still describes the images being submitted, and that is the one
-// checked instead. Finding no run at all is reported but not fatal - refusing to release over a missing run would be a
-// guard firing at nothing. '-PskipCiCheck' waives the whole check.
+// The workflow only triggers on the paths the images are made of, so a HEAD that touched none of them has no run of
+// its own; the latest run on the release branch may then still describe the images being submitted, and that is the
+// one checked instead. Finding no run at all is reported but not fatal - refusing to release over a missing run would
+// be a guard firing at nothing. '-PskipCiCheck' waives the whole check.
+//
+// Whether that fallback run does describe them is not assumed but established, per cycle: a run built the images of a
+// cycle if it ran on a commit that contains that cycle's GitCommit. Absence of a run on HEAD is not by itself evidence
+// that HEAD changed no image - a run GitHub has not created yet looks exactly the same over the API, and pushing and
+// then submitting a few seconds later is precisely how a release goes - so falling back on the strength of that
+// absence would let the check pass on images nothing ever built.
 def checkImagesBuild
-checkImagesBuild = { String head ->
+checkImagesBuild = { String head, Map cycleCommits ->
     if (skipCiCheck) {
         logger.lifecycle("skipCiCheck set: not checking the ${imageWorkflow} result of the submitted commit.")
         return
     }
+    // Not allowed to fail: a check that cannot be made has not been passed, and letting the call return an empty
+    // string would render a rate-limited or unauthenticated 'gh' indistinguishable from a repository with no run.
     def runs = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
         "repos/${sourceRepo}/actions/workflows/${imageWorkflow}/runs" +
             "?branch=${libraryGitBranch}&event=push&per_page=20",
-        '--jq', '.workflow_runs[] | [.head_sha, .status, .conclusion, .html_url] | @tsv'], true)
+        '--jq', '.workflow_runs[] | [.head_sha, .status, .conclusion, .html_url] | @tsv'])
         .readLines().collect { it.split('\t', -1) }.findAll { it.size() == 4 }
-    def run = runs.find { it[0] == head } ?: (runs.isEmpty() ? null : runs[0])
+    // Whether a commit is contained in another, i.e. whether the second was built from a tree holding the first.
+    // 'merge-base --is-ancestor' answers with its exit status, whence 'exitCode'; anything above 1 is the question
+    // failing rather than being answered with a no (an object missing locally, say), which is not something to read
+    // as either verdict.
+    def contained = { String commit, String within ->
+        def code = exitCode(['git', 'merge-base', '--is-ancestor', commit, within])
+        if (code > 1) {
+            throw new GradleException("Could not tell whether commit [${commit}] is contained in [${within}], one " +
+                "of the ${imageWorkflow} runs on ${libraryGitBranch}. Fetch it, or pass -PskipCiCheck to submit " +
+                'without the check.')
+        }
+        return code == 0
+    }
+    def run = runs.find { it[0] == head }
     if (!run) {
-        logger.lifecycle("WARNING: found no ${imageWorkflow} run on ${libraryGitBranch} to check the submitted " +
-            'images against; submitting anyway.')
-        return
+        // No run on HEAD: fall back to the latest run of the history being submitted - a run on a commit HEAD does
+        // not contain built some other tree, whatever it concluded. That one describes the images being submitted
+        // only if it contains the GitCommit of every cycle, which is what makes falling back legitimate here and an
+        // error just below when the release commit is among them.
+        def latest = runs.find { contained(it[0], head) }
+        if (!latest) {
+            logger.lifecycle("WARNING: found no ${imageWorkflow} run on ${libraryGitBranch} to check the submitted " +
+                'images against; submitting anyway.')
+            return
+        }
+        def uncovered = cycleCommits.findAll { cycle, commit -> !contained(commit, latest[0]) }
+        if (!uncovered.isEmpty()) {
+            throw new GradleException("The submitted commit (${head}) triggered no ${imageWorkflow} run, and the " +
+                "latest run on ${libraryGitBranch} (${latest[0].take(8)}) predates the images of cycle(s) " +
+                "${uncovered.keySet().join(', ')}, so nothing has built them. Either the run of the pushed commit " +
+                'has not been created yet, in which case wait for it and run this again, or pass -PskipCiCheck to ' +
+                'submit anyway.')
+        }
+        run = latest
     }
     def which = run[0] == head ? 'of the submitted commit' :
-        "on ${libraryGitBranch} (${run[0].take(8)}), the submitted commit having triggered none"
+        "on ${libraryGitBranch} (${run[0].take(8)}), the one that built the images being submitted,"
     if (run[1] != 'completed') {
         throw new GradleException("The ${imageWorkflow} run ${which} has not finished (${run[1]}): ${run[3]}. Wait " +
             'for it, or pass -PskipCiCheck to submit anyway.')
@@ -229,7 +284,8 @@ task submitOfficialImage() {
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'auth', 'status'])
 
         // Generate the library file and write it out for review.
-        def content = generateLibraryContent()
+        def cycleCommits = libraryGitCommits()
+        def content = generateLibraryContent(cycleCommits)
         def outFile = file('build/library-xwiki')
         outFile.parentFile.mkdirs()
         outFile.text = content
@@ -281,7 +337,7 @@ task submitOfficialImage() {
                     "docker-library fetches the images from. Push the docker-xwiki change to ${libraryGitBranch} " +
                     'before running submitOfficialImage.')
             }
-            checkImagesBuild(submittedHead)
+            checkImagesBuild(submittedHead, cycleCommits)
         }
 
         // Resolve the GitHub user and the target repository's default branch.
@@ -327,9 +383,10 @@ task submitOfficialImage() {
 
         // A branch of that name left behind by a previous run is recreated below, but not while a Pull Request is
         // still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream is
-        // not ours to close.
+        // not ours to close. Not allowed to fail, for that very reason: an empty answer is what says there is none,
+        // and a call that failed would say the same and take the branch - and the Pull Request on it - down with it.
         def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
-            "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'], true)
+            "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'])
         if (!openPullRequests.isEmpty()) {
             throw new GradleException("A Pull Request is still open from branch [${branch}]: " +
                 "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
