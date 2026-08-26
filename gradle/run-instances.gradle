@@ -30,8 +30,10 @@ def variants = project.imageVariants
 def stream = project.stream
 def parseList = project.parseList
 def versionUpdate = project.versionUpdate
-def selectedCycles = project.hasProperty('cycles') ? parseList(project.property('cycles')) : null
-def selectedVariants = project.hasProperty('variants') ? parseList(project.property('variants')) : null
+def selectedCycles = project.hasProperty('cycles') ? parseList('cycles', project.property('cycles'),
+    tokens.keySet()) : null
+def selectedVariants = project.hasProperty('variants') ? parseList('variants', project.property('variants'),
+    variants) : null
 
 // Poll XWiki's REST root (http://localhost:<port>/rest) until it answers HTTP 200 with a body carrying the expected
 // XWiki version, or the timeout elapses. Hitting /rest rather than just the home page is a stronger check: the root

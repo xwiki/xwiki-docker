@@ -130,10 +130,26 @@ def compareVersions = { String a, String b ->
 ext.compareVersions = compareVersions
 
 // Split the comma-separated value of a command line property ('-Pcycles=18, 17') into a list, trimming the entries and
-// dropping the empty ones a trailing or doubled comma leaves behind. Shared by the '-Pcycles' and '-Pvariants'
-// selections of the tasks that boot the images.
-def parseList = { value ->
-    return value.toString().tokenize(',')*.trim().findAll { it }
+// dropping the empty ones a trailing or doubled comma leaves behind, then check them against what exists. Shared by the
+// '-Pcycles' and '-Pvariants' selections of the tasks that boot the images.
+//
+// The entries are validated rather than taken as they come, and here rather than where they are used, because this is
+// read at configuration time and both ways of getting it wrong are silent otherwise: '-Pcycles' with no value (or with
+// nothing but separators) leaves an empty list, which every caller reads as "no selection" and therefore as "all of
+// them", i.e. the opposite of narrowing anything down; and a typo ('-Pvariants=mysql' for 'mysql-tomcat') only
+// surfaces later as a missing directory, naming a path rather than the property that named it. The available values
+// are listed in the message, since they are precisely what whoever got it wrong is looking for.
+def parseList = { String property, value, Collection<String> available ->
+    def entries = value.toString().tokenize(',')*.trim().findAll { it }
+    if (entries.isEmpty()) {
+        throw new GradleException("-P${property} expects a comma-separated list of ${available}, got [${value}].")
+    }
+    def unknown = entries.findAll { !available.contains(it) }
+    if (!unknown.isEmpty()) {
+        throw new GradleException("-P${property} does not know ${unknown.join(', ')}; the available values are " +
+            "${available.join(', ')}.")
+    }
+    return entries
 }
 ext.parseList = parseList
 
@@ -187,15 +203,17 @@ ext.exitCode = exitCode
 // would leave whoever runs a release in front of a silent build, and holding a whole docker build log in memory only to
 // throw it away serves no purpose. Reading the stream to its end before waiting for the process also means no output
 // can be lost, and stderr is merged into stdout so that both are reported in the order they were written.
-def stream = { List<String> command, boolean allowFailure = false, File workingDir = null,
+//
+// 'workingDir' defaults to the project directory rather than to the build process's, for the same reason as in
+// 'capture' above: a process inherits the working directory of the JVM that starts it, which for a Gradle build is the
+// daemon's. Every command run here takes one today, so this only ever matters for the next one written without.
+def stream = { List<String> command, boolean allowFailure = false, File workingDir = projectDirectory,
     Map<String, String> environment = [:] ->
     // Copy the command to plain Strings: ProcessBuilder only turns its list into an array when the process
     // starts, so a GString slipped into it fails there with an ArrayStoreException rather than where it was
     // written. 'capture' above does the same, since the two helpers are used interchangeably.
     def builder = new ProcessBuilder(command*.toString()).redirectErrorStream(true)
-    if (workingDir) {
-        builder.directory(workingDir)
-    }
+    builder.directory(workingDir)
     builder.environment().putAll(environment)
     def process = builder.start()
     process.inputStream.withReader('UTF-8') { reader ->

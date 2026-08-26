@@ -241,14 +241,21 @@ generateLibraryContent = { Map cycleCommits ->
 // that HEAD changed no image - a run GitHub has not created yet looks exactly the same over the API, and pushing and
 // then submitting a few seconds later is precisely how a release goes - so falling back on the strength of that
 // absence would let the check pass on images nothing ever built.
+//
+// Returns the reason the submission must be refused, or null when there is none, rather than throwing: the caller
+// collects those reasons so that '-PdryRun' can report them all instead of aborting on the first (see the task below).
 def checkImagesBuild
 checkImagesBuild = { String head, Map cycleCommits ->
     if (skipCiCheck) {
         logger.lifecycle("skipCiCheck set: not checking the ${imageWorkflow} result of the submitted commit.")
-        return
+        return null
     }
     // Not allowed to fail: a check that cannot be made has not been passed, and letting the call return an empty
     // string would render a rate-limited or unauthenticated 'gh' indistinguishable from a repository with no run.
+    //
+    // Only the most recent runs are looked at, which is all the two questions below need: whether HEAD itself has a
+    // run, and which is the latest run of the history leading to it. A HEAD older than all of them answers no to both
+    // and lands on the "found no run" warning rather than on a run that does not describe it.
     def runs = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
         "repos/${sourceRepo}/actions/workflows/${imageWorkflow}/runs" +
             "?branch=${libraryGitBranch}&event=push&per_page=20",
@@ -283,39 +290,41 @@ checkImagesBuild = { String head, Map cycleCommits ->
         if (!latest) {
             logger.lifecycle("WARNING: found no ${imageWorkflow} run on ${libraryGitBranch} to check the submitted " +
                 'images against; submitting anyway.')
-            return
+            return null
         }
         def uncovered = cycleCommits.findAll { cycle, commit -> !contained(commit, latest[0]) }
         if (!uncovered.isEmpty()) {
-            throw new GradleException("The submitted commit (${head}) triggered no ${imageWorkflow} run, and the " +
-                "latest run on ${libraryGitBranch} (${latest[0].take(8)}) predates the images of cycle(s) " +
+            return "The submitted commit (${head}) triggered no ${imageWorkflow} run, and the latest run on " +
+                "${libraryGitBranch} (${latest[0].take(8)}) predates the images of cycle(s) " +
                 "${uncovered.keySet().join(', ')}, so nothing has built them. Either the run of the pushed commit " +
                 'has not been created yet, in which case wait for it and run this again, or pass -PskipCiCheck to ' +
-                'submit anyway.')
+                'submit anyway.'
         }
         run = latest
     }
     def which = run[0] == head ? 'of the submitted commit' :
         "on ${libraryGitBranch} (${run[0].take(8)}), the one that built the images being submitted,"
     if (run[1] != 'completed') {
-        throw new GradleException("The ${imageWorkflow} run ${which} has not finished (${run[1]}): ${run[3]}. Wait " +
-            'for it, or pass -PskipCiCheck to submit anyway.')
+        return "The ${imageWorkflow} run ${which} has not finished (${run[1]}): ${run[3]}. Wait for it, or pass " +
+            '-PskipCiCheck to submit anyway.'
     }
     if (run[2] != 'success') {
-        throw new GradleException("The ${imageWorkflow} run ${which} did not succeed (${run[2]}): ${run[3]}. The " +
-            'images submitted here are the ones it built, so fix it first - or, if it failed on one of the transient ' +
-            'download errors that workflow is prone to, pass -PskipCiCheck to submit anyway.')
+        return "The ${imageWorkflow} run ${which} did not succeed (${run[2]}): ${run[3]}. The images submitted here " +
+            'are the ones it built, so fix it first - or, if it failed on one of the transient download errors that ' +
+            'workflow is prone to, pass -PskipCiCheck to submit anyway.'
     }
     logger.lifecycle("The ${imageWorkflow} run ${which} is green (${run[3]}).")
+    return null
 }
 
 // Generate the official Docker library file for xwiki and open a pull request against docker-library/official-images,
 // updating the single 'library/xwiki' file on a branch of your GitHub fork (no local clone). Run it AFTER
 // './gradlew release' and after you have committed and pushed the docker-xwiki change, so that the emitted GitCommit(s)
 // are reachable upstream. Uses 'env -u GH_TOKEN gh' because a GH_TOKEN in the environment cannot create PRs.
-// Command line flags: '-PdryRun' to only generate the file and show the diff, without touching your fork or opening a
-// PR; '-PtargetRepo=<you>/official-images' to rehearse the write path against a repository of your own;
-// '-PskipCiCheck' to submit without the Docker Build workflow having gone green on the commit being submitted.
+// Command line flags: '-PdryRun' to generate the file, show the diff and report what the guards make of the current
+// state, without touching your fork or opening a PR; '-PtargetRepo=<you>/official-images' to rehearse the write path
+// against a repository of your own; '-PskipCiCheck' to submit without the Docker Build workflow having gone green on
+// the commit being submitted.
 task submitOfficialImage() {
     group = 'release'
     description = 'Opens the docker-library Pull Request updating the official XWiki images. Run it after pushing.'
@@ -344,10 +353,24 @@ task submitOfficialImage() {
             upstreamFile.path, outFile.path], true)
         logger.lifecycle("Generated ${libraryPath} (diff upstream -> generated):\n${diff}")
 
-        if (dryRun) {
-            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the guards, fork and PR steps.")
-            return
-        }
+        // Resolve the GitHub user, and the branch and commit message named after the stable version. Exactly one cycle
+        // carries that role, which the check at the top of this script enforces. Both are needed by the guards below
+        // as well as by the write path, hence resolved before them.
+        def login = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', 'user', '--jq', '.login'])
+        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
+        def branch = "update-xwiki-${stableVersion}"
+        def commitMessage = "Update XWiki to ${stableVersion}"
+
+        // The reasons the submission has to be refused, collected rather than thrown one by one, and established
+        // before '-PdryRun' returns rather than after it. "Am I ready to submit?" is what a dry run is reached for,
+        // and answering only "here is what the file would look like" leaves the release manager to discover a red
+        // Docker Build run on the real invocation instead. Collecting them also means one run names everything that
+        // is in the way rather than the first thing.
+        //
+        // A dry run reports them and still succeeds, where a real one fails on them: the natural moment to preview the
+        // file is right after './gradlew release', with the regenerated tree not yet committed, and a preview that
+        // refused to run until the release was pushed would be of no use at that moment.
+        def problems = []
 
         if (rehearsal) {
             logger.lifecycle("targetRepo set: rehearsing the submission against ${upstreamRepo}; the guards on what " +
@@ -363,7 +386,7 @@ task submitOfficialImage() {
             // the wrong thing. What matters is that nothing tracked is still uncommitted, hence '--untracked-files=no'.
             def uncommitted = capture(['git', 'status', '--porcelain', '--untracked-files=no'])
             if (!uncommitted.isEmpty()) {
-                throw new GradleException('The working tree has uncommitted changes:\n' + uncommitted +
+                problems << ('The working tree has uncommitted changes:\n' + uncommitted +
                     '\nCommit and push the docker-xwiki change before running submitOfficialImage.')
             }
             // Refresh the remote-tracking branch first, since it is what the check below reads and it goes stale as
@@ -373,15 +396,46 @@ task submitOfficialImage() {
             def releaseBranch = "${remote}/${libraryGitBranch}"
             def submittedHead = capture(['git', 'rev-parse', 'HEAD'])
             if (capture(['git', 'branch', '-r', '--contains', submittedHead, '--list', releaseBranch]).isEmpty()) {
-                throw new GradleException("HEAD (${submittedHead}) is not on ${releaseBranch}, which is where " +
-                    "docker-library fetches the images from. Push the docker-xwiki change to ${libraryGitBranch} " +
-                    'before running submitOfficialImage.')
+                problems << ("HEAD (${submittedHead}) is not on ${releaseBranch}, which is where docker-library " +
+                    "fetches the images from. Push the docker-xwiki change to ${libraryGitBranch} before running " +
+                    'submitOfficialImage.')
             }
-            checkImagesBuild(submittedHead, cycleCommits)
+            def ciProblem = checkImagesBuild(submittedHead, cycleCommits)
+            if (ciProblem) {
+                problems << ciProblem
+            }
         }
 
-        // Resolve the GitHub user and the target repository's default branch.
-        def login = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', 'user', '--jq', '.login'])
+        // A branch of that name left behind by a previous run is recreated further down, but not while a Pull Request
+        // is still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream
+        // is not ours to close. Checked in a rehearsal too, unlike the guards above: it is about not destroying
+        // something on the target, which a target of your own has just as much of. Not allowed to fail, for that very
+        // reason: an empty answer is what says there is none, and a call that failed would say the same and take the
+        // branch - and the Pull Request on it - down with it.
+        def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
+            "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'])
+        if (!openPullRequests.isEmpty()) {
+            problems << ("A Pull Request is still open from branch [${branch}]: " +
+                "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
+                'another one.')
+        }
+
+        if (!problems.isEmpty()) {
+            def rendered = problems.collect { "- ${it}" }.join('\n')
+            if (!dryRun) {
+                throw new GradleException("Refusing to submit the official images:\n${rendered}")
+            }
+            logger.lifecycle("dryRun set: the submission would be refused for:\n${rendered}")
+        } else if (!rehearsal) {
+            logger.lifecycle('The submission guards all pass.')
+        }
+
+        if (dryRun) {
+            logger.lifecycle("dryRun set: wrote ${outFile}; skipping the fork and Pull Request steps.")
+            return
+        }
+
+        // The target repository's default branch, which the working branch is created off.
         def defaultBranch = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${upstreamRepo}", '--jq', '.default_branch'])
 
@@ -416,23 +470,6 @@ task submitOfficialImage() {
             }
         }
 
-        // The branch and the commit message are named after the stable version. Exactly one cycle carries that role,
-        // which the check at the top of this script enforces.
-        def stableVersion = tokens.find { cycle, data -> data.role == 'stable' }.value.xwikiVersion
-        def branch = "update-xwiki-${stableVersion}"
-
-        // A branch of that name left behind by a previous run is recreated below, but not while a Pull Request is
-        // still open from it: deleting the ref would close that Pull Request, and one still being reviewed upstream is
-        // not ours to close. Not allowed to fail, for that very reason: an empty answer is what says there is none,
-        // and a call that failed would say the same and take the branch - and the Pull Request on it - down with it.
-        def openPullRequests = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
-            "repos/${upstreamRepo}/pulls?state=open&head=${login}:${branch}", '--jq', '.[].html_url'])
-        if (!openPullRequests.isEmpty()) {
-            throw new GradleException("A Pull Request is still open from branch [${branch}]: " +
-                "${openPullRequests.readLines().join(', ')}. Let it be merged (or close it) before submitting " +
-                'another one.')
-        }
-
         // Create the working branch on the fork off the freshly synced default branch.
         def baseSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${fork}/git/ref/heads/${defaultBranch}", '--jq', '.object.sha'])
@@ -444,7 +481,6 @@ task submitOfficialImage() {
         // Update the single file on that branch via the contents API (needs the current blob sha).
         def fileSha = capture(['env', '-u', 'GH_TOKEN', 'gh', 'api',
             "repos/${fork}/contents/${libraryPath}?ref=${branch}", '--jq', '.sha'])
-        def commitMessage = "Update XWiki to ${stableVersion}"
         capture(['env', '-u', 'GH_TOKEN', 'gh', 'api', '-X', 'PUT',
             "repos/${fork}/contents/${libraryPath}",
             '-f', "message=${commitMessage}",
