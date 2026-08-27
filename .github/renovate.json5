@@ -22,13 +22,14 @@
   "extends": [
     "config:base"
   ],
-  // .github/workflows/docker-build.yml is generated from template-github/docker-build.yml, so updating it directly
-  // produces a Pull Request that the Gradlew Check action rejects and that the next './gradlew' run reverts. The two
-  // rules below move the updates to the template: the custom manager reads the action versions from it (the native
-  // github-actions manager can't, since the template is not valid YAML before the tokens are expanded), and the
-  // package rule stops the generated file from being updated on its own.
+  // Both .github/workflows/docker-build.yml and the docker-compose.yml files under the version directories are
+  // generated (from template-github/ and template/ respectively). Updating a generated file directly produces a
+  // Pull Request that the Gradlew Check action rejects and that the next './gradlew' run reverts, so the rules
+  // below keep Renovate away from those files and point it at the template instead.
   "customManagers": [
     {
+      // The action versions of the workflow template, which the native github-actions manager cannot read since
+      // the template is not valid YAML before the tokens are expanded.
       "customType": "regex",
       "managerFilePatterns": [
         "/^template-github/.+\\.yml$/"
@@ -43,8 +44,12 @@
   ],
   "packageRules": [
     {
+      // The generated files. The database images of the generated docker-compose.yml files track their "latest"
+      // tag, so there is no version pin for a custom manager to read out of template/docker-compose.yml in
+      // exchange -- unlike the workflow template above.
       "matchFileNames": [
-        ".github/workflows/docker-build.yml"
+        ".github/workflows/docker-build.yml",
+        "*/*/docker-compose.yml"
       ],
       "enabled": false
     }

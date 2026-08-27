@@ -48,8 +48,11 @@ services:
     networks:
       - bridge
   # The container that runs the database (postgres)
+  # The image is tracked on its "latest" tag: that is the tag XWiki validates as its supported database
+  # configuration, so this file needs no version pin to bump at every database release. Pin a specific major
+  # instead if you need to control when a major database upgrade reaches your data volume.
   db:
-    image: "postgres:18"
+    image: "postgres:latest"
     container_name: xwiki-postgres-db
     volumes:
       - postgres-data:/var/lib/postgresql
