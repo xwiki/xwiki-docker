@@ -21,5 +21,32 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base"
+  ],
+  // .github/workflows/docker-build.yml is generated from template-github/docker-build.yml, so updating it directly
+  // produces a Pull Request that the Gradlew Check action rejects and that the next './gradlew' run reverts. The two
+  // rules below move the updates to the template: the custom manager reads the action versions from it (the native
+  // github-actions manager can't, since the template is not valid YAML before the tokens are expanded), and the
+  // package rule stops the generated file from being updated on its own.
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^template-github/.+\\.yml$/"
+      ],
+      "matchStrings": [
+        "uses:\\s+(?<depName>[^\\s@]+)@(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      // The same versioning as the native github-actions manager, so that a 'v4' pin becomes 'v7' rather than 'v7.0.1'.
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": [
+        ".github/workflows/docker-build.yml"
+      ],
+      "enabled": false
+    }
   ]
 }
