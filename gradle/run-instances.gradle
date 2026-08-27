@@ -21,13 +21,15 @@
 // 'smokeTest', the task that boot-checks the generated images with docker compose: start, wait until XWiki answers,
 // tear down. It needs Docker to be running.
 
-// The version data model (see build.gradle), the 'stream' and 'parseList' helpers (see gradle/helpers.gradle), what the
-// update tasks report (see gradle/update-versions.gradle) and the '-Pcycles' / '-Pvariants' selection, all bound at
-// configuration time rather than read from the project inside the task action below (see build.gradle). The two
-// selections are parsed here and not where they are used, so that they are read the same way wherever they are read.
+// The version data model (see build.gradle), the 'stream', 'capture' and 'parseList' helpers (see
+// gradle/helpers.gradle), what the update tasks report (see gradle/update-versions.gradle) and the '-Pcycles' /
+// '-Pvariants' selection, all bound at configuration time rather than read from the project inside the task action
+// below (see build.gradle). The two selections are parsed here and not where they are used, so that they are read the
+// same way wherever they are read.
 def tokens = project.tokens
 def variants = project.imageVariants
 def stream = project.stream
+def capture = project.capture
 def parseList = project.parseList
 def versionUpdate = project.versionUpdate
 def selectedCycles = project.hasProperty('cycles') ? parseList('cycles', project.property('cycles'),
@@ -177,6 +179,30 @@ smokeTestVariants = { String cycle ->
     return selection as List
 }
 
+// The cycles whose generated directory differs from the last commit. Once 'generate' has run, that is what has not been
+// boot-checked yet: the release flow is './gradlew release', review the diff, commit, push - so anything still
+// uncommitted is a change no successful smoke test has covered.
+//
+// This is read from the working tree rather than only from what the update tasks bumped, because what they bumped is
+// forgotten between invocations while the tree is not. Re-running './gradlew release' after a boot check failed is the
+// case that needs it: the first run already wrote 'versions.json', so the update tasks find everything up to date and
+// report no changed cycle, and a selection built from them alone would be empty - green, having booted nothing, on the
+// one run where booting is what had failed. It also covers a 'template/' edit, which moves no version at all and whose
+// cycles would otherwise have to be named by hand with '-Pcycles'.
+//
+// Two commands printing bare paths rather than one 'git status --porcelain': the status columns of a porcelain line
+// have to be cut off by offset, and 'capture' trims what it returns, so the very first line comes back one character
+// short and the cycle it names drops out of the selection without a trace - the exact kind of silent narrowing this
+// whole selection is here to avoid. 'diff --name-only HEAD' reports the tracked files that moved, staged or not;
+// 'ls-files --others' reports the new ones. A tree git cannot read leaves the selection to what this invocation
+// bumped, which is what it would have been regardless.
+def dirtyCycles
+dirtyCycles = {
+    def changed = capture(['git', 'diff', '--name-only', 'HEAD'], true).readLines() +
+        capture(['git', 'ls-files', '--others', '--exclude-standard'], true).readLines()
+    return changed*.trim().findAll { it }.collect { it.tokenize('/')[0] }.findAll { tokens.containsKey(it) } as Set
+}
+
 // Boot-check the given cycles: build the image of each variant to test, start it with docker compose, wait until
 // XWiki's REST API reports the expected version, then tear it down. By default it tests the cycles whose versions the
 // update tasks bumped in this invocation (used by the 'release' umbrella), or all of them when the shared LibreOffice
@@ -196,14 +222,21 @@ task smokeTest() {
         if (selectedCycles) {
             cycles = selectedCycles
         } else if (versionUpdate.ran && !versionUpdate.allCycles) {
-            // What the update tasks bumped, taken in the model's order rather than in the order they reported it, so
-            // that the cycles are booted oldest key first whichever task reported them.
-            cycles = tokens.keySet().findAll { versionUpdate.changedCycles.contains(it) }
+            // What the update tasks bumped in this invocation, plus what an earlier one regenerated and left
+            // uncommitted, taken in the model's order rather than in the order either source reported it, so that the
+            // cycles are booted oldest key first whichever one named them.
+            def selection = new LinkedHashSet(versionUpdate.changedCycles)
+            selection.addAll(dirtyCycles())
+            cycles = tokens.keySet().findAll { selection.contains(it) }
         } else {
             cycles = tokens.keySet() as List
         }
         if (cycles.isEmpty()) {
-            logger.lifecycle('smokeTest: no cycles to test.')
+            // Say why it is empty. 'no cycles to test' reads the same whether there was nothing to do or whether the
+            // selection failed to name what needed booting, and this task is the release gate: a green run that booted
+            // nothing has to state that it booted nothing on purpose.
+            logger.lifecycle('smokeTest: nothing to test - no version moved and no generated directory differs from ' +
+                'the last commit.')
             return
         }
         // One instance at a time, so they can share the single port above and so a release run needs the resources of

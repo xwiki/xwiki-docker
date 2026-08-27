@@ -98,13 +98,13 @@ task updateXWiki() {
                 return
             }
             // Never put two cycles on the same version line either. The tags a cycle publishes are derived from its
-            // version, so two cycles sharing a major.minor claim the same ones, which docker-library rejects - and the
-            // build refuses to configure at all in that state (see the duplicate tag check in
-            // gradle/official-image.gradle). Writing it here would therefore leave every later './gradlew' failing,
-            // 'generate' included, until 'versions.json' is edited by hand. It is reachable: the stable cycle resolves
-            // to the latest final of its whole major, which is still on the line an intermediate LTS cycle owns until
-            // the next minor is released. Keeping the pin is the right answer there, since that intermediate LTS cycle
-            // is already publishing that version.
+            // version, so two cycles sharing a major.minor claim the same ones and 'library/xwiki' would declare the
+            // same tag twice, which docker-library rejects in front of its maintainers. This refusal is the only thing
+            // standing between that and a submission: nothing downstream compares the tags the cycles produce, so a
+            // 'versions.json' carrying the collision generates and submits without complaining. It is reachable: the
+            // stable cycle resolves to the latest final of its whole major, which is still on the line an intermediate
+            // LTS cycle owns until the next minor is released. Keeping the pin is the right answer there, since that
+            // intermediate LTS cycle is already publishing that version.
             def colliding = tokens.find { c, d -> c != cycle && versionLine(d.xwikiVersion) == versionLine(latest) }
             if (colliding) {
                 logger.lifecycle("XWiki cycle ${cycle}: the latest final version listed is ${latest}, which is on " +
