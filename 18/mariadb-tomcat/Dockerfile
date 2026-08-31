@@ -92,9 +92,9 @@ ENV CURL_OPTIONS="-fSL --retry 5 --retry-all-errors --retry-delay 5 --connect-ti
 # the new link inside that directory instead. We then check that the symlink resolves to an actual soffice binary:
 # since it is the only thing making JODConverter find LibreOffice, an installation landing elsewhere must fail the
 # build rather than produce an image where office import/export silently doesn't work.
-ENV LIBREOFFICE_VERSION="25.8.7"
-ENV LIBREOFFICE_SHA256_AMD64="7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f"
-ENV LIBREOFFICE_SHA256_ARM64="67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa"
+ENV LIBREOFFICE_VERSION="26.2.5"
+ENV LIBREOFFICE_SHA256_AMD64="2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e"
+ENV LIBREOFFICE_SHA256_ARM64="0e72aa19d216f54100389b8b7840e2d1212470d88fddddb1dae9993d06d7e4ec"
 ENV LIBREOFFICE_URL_PREFIX="https://download.documentfoundation.org/libreoffice/stable/${LIBREOFFICE_VERSION}/deb"
 RUN set -eux; \
   LO_ARCH="$(dpkg --print-architecture)"; \
@@ -116,9 +116,9 @@ RUN set -eux; \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="18.6.0"
+ENV XWIKI_VERSION="18.7.0"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 3f4d0210f57efd98be916379e18f4714c600312c22b288f20bbc0ff39a8a4fff
+ENV XWIKI_DOWNLOAD_SHA256 a7241fae987376b568a45494f11b034df9b155ba516d2ab0b20b5212a95803b9
 RUN set -eux; \
   rm -rf /usr/local/tomcat/webapps/*; \
   mkdir -p /usr/local/tomcat/temp; \

@@ -1,14 +1,14 @@
 {
     "libreoffice": {
-        "version": "25.8.7",
-        "sha256Amd64": "7f4d7b2e36921eec5122c655249a24cc88935ee357e8261fd3bccd15aa1f7b9f",
-        "sha256Arm64": "67e9b7dcdeae72c7aa1357345307e67376fc2b729a7f9ebfafb372b010e22ffa"
+        "version": "26.2.5",
+        "sha256Amd64": "2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e",
+        "sha256Arm64": "0e72aa19d216f54100389b8b7840e2d1212470d88fddddb1dae9993d06d7e4ec"
     },
     "cycles": {
         "18": {
             "role": "stable",
-            "xwikiVersion": "18.6.0",
-            "xwikiSha256": "3f4d0210f57efd98be916379e18f4714c600312c22b288f20bbc0ff39a8a4fff",
+            "xwikiVersion": "18.7.0",
+            "xwikiSha256": "a7241fae987376b568a45494f11b034df9b155ba516d2ab0b20b5212a95803b9",
             "mysqlJDBCVersion": "26.7.0",
             "mysqlJDBCSha256": "69084713593a4aa8d07c383619b9639276f08bccf8faf1c562178147d389b1e1",
             "mariadbJDBCVersion": "3.5.10",
