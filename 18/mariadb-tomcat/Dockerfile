@@ -116,9 +116,9 @@ RUN set -eux; \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="18.7.0"
+ENV XWIKI_VERSION="18.8.0"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 a7241fae987376b568a45494f11b034df9b155ba516d2ab0b20b5212a95803b9
+ENV XWIKI_DOWNLOAD_SHA256 4229bed73db82721ee8e795c1136dbf5d9827aade8894027687d95655f8907b1
 RUN set -eux; \
   rm -rf /usr/local/tomcat/webapps/*; \
   mkdir -p /usr/local/tomcat/temp; \

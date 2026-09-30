@@ -7,8 +7,8 @@
     "cycles": {
         "18": {
             "role": "stable",
-            "xwikiVersion": "18.7.0",
-            "xwikiSha256": "a7241fae987376b568a45494f11b034df9b155ba516d2ab0b20b5212a95803b9",
+            "xwikiVersion": "18.8.0",
+            "xwikiSha256": "4229bed73db82721ee8e795c1136dbf5d9827aade8894027687d95655f8907b1",
             "mysqlJDBCVersion": "26.7.0",
             "mysqlJDBCSha256": "69084713593a4aa8d07c383619b9639276f08bccf8faf1c562178147d389b1e1",
             "mariadbJDBCVersion": "3.5.10",
