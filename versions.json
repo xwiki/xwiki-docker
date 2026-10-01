@@ -22,8 +22,8 @@
         },
         "18.4": {
             "role": "intermediate-lts",
-            "xwikiVersion": "18.4.5",
-            "xwikiSha256": "c1c438039c3d50a0ffca8026d758e73f5b72d1275a3ebefd48797fdfdfc53221",
+            "xwikiVersion": "18.4.6",
+            "xwikiSha256": "7d894889ebaeacd15f58a1f2ad4f3513dbf014e427eadabb8f11a22e65d2db57",
             "mysqlJDBCVersion": "26.7.0",
             "mysqlJDBCSha256": "69084713593a4aa8d07c383619b9639276f08bccf8faf1c562178147d389b1e1",
             "mariadbJDBCVersion": "3.5.10",
