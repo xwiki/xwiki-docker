@@ -53,8 +53,8 @@
         "16": {
             "role": "old-lts",
             "libraryComment": "# Previous LTS - Added back temporarily",
-            "xwikiVersion": "16.10.18",
-            "xwikiSha256": "53de2ca1583d8d4b17d858b2b81b615dd29b08dbac73eecd2d61deae7afee5bf",
+            "xwikiVersion": "16.10.19",
+            "xwikiSha256": "ad7de1e6a40746f778fb37320491b1ee0d9cfbead8a2dda666ed028a2593bb34",
             "mysqlJDBCVersion": "9.7.0",
             "mysqlJDBCSha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
             "mariadbJDBCVersion": "3.5.10",
