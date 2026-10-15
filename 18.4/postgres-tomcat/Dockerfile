@@ -116,9 +116,9 @@ RUN set -eux; \
 # Install XWiki as the ROOT webapp context in Tomcat
 # Create the Tomcat temporary directory
 # Configure the XWiki permanent directory
-ENV XWIKI_VERSION="18.4.6"
+ENV XWIKI_VERSION="18.4.7"
 ENV XWIKI_URL_PREFIX "https://maven.xwiki.org/releases/org/xwiki/platform/xwiki-platform-distribution-war/${XWIKI_VERSION}"
-ENV XWIKI_DOWNLOAD_SHA256 7d894889ebaeacd15f58a1f2ad4f3513dbf014e427eadabb8f11a22e65d2db57
+ENV XWIKI_DOWNLOAD_SHA256 08a29d31a7971366324980dd5187758e5c3f9cc6e40071bbe9d5f2c3e8635bb5
 RUN set -eux; \
   rm -rf /usr/local/tomcat/webapps/*; \
   mkdir -p /usr/local/tomcat/temp; \
@@ -131,8 +131,8 @@ RUN set -eux; \
 # Copy the JDBC driver in the XWiki webapp
 # We take the database driver version from the Maven Central repository since we want to control the version 
 # used and have it being consistent with what is tested in the CI.
-ENV POSTGRES_JDBC_VERSION="42.7.13"
-ENV POSTGRES_JDBC_SHA256="6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93"
+ENV POSTGRES_JDBC_VERSION="42.7.14"
+ENV POSTGRES_JDBC_SHA256="73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c"
 ENV POSTGRES_JDBC_PREFIX="https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}"
 ENV POSTGRES_JDBC_ARTIFACT="postgresql-${POSTGRES_JDBC_VERSION}.jar"
 ENV POSTGRES_JDBC_TARGET="/usr/local/tomcat/webapps/ROOT/WEB-INF/lib/${POSTGRES_JDBC_ARTIFACT}"
