@@ -65,7 +65,7 @@ RUN set -eux; \
     libsm6 \
     libx11-xcb1 \
     libnss3 \
-    libxml2 \
+    libxml2-dev \
     libxslt1.1; \
   rm -rf /var/lib/apt/lists/*
 
