@@ -87,14 +87,20 @@ waitForXWiki = { int port, String expectedVersion, long timeoutMillis ->
 // there. The Docker Build workflow builds that way for the same reason, and a check that builds differently from both
 // would miss what they reject.
 //
+// The build is also asked to '--pull' its base image. Without it, the 'FROM tomcat:<version>-jre<java>' of the
+// Dockerfile resolves to whatever the local Docker already holds under that tag, which can be months old: the tag is
+// a floating one that DockerHub keeps rebuilding with security and Debian updates. The image would then be checked on
+// a base that the Docker Official Images infrastructure, which always builds from the current one, will never use, so
+// a breakage brought by the current base would go through a green smoke test.
+//
 // Note that the tag being the one the compose file names, this overwrites whatever the local Docker has under it - the
 // published official image of that version, if it was ever pulled. That is unavoidable (the generated compose file
 // names no other tag) and harmless as long as it is expected: 'docker pull' brings the published one back.
 def buildImage
 buildImage = { String task, String cycle, String variant, File variantDir ->
     logger.lifecycle("${task}: building the XWiki ${cycle} (${variant}) image...")
-    stream(['docker', 'build', '-t', "xwiki:${tokens[cycle].xwikiVersion}-${variant}".toString(), '.'], false,
-        variantDir, [DOCKER_BUILDKIT: '0'])
+    stream(['docker', 'build', '--pull', '-t', "xwiki:${tokens[cycle].xwikiVersion}-${variant}".toString(), '.'],
+        false, variantDir, [DOCKER_BUILDKIT: '0'])
 }
 
 // Render a port/name-isolated compose file for one instance and invoke 'docker compose' on it. The generated
@@ -261,6 +267,12 @@ task smokeTest() {
                     // 'finally' still runs), but not a killed daemon or a reboot - and a smoke test adopting a stale
                     // container from a previous attempt would report on that one instead of on the image just built.
                     composeInstance(instance, ['down', '-v'], true)
+                    // Refresh the database image before starting: the compose file tracks it on its 'latest' tag,
+                    // which 'up' only pulls when it is missing locally, so without this the instance would boot
+                    // against whatever database release was pulled last rather than the one users get. Only the
+                    // 'db' service is pulled, since the 'web' one is the image built just above and its tag does not
+                    // exist on DockerHub yet.
+                    composeInstance(instance, ['pull', 'db'], false)
                     composeInstance(instance, ['up', '-d'], false)
                     if (!waitForXWiki(smokeTestPort, expectedVersion, 600000)) {
                         // Report what the containers said while they still exist: the 'down -v' below takes them, and
