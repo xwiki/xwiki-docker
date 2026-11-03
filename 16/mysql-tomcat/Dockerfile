@@ -92,9 +92,9 @@ ENV CURL_OPTIONS="-fSL --retry 5 --retry-all-errors --retry-delay 5 --connect-ti
 # the new link inside that directory instead. We then check that the symlink resolves to an actual soffice binary:
 # since it is the only thing making JODConverter find LibreOffice, an installation landing elsewhere must fail the
 # build rather than produce an image where office import/export silently doesn't work.
-ENV LIBREOFFICE_VERSION="26.2.6"
-ENV LIBREOFFICE_SHA256_AMD64="fd0e8f8f2408dd2e5b90286e60f3f97cf566ba441cd48cfc5bcc68067303e0bc"
-ENV LIBREOFFICE_SHA256_ARM64="f8e8b1d30abde0d530d727ce1b26909ccbedc3d76bcf75d93b3dd5fcd5b8d278"
+ENV LIBREOFFICE_VERSION="26.2.7"
+ENV LIBREOFFICE_SHA256_AMD64="8cd04a88396a9230264ff784ec89cc090cbfd0960c192483ba2b80fa53939416"
+ENV LIBREOFFICE_SHA256_ARM64="d871da75fe387f9dab5acb7569d46d1098835c25b53695c89152f5194ad34411"
 ENV LIBREOFFICE_URL_PREFIX="https://download.documentfoundation.org/libreoffice/stable/${LIBREOFFICE_VERSION}/deb"
 RUN set -eux; \
   LO_ARCH="$(dpkg --print-architecture)"; \

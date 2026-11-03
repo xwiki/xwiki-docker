@@ -1,8 +1,8 @@
 {
     "libreoffice": {
-        "version": "26.2.6",
-        "sha256Amd64": "fd0e8f8f2408dd2e5b90286e60f3f97cf566ba441cd48cfc5bcc68067303e0bc",
-        "sha256Arm64": "f8e8b1d30abde0d530d727ce1b26909ccbedc3d76bcf75d93b3dd5fcd5b8d278"
+        "version": "26.2.7",
+        "sha256Amd64": "8cd04a88396a9230264ff784ec89cc090cbfd0960c192483ba2b80fa53939416",
+        "sha256Arm64": "d871da75fe387f9dab5acb7569d46d1098835c25b53695c89152f5194ad34411"
     },
     "cycles": {
         "18": {
@@ -22,12 +22,12 @@
         },
         "18.4": {
             "role": "intermediate-lts",
-            "xwikiVersion": "18.4.7",
-            "xwikiSha256": "08a29d31a7971366324980dd5187758e5c3f9cc6e40071bbe9d5f2c3e8635bb5",
-            "mysqlJDBCVersion": "26.7.0",
-            "mysqlJDBCSha256": "69084713593a4aa8d07c383619b9639276f08bccf8faf1c562178147d389b1e1",
-            "mariadbJDBCVersion": "3.5.10",
-            "mariadbJDBCSha256": "919b8c1c771d9ee3465811462f242c9543ab401e140c64988ddbf1d8abcb18b2",
+            "xwikiVersion": "18.4.8",
+            "xwikiSha256": "26f65eaed606ad84cfa9434304b9d5e2b77a9d3cb7b791e63df56646af574feb",
+            "mysqlJDBCVersion": "26.10.0",
+            "mysqlJDBCSha256": "cef70caf532833c9ab8f41f74773ce22c08bf503fad215c9c2ee1e9db87e759e",
+            "mariadbJDBCVersion": "4.0.0",
+            "mariadbJDBCSha256": "bb1211dac59ef4c54b7a8ad4755a913d36d2e81b34ca1d4cb9ffa9d5633df01f",
             "postgresJDBCVersion": "42.7.14",
             "postgresJDBCSha256": "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c",
             "tomcatImageTag": {
