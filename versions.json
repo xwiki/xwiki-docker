@@ -37,12 +37,12 @@
         },
         "17": {
             "role": "lts",
-            "xwikiVersion": "17.10.14",
-            "xwikiSha256": "dced6dae8c9f0e02866bdf6550e3d29cef52e626c63f68ea3de297eb3c284abc",
-            "mysqlJDBCVersion": "26.7.0",
-            "mysqlJDBCSha256": "69084713593a4aa8d07c383619b9639276f08bccf8faf1c562178147d389b1e1",
-            "mariadbJDBCVersion": "3.5.10",
-            "mariadbJDBCSha256": "919b8c1c771d9ee3465811462f242c9543ab401e140c64988ddbf1d8abcb18b2",
+            "xwikiVersion": "17.10.15",
+            "xwikiSha256": "d9d761d6ac4a86c8bb2733ea9a872ef54162ab1c528fb58ed5da0ccd304525b4",
+            "mysqlJDBCVersion": "26.10.0",
+            "mysqlJDBCSha256": "cef70caf532833c9ab8f41f74773ce22c08bf503fad215c9c2ee1e9db87e759e",
+            "mariadbJDBCVersion": "4.0.0",
+            "mariadbJDBCSha256": "bb1211dac59ef4c54b7a8ad4755a913d36d2e81b34ca1d4cb9ffa9d5633df01f",
             "postgresJDBCVersion": "42.7.14",
             "postgresJDBCSha256": "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c",
             "tomcatImageTag": {
