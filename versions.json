@@ -17,7 +17,7 @@
             "postgresJDBCSha256": "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c",
             "tomcatImageTag": {
                 "tomcatVersion": "10",
-                "javaVersion": "21"
+                "javaVersion": "25"
             }
         },
         "18.4": {
@@ -32,7 +32,7 @@
             "postgresJDBCSha256": "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c",
             "tomcatImageTag": {
                 "tomcatVersion": "10",
-                "javaVersion": "21"
+                "javaVersion": "25"
             }
         },
         "17": {
@@ -47,7 +47,7 @@
             "postgresJDBCSha256": "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c",
             "tomcatImageTag": {
                 "tomcatVersion": "10",
-                "javaVersion": "21"
+                "javaVersion": "25"
             }
         },
         "16": {
