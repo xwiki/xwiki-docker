@@ -27,7 +27,8 @@
 // order and it matters: each one binds what the earlier ones exposed on the project (the helpers, the model, the
 // tasks it orders), at configuration time, so reordering the 'apply from' lines breaks the build there.
 // - gradle/helpers.gradle: the HTTP, hashing and process helpers shared by the tasks below.
-// - gradle/update-versions.gradle: 'updateXWiki', 'updateJDBC' and 'updateLibreOffice', which refresh 'versions.json'.
+// - gradle/update-versions.gradle: 'updateXWiki', 'updateJDBC', 'updateJava' and 'updateLibreOffice', which refresh
+//   'versions.json'.
 // - gradle/run-instances.gradle: 'smokeTest', which boots the generated images and checks that XWiki answers.
 // - gradle/official-image.gradle: 'submitOfficialImage', which opens the DockerHub official-images Pull Request.
 // - gradle/release.gradle: the 'release' umbrella chaining the above, and the ordering they need.
@@ -46,7 +47,9 @@ def variants = ['mysql-tomcat', 'mariadb-tomcat', 'postgres-tomcat']
 // - 'xwikiVersion' / 'xwikiSha256': the WAR the image downloads, updated by './gradlew updateXWiki'.
 // - the per-DB JDBC driver version + sha256: updated by './gradlew updateJDBC' from the cycle's own xwiki-platform POM
 //   (i.e. the versions XWiki was tested against, stored per cycle since each cycle may test against different ones).
-// - 'tomcatImageTag': the Tomcat and Java versions of the base image for that cycle.
+// - 'tomcatImageTag': the Tomcat and Java versions of the base image for that cycle. The Java version is the highest
+//   one the cycle's XWiki version officially supports, updated by './gradlew updateJava' from the cycle's own
+//   xwiki-commons POM once a Tomcat image exists for it.
 // - 'libraryComment' (optional): overrides the section comment emitted in the official Docker library file.
 // The LibreOffice values are shared by all the cycles, since XWiki officially supports a single LibreOffice version,
 // the LTS one (aka "Previous Release"), whatever the XWiki version, see

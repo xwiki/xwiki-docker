@@ -19,10 +19,10 @@
  */
 
 // The tasks that refresh the version data model in 'versions.json': the XWiki version of each cycle, the JDBC driver
-// versions of each cycle, and the shared LibreOffice version. They all resolve the values from the same places XWiki
-// itself uses and compute the sha256 of the artifacts the images download, so that no version or hash has to be found,
-// downloaded and pasted by hand. Run './gradlew' afterwards to regenerate the images (or use the 'release' umbrella,
-// which chains everything in the right order).
+// versions of each cycle, the Java version of each cycle base image, and the shared LibreOffice version. They all
+// resolve the values from the same places XWiki itself uses and compute the sha256 of the artifacts the images
+// download, so that no version or hash has to be found, downloaded and pasted by hand. Run './gradlew' afterwards to
+// regenerate the images (or use the 'release' umbrella, which chains everything in the right order).
 
 // The version data model (see build.gradle) and the shared helpers (see gradle/helpers.gradle), bound at configuration
 // time rather than read from the project inside the task actions below (see build.gradle).
@@ -30,6 +30,7 @@ def tokens = project.tokens
 def versionsConfig = project.versionsConfig
 def writeVersions = project.writeVersions
 def httpGetText = project.httpGetText
+def httpExists = project.httpExists
 def sha256OfUrl = project.sha256OfUrl
 def compareVersions = project.compareVersions
 
@@ -210,6 +211,68 @@ task updateJDBC() {
         changedDatabases.each { cycle, databases ->
             versionUpdate.changedDatabases.computeIfAbsent(cycle) { new LinkedHashSet() }.addAll(databases)
         }
+    }
+}
+
+// For each existing cycle, move the Java version of the base image to the highest one that cycle's XWiki officially
+// supports, i.e. the 'xwiki.java.version.support' property of its xwiki-commons POM (XWiki only ever declares an LTS
+// Java version there), rather than the minimum one XWiki is built for: more recent versions bring various improvements,
+// it is the version XWiki's CI tests the most, and it lets the image run extensions requiring a more recent Java than
+// the minimum. See https://forum.xwiki.org/t/19077.
+//
+// The switch only happens once the official Tomcat image publishes a tag for that Java version with the cycle's Tomcat
+// version: those images often lag a bit behind a new Java LTS, and a Dockerfile pointing at a tag that does not exist
+// yet could not be built. Like the other update tasks it never goes backwards: a pinned version ahead of the POM is a
+// deliberate choice made by hand, not something to silently revert.
+task updateJava() {
+    group = 'release'
+    description = 'Updates the Java version of each cycle base image to the highest one its XWiki version supports.'
+    doLast {
+        def changed = []
+        tokens.each { cycle, data ->
+            def version = data.xwikiVersion
+            // XWiki Commons, Rendering and Platform are released together with the same version, so the cycle's
+            // xwiki-commons POM is the one of its XWiki version. It is read from Maven Central, where XWiki Commons is
+            // published (maven.xwiki.org does not serve it under its releases repository).
+            def pomUrl = 'https://repo1.maven.org/maven2/org/xwiki/commons/xwiki-commons/' +
+                "${version}/xwiki-commons-${version}.pom"
+            def property = 'xwiki\\.java\\.version\\.support'
+            def matcher = (httpGetText(pomUrl) =~ /<${property}>([^<]+)<\/${property}>/)
+            if (!matcher.find()) {
+                logger.lifecycle("Cycle ${cycle}: no <xwiki.java.version.support> in [${pomUrl}]; keeping Java " +
+                    "${data.tomcatImageTag.javaVersion}.")
+                return
+            }
+            def supported = matcher.group(1).trim()
+            def pinned = data.tomcatImageTag.javaVersion
+            if (supported == pinned) {
+                logger.lifecycle("Cycle ${cycle}: Java already up to date (${pinned}).")
+                return
+            }
+            if (compareVersions(supported, pinned) < 0) {
+                logger.lifecycle("Cycle ${cycle}: the highest supported Java version is ${supported}, keeping the " +
+                    "pinned ${pinned} which is ahead of it.")
+                return
+            }
+            def tag = "${data.tomcatImageTag.tomcatVersion}-jre${supported}"
+            if (!httpExists("https://hub.docker.com/v2/repositories/library/tomcat/tags/${tag}")) {
+                logger.lifecycle("Cycle ${cycle}: XWiki supports Java ${supported} but there is no [tomcat:${tag}] " +
+                    "image yet; keeping Java ${pinned}.")
+                return
+            }
+            logger.lifecycle("Cycle ${cycle}: Java ${pinned} -> ${supported} (tomcat:${tag}).")
+            data.tomcatImageTag.javaVersion = supported
+            changed << cycle
+        }
+        if (!changed.isEmpty()) {
+            writeVersions()
+            logger.lifecycle("Updated the Java version of cycle(s): ${changed.join(', ')}.")
+            logger.lifecycle("Run './gradlew' to regenerate the images.")
+        }
+        // Record the changed cycles so that a chained 'smokeTest' (in the 'release' umbrella) boots them: a new Java
+        // version changes the whole runtime of the image, which is exactly what is worth checking.
+        versionUpdate.ran = true
+        versionUpdate.changedCycles.addAll(changed)
     }
 }
 
