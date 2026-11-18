@@ -38,9 +38,10 @@ def httpRetryDelayMillis = 5000
 // A transient failure - an IOException, including one raised while the consumer is reading, or a status saying "try
 // again later" - restarts the whole fetch, redirect chain included, so 'consumer' must tolerate running more than
 // once. A status that will not get better on its own (a 404 on a version that does not exist, say) fails immediately
-// rather than burning the delays first.
+// rather than burning the delays first, unless 'onNotFound' is given, in which case a 404 returns what it returns: for
+// the callers to which a missing resource is an answer rather than an error.
 def httpGet
-httpGet = { String location, int readTimeout, Closure consumer ->
+httpGet = { String location, int readTimeout, Closure consumer, Closure onNotFound = null ->
     def failure = null
     for (int attempt = 1; attempt <= httpAttempts; attempt++) {
         try {
@@ -60,6 +61,9 @@ httpGet = { String location, int readTimeout, Closure consumer ->
                     } finally {
                         connection.disconnect()
                     }
+                } else if (status == 404 && onNotFound != null) {
+                    connection.disconnect()
+                    return onNotFound()
                 } else {
                     connection.disconnect()
                     def message = "Unexpected HTTP status [$status] while fetching [$current]"
@@ -88,6 +92,13 @@ def httpGetText = { String location ->
     return httpGet(location, 30000) { input -> input.getText('UTF-8') }
 }
 ext.httpGetText = httpGetText
+
+// Tell whether a URL exists, i.e. answers 200 rather than 404, without reading what it serves. Any other status is
+// still an error, so that a server having a bad minute is not mistaken for a missing resource.
+def httpExists = { String location ->
+    return httpGet(location, 30000, { input -> true }, { false })
+}
+ext.httpExists = httpExists
 
 // Stream a URL through a SHA-256 digest without buffering the whole payload in memory, and return the lowercase hex
 // digest. Used to hash the (large) XWiki WAR and the JDBC driver JARs.
