@@ -20,7 +20,7 @@
 
 # Adjust the Solr major version to match your XWiki version (XWiki supports the current and previous Solr major
 # versions), keeping it consistent with the core packages downloaded below.
-FROM solr:9
+FROM solr:10
 
 # The XWiki version whose Solr cores to install. It must match the version of XWiki you run. Override at build time
 # with "--build-arg XWIKI_VERSION=<version>".
