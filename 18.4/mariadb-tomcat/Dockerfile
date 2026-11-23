@@ -173,6 +173,14 @@ COPY xwiki/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # across runs)
 VOLUME /usr/local/xwiki
 
+# Make openshift compatible https://docs.redhat.com/en/documentation/openshift_container_platform/4.8/html/images/creating-images#images-create-guide-openshift_create-images
+RUN chgrp -R 0 /usr/local/tomcat/webapps/ROOT && \
+    chmod -R g=u /usr/local/tomcat/webapps/ROOT
+RUN chgrp -R 0 /usr/local/tomcat/conf && \
+    chmod -R g=u /usr/local/tomcat/conf
+RUN chgrp -R 0 /var/cache/fontconfig && \
+    chmod -R g=u /var/cache/fontconfig
+
 # At this point the image is done and what remains below are the runtime configuration used by the user to configure
 # the container that will be created out of the image. Namely the user can override some environment variables with
 #   docker run -e "var1=val1" -e "var2=val2" ...
